@@ -3,7 +3,7 @@ name: Playwright Tests
 on:
   push:
     branches:
-    - master
+    - main
   pull_request:
   workflow_dispatch:
     inputs:
@@ -19,6 +19,9 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read  # paths-filter lists the PR's changed files through the API
     # Set job outputs to values from filter step
     outputs:
       changed: ${{ steps.filter.outputs.changed }}
@@ -69,13 +72,13 @@ jobs:
       uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
         version: "latest-known"
+    - name: Create local .env from the example
+      run: cp .env.example .env
     - run: uv sync
       working-directory: backend
     - run: bun ci
       working-directory: frontend
     - run: bash scripts/generate-client.sh
-    - name: Create local .env from the example
-      run: cp .env.example .env
     - run: docker compose build
     - run: docker compose down -v --remove-orphans
     - run: docker compose run --rm backend bash scripts/prestart.sh
