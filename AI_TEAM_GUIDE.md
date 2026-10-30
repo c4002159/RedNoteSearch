@@ -75,5 +75,6 @@ AI 编码助手用于加快实现，不改变需求基线、接口、安全边�
 
 - 骨架从 `fastapi/full-stack-fastapi-template` 的 `master` 分支取起始快照；记录采用时的 commit SHA，后续不直接追随上游更新。我们自己的仓库以 `main` 为集成分支。
 - 功能分支从 `main` 拉出，命名 `feat/<owner>-<ticket>-<short-name>`；修复用 `fix/<owner>-<ticket>-<short-name>`。禁止直接推送 `main`（初始快照除外）。
-- 仓库 `c4002159/RedNoteSearch`（私有）：A（c4002159）维护 main，B（CHNERUI）为写权限协作者；任何 PR 合入 main 须通过必选 CI 检查并获另一位成员批准，管理员也不能绕过。
+- 仓库 `c4002159/RedNoteSearch`（私有）：A（c4002159）维护 main，B（CHNERUI）为写权限协作者；任何 PR 合入 main 须通过必选 CI 检查，管理员也不能绕过；**GitHub 不强制他人批准**（ADR-009）。
+- 改契约、迁移、认证与品牌授权、检索过滤、提示词与合规规则、CI、依赖锁时：AI 须提醒作者在合并前于 PR 评论里 @ 对方并等到确认，不得因为没有强制批准而跳过。
 - PR 描述须注明是否使用 AI 及其范围。

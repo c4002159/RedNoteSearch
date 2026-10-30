@@ -17,7 +17,9 @@
 
 | 文件 | 内容 |
 |---|---|
+| [CLAUDE.md](./CLAUDE.md) | AI 助手入口：阅读顺序与当前状态（自动加载 AI_TEAM_GUIDE） |
 | [AI_TEAM_GUIDE.md](./AI_TEAM_GUIDE.md) | 与 AI 协作的边界、文件所有权、自检与 PR 规则 |
+| [docs/TECHNICAL_DOC.md](./docs/TECHNICAL_DOC.md) | 技术文档（开发协作基线）：需求与边界、架构、前端约束、数据库、分工、Git 与 CI、测试、AI 协作（Markdown 版；Word 快照见 `docs/TECHNICAL_DOC_v1.3.docx`） |
 | [docs/API_CONTRACT.md](./docs/API_CONTRACT.md) | 接口契约 v1.1（字段以此为准） |
 | [docs/TEST_CASES.csv](./docs/TEST_CASES.csv) | 64 条测试用例 |
 | [docs/decisions/](./docs/decisions/) | 决策记录 ADR-001 至 ADR-008 |
@@ -26,7 +28,7 @@
 
 - 成员 A（c4002159）：main 维护者；认证、品牌、商品、知识库、解析索引、审计及对应页面与数据表；应用壳；CI、compose、依赖锁。
 - 成员 B（CHNERUI）：场景、生成、约束、证据、合规、评测、模型适配及对应页面与数据表。
-- `main` 受保护：禁止直推；合并须通过必选 CI 并获另一位成员批准；功能分支 `feat/<owner>-<ticket>-<short-name>`，修复 `fix/<owner>-<ticket>-<short-name>`。
+- `main` 受保护：禁止直推；合并须通过必选 CI（不强制他人批准，见 ADR-009）；改契约、迁移、认证与品牌授权、检索过滤、提示词与合规规则、CI、依赖锁的 PR，作者须在合并前 @ 对方并等到确认；功能分支 `feat/<owner>-<ticket>-<short-name>`，修复 `fix/<owner>-<ticket>-<short-name>`。
 
 ## 本地开发
 
