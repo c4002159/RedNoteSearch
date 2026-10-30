@@ -52,6 +52,8 @@ jobs:
             requirements**.txt
             pyproject.toml
             uv.lock
+      - name: Create local .env from the example
+        run: cp .env.example .env
       - name: Install backend dependencies
         run: uv sync --all-packages
       - name: Install frontend dependencies
