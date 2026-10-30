@@ -21,7 +21,7 @@
 | [AI_TEAM_GUIDE.md](./AI_TEAM_GUIDE.md) | 与 AI 协作的边界、文件所有权、自检与 PR 规则 |
 | [docs/TECHNICAL_DOC.md](./docs/TECHNICAL_DOC.md) | 技术文档（开发协作基线）：需求与边界、架构、前端约束、数据库、分工、Git 与 CI、测试、AI 协作（Markdown 版；Word 快照见 `docs/TECHNICAL_DOC_v1.3.docx`） |
 | [docs/API_CONTRACT.md](./docs/API_CONTRACT.md) | 接口契约 v1.1（字段以此为准） |
-| [docs/TEST_CASES.csv](./docs/TEST_CASES.csv) | 64 条测试用例 |
+| [docs/TEST_CASES.csv](./docs/TEST_CASES.csv) | 67 条测试用例 |
 | [docs/decisions/](./docs/decisions/) | 决策记录 ADR-001 至 ADR-008 |
 
 ## 分工与分支
@@ -44,6 +44,30 @@ cd frontend && bun install && bun run dev
 
 整栈：`docker compose run --rm backend bash scripts/prestart.sh && docker compose watch`。
 更多命令见 [development.md](./development.md)。CI 已在 Linux 上验证整栈 compose 启动、迁移与后端测试（PR #3）；上述本地命令尚未在开发机上实测。
+
+## 配置模型密钥（只放本机 `.env`）
+
+`.env` 已被 git 忽略；`.env.example` 里只有空的占位变量：`DEEPSEEK_API_KEY`、`DASHSCOPE_API_KEY`（阿里云百炼）、`OPENAI_API_KEY`。**不要把密钥发到聊天、提交或截图里。**
+
+Git Bash（输入时不回显；每个密钥执行一次）：
+
+```bash
+cd /d/RedBookMarketingAgent/app
+[ -f .env ] || cp .env.example .env
+read -rsp "DASHSCOPE_API_KEY: " k; echo; printf 'DASHSCOPE_API_KEY=%s\n' "$k" >> .env; unset k
+```
+
+PowerShell：
+
+```powershell
+cd D:\RedBookMarketingAgent\app
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+$s = Read-Host "DASHSCOPE_API_KEY" -AsSecureString
+$k = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))
+Add-Content -Path .env -Value "DASHSCOPE_API_KEY=$k"; Remove-Variable k, s
+```
+
+把变量名换成 `DEEPSEEK_API_KEY` 或 `OPENAI_API_KEY` 即可。检查是否写入（只显示变量名，不显示值）：`grep -o "^[A-Z_]*_API_KEY=" .env`；确认 `.env` 被忽略：`git check-ignore .env`（应输出 `.env`）。
 
 ## 不得提交
 

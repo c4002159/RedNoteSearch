@@ -31,7 +31,7 @@
 | 需求范围与指标 | 需求规格说明书 v1.0 | 本文第 1–2 章是其执行视图；范围变更须更新规格书 |
 | API 字段、状态码、示例 | docs/API_CONTRACT.md（v1.1） | 字段以契约为准；本文第 6 章只做摘要 |
 | AI 编码边界 | AI_TEAM_GUIDE.md | 本文第 11 章为整合版，二者须保持一致 |
-| 测试用例 | docs/TEST_CASES.csv（64 条） | 本文第 10 章引用全部；TC-037 已并入 TC-005 |
+| 测试用例 | docs/TEST_CASES.csv（67 条） | 本文第 10 章引用全部；TC-037 已并入 TC-005 |
 | 流程、分支、CI、前端约束、技术栈 | 本文 | 修改须经 PR；GitHub 不强制批准（ADR-009），敏感路径须在评论里 @ 对方并等到确认 |
 
 *表 0-1 文档权威来源*
@@ -69,8 +69,8 @@
 | F1 | 品牌与商品、品牌档案（版本化）。品牌上下文由服务端从授权关系取；商品卖点须关联资料来源。品牌创建仅管理员，P0 可由种子数据提供 | A | 品牌切换、商品管理、品牌档案页 | brands、products、voice-profile；brand、brand_member、product、brand_voice_profile | TC-003、004 |
 | F2 | 知识库审核流。管理员直接入库→approved 并记 admin_direct_ingest 审计；运营提交→pending_review，通过后才索引；待审永不检索；新版本重新审核，旧版本保留；停用而非物理删除；格式 PDF/DOCX/MD/CSV；不做扫描件 OCR | A | 资料列表与上传、待审队列、审核、版本与审核记录、停用 | knowledge-documents、knowledge-submissions、reviews、deactivate；解析与索引；kb_document、kb_review、kb_chunk、audit_log | TC-005–012、048 |
 | F3 | 任务输入快照。当次资料保存内容快照与哈希，只属于该任务；之后修改、停用或提交入库不影响旧版本。A 提供存储与接口，B 通过统一接口读取 | A（存储） / B（消费） | 生成工作台中的资料输入区（B） | task_input 与快照接口（A）；证据消费（B） | TC-013、021 |
-| F4 / F5 | 场景模板与风格、结构化生成：标题候选（每条 ≤20 字）、正文、标签、封面文案候选 2–3 条；可局部重写；不做图片 | B | 生成工作台、场景与风格选择、结果页四类字段 | scenarios、tasks、generate、versions；scenario_template、style_preset、task、generation_version | TC-014、015 |
-| F6 | 约束检查：标题字数、必含词、禁用词、字段完整；代码判定；失败按配置重试，仍失败为 constraint_failed | B | 约束结果面板、字数提示 | 约束服务；constraint_check | TC-016–018 |
+| F4 / F5 | 场景模板与风格、结构化生成：标题候选（每条加权长度 ≤20，纯中文 20 字、纯英文 40 字符）、正文（≤1000，去掉换行后的 UTF-16 码元）、标签（≤10）、封面文案候选 2–3 条；可局部重写；不做图片 | B | 生成工作台、场景与风格选择、结果页四类字段 | scenarios、tasks、generate、versions；scenario_template、style_preset、task、generation_version | TC-014、015 |
+| F6 | 约束检查：标题加权长度 ≤20、正文 ≤1000、标签 ≤10、必含词、禁用词、字段完整；代码判定；失败按配置重试，仍失败为 constraint_failed | B | 约束结果面板、字数提示 | 约束服务；constraint_check | TC-016–018 |
 | F7 | 事实证据：抽取断言，匹配已审核知识库或任务资料；状态 system_supported / evidence_missing / needs_human_review；证据不足不写具体事实；人工确认入口 | B | 证据面板：来源级别、文档版本、状态、人工确认 | 证据服务；claim_evidence | TC-019–021 |
 | F8 | 合规风险提示三层：词库正则 / 语境 / 功效依据；规则带来源、版本、适用范围；block 级问题改写并重检；不称合规通过 | B | 风险面板（高亮、规则出处、严重度、建议）、规则查看页 | 合规服务；compliance_rule、compliance_check | TC-022–024 |
 | F9 | 编辑与交付：编辑产生新版本并复检最终文本；运营确认得 ready_to_copy；复制为小红书格式；导出 Markdown | B | 编辑器、版本对比、确认、复制（含降级文本框） | edit、recheck、confirm；generation_version | TC-025–027 |
@@ -108,7 +108,7 @@
 | 确认语义 | ready_to_copy 仅表示运营确认稿件，记录 confirmed_by / confirmed_at；不表示合规获批 |
 | 复检 | 任何编辑后的最终文本必须重新运行约束、证据、合规三项检查；旧版本与旧检查快照不被覆盖 |
 | 重试与幂等 | 默认（提案，待 A、B 确认）：模型调用失败重试 ≤2 次（指数退避）；约束不通过重新生成 ≤2 次；合规改写 ≤2 轮；均可配置。生成接口使用 Idempotency-Key，防止重复生成 |
-| 字数口径 | 已确认（ADR-004）：按 Unicode 字素簇计数（emoji 序列、组合字符算 1），口径可配置；小红书发布端实际计数规则待实测，实测后可调；后端为权威，前端提示与之一致，并有 emoji、空格、标点、组合字符边界测试 |
+| 字数口径 | 已修订（ADR-004，2026-10-31）：与小红书发布页一致。标题：ASCII 可打印字符计 0.5、其余计 1，≤20；正文：去掉换行后的 UTF-16 码元数，emoji 计 2，≤1000；标签 ≤10，其可见字符计入正文预算。后端为权威，前端镜像同一规则，两边用同一组边界用例核对 |
 | 禁用措辞 | 界面、接口说明、日志、导出文本中不出现：合规通过、已验证事实、法务批准、保证合规；CI 有扫描（见 9.3） |
 | 日志脱敏 | 不记录密钥、密码、完整敏感资料；错误响应不返回 traceback、API 密钥或模型原始敏感内容 |
 
@@ -313,7 +313,7 @@ RedNoteSearch/
 | 知识资料 | POST knowledge-documents（admin 直入库，approved）；POST knowledge-documents/{id}/versions；POST knowledge-submissions（运营，pending_review）；GET 列表与详情；GET chunks；POST reindex；POST reviews；POST deactivate | A | 见权限矩阵 |
 | 场景与风格 | GET /scenarios；GET、POST /brands/{id}/style-presets | B | 登录 / 成员 |
 | 任务与生成 | POST、GET /tasks；POST /tasks/{id}/generate（202，幂等）；GET /tasks/{id}；GET versions；GET /generation-versions/{id} | B | 品牌成员 |
-| 编辑与确认 | POST edit、rewrite、recheck、confirm（需选定标题与封面）；POST /claim-evidence/{id}/confirm；GET export?format=xhs_text\|markdown（仅 ready_to_copy） | B | 品牌成员 |
+| 编辑与确认 | POST edit、rewrite、recheck、confirm（需选定标题与封面）；POST /claim-evidence/{id}/confirm；GET export?format=xhs_parts\|markdown（仅 ready_to_copy） | B | 品牌成员 |
 | 合规规则 | GET /compliance-rules；GET /compliance-rules/{id}（增改属 P2） | B | 登录 |
 | 评测 | GET、POST /evaluation/datasets；GET cases；GET rubrics；POST、GET runs；POST ratings；GET agreement | B | 品牌 admin |
 | 模型 | GET /models（价格为配置数据） | B | 登录 |
@@ -329,13 +329,13 @@ RedNoteSearch/
 | 分页排序 | page、page_size（默认 20，最大 100，超过 422）；sort=-created_at；响应含 total、page、page_size |
 | 幂等与轮询 | generate、评测运行、模型对比支持 Idempotency-Key；GET 轮询先 2 秒，退避到 5 秒；progress.stage 枚举固定 |
 | 文件限制 | PDF 与 DOCX ≤50 MB（演示手册约 42 MB 不得被拒）；MD 与 CSV ≤5 MB；粘贴文本 ≤100 KB；超限 FILE_TOO_LARGE、类型不符 UNSUPPORTED_FILE_TYPE、解析失败 PARSE_FAILED，均不得落半成品索引 |
-| 复制格式 xhs_text | 选定标题、空行、正文（统一换行符为 \n、去行尾空白）、空行、#标签 以单空格分隔；无 Markdown；封面文案不并入；仅 ready_to_copy 可导出 |
+| 复制格式 xhs_parts | 标题、正文、标签三者分开（界面三个复制按钮）；标签不含 #，复制时拼成 #标签1 #标签2；粘贴不会变成话题（ADR-005）；封面文案不并入；仅 ready_to_copy 可导出 |
 | 确认前置 | confirm 须选定 selected_title_index 与 selected_cover_index，且无未处理 block 级风险、检查已针对最终文本运行，否则 INVALID_STATE |
 | 证据确认 | 系统判定与人工确认分开存储：claim-evidence confirm 不改变 status，只记录 human_confirmed 与确认人 |
 
 *表 6-2 通用约定*
 
-仍待补：P1 接口细节（爆款分析、模型对比、任务文件输入）；合规规则的增改（P2）。标签写法已确认为纯文本 #标签（ADR-005），发布端实测后再调。
+仍待补：P1 接口细节（爆款分析、模型对比、任务文件输入）；合规规则的增改（P2）。复制格式已按发布页实测改为标题、正文、标签三个独立复制（ADR-005）。
 
 # 7. 双人分工（全栈纵向切片）
 
@@ -475,7 +475,7 @@ RedNoteSearch/
 
 *表 10-1 测试分层*
 
-## 10.2 用例清单（docs/TEST_CASES.csv，共 64 条）
+## 10.2 用例清单（docs/TEST_CASES.csv，共 67 条）
 
 由原 37 条整理而来：TC-037 已并入 TC-005（编号保留不再使用，共 36 条原用例）；TC-003 与 TC-012 按新的 403/404 策略与文件限制更新；新增 TC-038–048（契约补齐相关）、TC-F01–F10（前端）、TC-C01–C07（CI 与仓库）。
 
@@ -496,7 +496,7 @@ RedNoteSearch/
 | TC-013 | P0 | 任务资料快照不变 | 前置：运营任务资料已创建<br>步骤：修改源文件或将资料提交知识库；读取旧生成版本 | 原任务快照/hash/引用不变；新任务按授权策略处理 | 集成 |
 | TC-014 | P0 | 多场景模板版本 | 前置：已配置多个场景和模板版本<br>步骤：选择场景生成并读取 generation version | 记录正确 scenario/template version；旧版本仍可追溯 | 集成 |
 | TC-015 | P0 | 结构化生成 schema | 前置：模型返回符合 schema 内容<br>步骤：提交生成任务 | 返回 title_candidates/body/hashtags/cover_candidates；缺字段响应按失败处理 | 契约/集成 |
-| TC-016 | P0 | 标题 20 字边界 | 前置：生成候选标题 20 字和 21 字各一条<br>步骤：运行约束检查 | 20 字通过；21 字失败；计数字符口径明确并覆盖 emoji 边界 | 单元 |
+| TC-016 | P0 | 标题加权长度边界 | 前置：候选标题：20 个汉字、21 个汉字、40 个英文或数字、41 个、10 个汉字加 20 个半角、10 个汉字加 21 个半角<br>步骤：运行约束检查 | 20 个汉字通过，21 个失败；40 个半角通过，41 个失败；10 汉字加 20 半角（权重 20）通过，加 21 半角（20.5）失败；ASCII 可打印字符计 0.5，其余计 1（ADR-004） | 单元 |
 | TC-017 | P0 | 必含词与禁用词 | 前置：设置必含词及禁用词<br>步骤：分别输入通过、缺必含词、命中禁用词文本 | 检查结果精确标出字段和命中词；规则来自对应品牌 | 单元 |
 | TC-018 | P0 | 约束失败重试上限 | 前置：模型连续返回不合格结果<br>步骤：执行生成流程 | 仅按配置次数重试；仍失败则 constraint_failed；不无限调用模型 | 集成 |
 | TC-019 | P0 | 证据支持标注 | 前置：已审核资料含明确断言<br>步骤：生成包含该断言的笔记并查看 evidence | 展示“系统判定支持”、来源级别、文档版本、chunk 和理由；不显示事实保证 | 集成/人工评审 |
@@ -507,7 +507,7 @@ RedNoteSearch/
 | TC-024 | P0 | 改写后强制重检 | 前置：原稿存在 block 级风险<br>步骤：执行改写并检查日志/版本 | 改写生成新版本，约束/证据/合规检查均重新运行；保留前后稿 | 集成 |
 | TC-025 | P0 | 运营编辑后复检 | 前置：已有 checks_completed 版本<br>步骤：编辑文本并保存 | 新 version_no，状态 edited_pending_recheck；旧检查快照未被覆盖 | 集成 |
 | TC-026 | P0 | 运营确认状态命名 | 前置：最终稿检查完成并有人工作业确认<br>步骤：调用 confirm API | ready_to_copy 并记录确认人时间；界面不称“合规通过” | 集成/UI |
-| TC-027 | P0 | 复制发布格式 | 前置：ready_to_copy 稿件<br>步骤：点击复制并检查粘贴文本 | 纯文本字段顺序正确；标签格式正确；剪贴板不可用时提供手动复制降级 | 端到端 |
+| TC-027 | P0 | 三个复制按钮 | 前置：ready_to_copy 稿件<br>步骤：分别点击复制标题、复制正文、复制标签并检查剪贴板 | 标题、正文、标签分别复制；标签为 #标签1 #标签2（单空格）；界面显示“已选 N / 10”与“粘贴不会变成话题”的提示；剪贴板不可用时提供手动复制降级 | 端到端 |
 | TC-028 | P0 | 评测集版本固定 | 前置：有固定 eval_dataset version<br>步骤：运行一次评测并再次查看 | 记录 dataset/model/prompt/checker 版本、样本数及逐项结果，可重现 | 集成 |
 | TC-029 | P0 | 人工评分一致性记录 | 前置：两位评分者完成量表<br>步骤：汇总结构/调性评分 | 保存评分者、量表版本与一致性统计；不输出无定义综合分 | 评测 |
 | TC-030 | P0 | 模型费用和延迟日志 | 前置：模型 mock 返回 token/延迟数据<br>步骤：执行生成后查看 llm_call_log | 记录 provider/model/token/价格版本/cost/latency/status；错误调用也可追溯 | 集成 |
@@ -521,18 +521,21 @@ RedNoteSearch/
 | TC-039 | P0 | 分页与排序约定 | 前置：列表数据超过 100 条<br>步骤：page_size=1000；sort=-created_at；未知过滤参数 | page_size=1000 返回 422 VALIDATION_ERROR；sort=-created_at 排序正确；未知过滤参数被忽略；响应含 total/page/page_size | 契约 |
 | TC-040 | P0 | 断言人工确认与系统判定分离 | 前置：版本含 system_supported 断言<br>步骤：调用 claim-evidence confirm 设置 human_confirmed=false/true | status 不变；confirmed_by/at 记录；评测可分别统计“已审核来源支持”与“人工确认事实正确” | 集成 |
 | TC-041 | P0 | 确认稿件的前置条件 | 前置：版本存在 block 级风险或未复检<br>步骤：调用 confirm（含/不含 selected_title_index） | 未满足前置返回 INVALID_STATE；满足后 ready_to_copy 并记录选定标题、封面、确认人；不称合规通过 | 集成 |
-| TC-042 | P0 | 导出格式与状态限制 | 前置：一个 ready_to_copy 与一个未确认版本<br>步骤：export?format=xhs_text 与 markdown | 未确认版本 INVALID_STATE；xhs_text 顺序为标题、空行、正文、空行、#标签；无 Markdown 标记；封面文案仅在 markdown 中 | 契约/端到端 |
+| TC-042 | P0 | 导出格式与状态限制 | 前置：一个 ready_to_copy 与一个未确认版本<br>步骤：export?format=xhs_parts 与 markdown | 未确认版本 INVALID_STATE；xhs_parts 返回 title、body、tags、counts 且 tags 不含 #；无 Markdown 标记；封面文案仅在 markdown 中 | 契约/端到端 |
 | TC-043 | P0 | 生成幂等 | 前置：同一任务<br>步骤：相同 Idempotency-Key 重复调用 generate；同 key 不同体 | 相同体返回同一结果不重复生成；不同体 IDEMPOTENCY_CONFLICT | 集成 |
 | TC-044 | P0 | 品牌成员与最后一位管理员 | 前置：品牌仅一位 admin<br>步骤：移除或降级该 admin | CONFLICT；至少保留一位 admin | 集成 |
 | TC-045 | P0 | 评测集版本固定 | 前置：已创建评测集 v1<br>步骤：修改用例后保存 | 产生 v2，v1 不变；已运行的评测仍指向 v1 | 集成 |
 | TC-046 | P0 | 评分与一致性 | 前置：两位评分者对同一运行评分<br>步骤：提交评分并查询 agreement | 记录评分者、量表版本、评分者人数与一致性方法；无评分者不输出一致性 | 集成 |
 | TC-047 | P0 | 商品卖点来源 | 前置：商品卖点无来源<br>步骤：保存无 source 的卖点 | 保存为草稿，不参与“可作证据”；有已审核来源的卖点可作证据 | 集成 |
 | TC-048 | P0 | 检索过滤组合 | 前置：同品牌含已入库、待审、驳回、停用、旧版本文档，另有其他品牌文档<br>步骤：对同一关键词检索 | 仅返回本品牌、approved、当前有效版本；任务内资料仅所属任务可见 | 集成/安全 |
+| TC-049 | P0 | 正文 1000 码元边界 | 前置：正文：恰好 1000 与 1001 个 UTF-16 码元；含 emoji（计 2）与换行（不计）<br>步骤：运行约束检查 | 去掉换行后 1000 通过、1001 失败并标出字段；emoji 计 2；换行不计；标签的可见字符计入预算；与前端计数提示一致 | 单元 |
+| TC-050 | P0 | 标签数量上限 | 前置：版本含 10 个与 11 个标签<br>步骤：运行约束检查 | 10 个通过；11 个失败并标出字段（发布页最多 10 个话题）；标签可见字符计入正文预算 | 单元 |
+| TC-051 | P1 | 导入样本去除隐藏话题后缀 | 前置：用户粘贴从发布页复制的样本，含 [话题]# 后缀<br>步骤：导入爆款样本并分析 | [话题]# 被去除；样本文本中不出现该后缀；标签名保留 | 集成 |
 | TC-F01 | P0 | 角色导航与后端 403 | 前置：editor 登录<br>步骤：查看导航；直接访问待审与评测路由或接口 | 导航不显示相应入口；页面正确展示 403；后端拒绝 | 端到端/安全 |
 | TC-F02 | P0 | 禁用措辞扫描 | 前置：前端源码与导出模板<br>步骤：CI 扫描“合规通过”“已验证事实”“法务批准”“保证合规” | 无命中；checks_completed 显示无通过字样 | CI/单元 |
 | TC-F03 | P0 | 异步视图四态 | 前置：资料列表、任务结果、评测报告<br>步骤：分别模拟加载、空、错误、成功 | 四态均有表现；错误态显示 request_id | 端到端 |
 | TC-F04 | P0 | 状态标签映射完整 | 前置：后端枚举全集<br>步骤：遍历 flow_status、证据、资料、严重度枚举 | 均有中文标签与色调；未知枚举降级显示原值 | 单元 |
-| TC-F05 | P0 | 字数提示与后端一致 | 前置：20 字与 21 字标题，含 emoji、空格、标点、组合字符<br>步骤：前端提示与后端判定对比 | 一致；后端为权威 | 单元/端到端 |
+| TC-F05 | P0 | 字数提示与后端一致 | 前置：标题（汉字、半角、混合）与正文（含 emoji、换行）的边界样例<br>步骤：前端提示与后端判定对比 | 前端提示与后端判定一致；后端为权威；两边用同一组边界用例 | 单元/端到端 |
 | TC-F06 | P0 | 品牌切换 | 前置：用户属于品牌 A、B<br>步骤：切换品牌；构造他人品牌 ID 的请求 | 列表与请求目标随之变化；越权请求被后端拒绝并展示 403 | 端到端/安全 |
 | TC-F07 | P0 | 任务状态恢复 | 前置：生成进行中<br>步骤：刷新页面或断网重连 | 通过 GET /tasks/{id} 恢复状态；输入与编辑不丢 | 端到端 |
 | TC-F08 | P0 | 分辨率 | 前置：主要页面<br>步骤：1280 与 1024 px 视口 | 无横向溢出 | 端到端 |
@@ -598,7 +601,7 @@ AI 编码助手用于加快实现，不改变需求基线、接口、安全边�
 - 完成前：git diff --check；差异只涉及授权文件；运行所需测试或标明未运行及原因；检查权限、状态、错误边界、空值与恢复；更新契约、README、迁移说明；汇报改动、测试、风险、未完成项。
 - AI 不自行合并或推送；等待人类审查。PR 描述注明 AI 使用情况。
 
-模板自带 .agents 与 .claude 目录（含面向模板作者的助手配置）：Phase 0 由 A 审查后决定保留或删除，我尚未核对其内容。
+已处理：模板的 `.agents`、`.claude` 目录里只有 library-skills，以及两个在本仓库里已变成无效文本文件的条目（fastapi、sqlmodel，上游本是指向 `.venv` 的符号链接），连同 `pyproject.toml` 里遗留的 `smokeshow` 依赖一起移除。
 
 # 12. 开发环境与启动
 
@@ -644,13 +647,13 @@ AI 编码助手用于加快实现，不改变需求基线、接口、安全边�
 | 迁移所有权 | 各写各表，迁移线性，CI 强制单 head | ADR-001 |
 | 覆盖率 | 领域层 ≥90% 加整体棘轮 | ADR-002 |
 | Python | 保持 3.14，Linux CI 首次运行再确认 | ADR-003 |
-| 字数口径 | 字素簇，可配置，发布端实测后可调 | ADR-004 |
-| 标签写法 | 纯文本 #标签，实测后再调 | ADR-005 |
+| 字数口径 | 与发布页一致：标题加权 ≤20、正文去换行后 UTF-16 码元 ≤1000、标签 ≤10 | ADR-004（修订） |
+| 标签与复制 | 标题、正文、标签分开复制；粘贴不会变成话题 | ADR-005（修订） |
 | 模型与嵌入 | DeepSeek、Qwen（百炼）、OpenAI GPT；嵌入用百炼文本嵌入；不接入 Claude | ADR-006 |
 | 视觉基线 | B 的设计稿经 A 确认后为基线；千瓜只作布局与交互参考 | ADR-008 |
 | 分支保护与审查 | 已启用：必选检查、PR、同步、管理员不绕过、仅 Squash；不要求他人批准，敏感路径靠评论确认 | ADR-009 |
 | 骨架清理 | Items 示例已移除；models 拆成包；迁移 c3f9a7d1e2b5 删除 item 表；migrations 检查加 alembic check；跨模块接口与 fake 已合入 | PR #6、#8 |
-| 契约不完整、用例重复、Python 兼容 | 已在上一版处理：契约 v1.1、用例合并为 64 条、Python 3.14 本地验证 | API_CONTRACT.md；TEST_CASES.csv；ADR-003 |
+| 契约不完整、用例重复、Python 兼容 | 已在上一版处理：契约 v1.1、用例合并为 67 条、Python 3.14 本地验证 | API_CONTRACT.md；TEST_CASES.csv；ADR-003 |
 
 *表 13-1 已确认的决定*
 
@@ -659,10 +662,10 @@ AI 编码助手用于加快实现，不改变需求基线、接口、安全边�
 | # | 事项 | 负责 | 说明 |
 |---|---|---|---|
 | 1 | （已完成）仓库已设为私有，CHNERUI 已添加，初始快照已推送，分支保护已启用 | A | ADR-007、ADR-009 |
-| 2 | 在小红书发布端实测标题字数与 #标签 写法 | A 或 B | 结果记入 ADR-004、ADR-005 |
+| 2 | 在发布页验证：点击“发布”时标题超限、正文超限、话题超过 10 个是否被拦截；标题里全角标点与 emoji 的计数（上限与主要计数规则已实测，见 ADR-004、ADR-005） | A 或 B | 结果记入 ADR-004、ADR-005 |
 | 3 | 整体覆盖率基线数值 | A | CI 实测 93%；写入基线文件前须负责人确认 |
 | 4 | Linux CI 上的 Python 3.14、迁移与数据库验证 | A | 首次 CI 运行 |
-| 5 | 模板 workflow 逐个核对；.agents、.claude 目录处置 | A | Phase 0 |
+| 5 | 模板 workflow 逐个核对（已完成）；.agents、.claude 与 smokeshow 清理（已完成） | A | 已完成 |
 | 6 | 阿里云百炼嵌入模型的型号与维度 | A | 查官方文档后写入首个 kb_chunk 迁移 |
 | 7 | 重试默认值（模型调用 ≤2、约束重生成 ≤2、合规改写 ≤2） | A、B | 提案，待确认 |
 | 8 | B 的设计稿，及由此产生的契约字段（场景与结构模板、受众与重点、高级约束、上传入口） | B（A 审阅） | 需要改契约时走契约变更流程 |
@@ -717,7 +720,7 @@ gh api -X PUT repos/c4002159/RedNoteSearch/branches/main/protection --input prot
 | 需求规格说明书_小红书美妆香氛文案智能体.docx | 需求与架构基线 v1.0 |
 | 两人开发分工与协作手册_….docx | 本文第 7、8、10 章的来源（原件在 Codex 输出目录） |
 | docs/API_CONTRACT.md | v1.1，接口字段权威来源 |
-| docs/TEST_CASES.csv | 64 条用例，本文 10.2 的来源 |
+| docs/TEST_CASES.csv | 67 条用例，本文 10.2 的来源 |
 | docs/decisions/ADR-001 至 ADR-009 | 迁移、覆盖率、Python、字数口径、标签写法、模型与嵌入、仓库与客户资料、视觉基线、分支保护（不要求他人批准） |
 | AI_TEAM_GUIDE.md | 更新版，放仓库根目录 |
 | 本文 | 整合版技术文档；与上述文件冲突按第 0 章规则处理 |

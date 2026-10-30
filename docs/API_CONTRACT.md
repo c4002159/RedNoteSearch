@@ -157,7 +157,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 ```
 响应 201：`{"id","status":"queued","brand_id","created_at"}`。快照保存内容与 `content_hash`，之后源文件变化不影响本任务。
 
-标题长度（≤20）按 Unicode 字素簇计数，后端判定为准（ADR-004）。
+约束检查（与发布页一致，ADR-004、ADR-005）：标题加权长度 `title_weight ≤ 20`（ASCII 可打印字符计 0.5，其余计 1）；正文 `body_units ≤ 1000`（去掉换行后的 UTF-16 码元数，emoji 计 2）；标签 ≤10，且标签的可见字符计入正文预算。后端判定为准，前端镜像同一规则。
 
 ### `GET /tasks?brand_id=&status=&page=&sort=-created_at`
 任务列表（品牌成员）；`brand_id` 必填。
@@ -200,18 +200,17 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 体：`{"selected_title_index":0,"selected_cover_index":0}`。仅当约束已通过、无未处理的 `block` 级风险、各检查已针对最终文本运行时才允许，否则 `INVALID_STATE`。成功后 `ready_to_copy`，记录 `confirmed_by/confirmed_at`。该状态不表示法律合规获批。
 
 ### 导出与复制格式
-`GET /generation-versions/{version_id}/export?format=xhs_text|markdown`，仅 `ready_to_copy` 版本可导出，否则 `INVALID_STATE`。
+`GET /generation-versions/{version_id}/export?format=xhs_parts|markdown`，仅 `ready_to_copy` 版本可导出，否则 `INVALID_STATE`。
 
-`xhs_text`（浏览器复制与此格式一致，前端可本地生成，以后端导出为准）：
+`xhs_parts`：标题、正文、标签三者分开，界面对应“复制标题”“复制正文”“复制标签”三个按钮（ADR-005）：
+```json
+{"title":"选定标题","body":"正文","tags":["Softcore","逐帧动画"],
+ "counts":{"title_weight":12.5,"body_units":356,"tags_visible_units":18,"tags_count":2}}
 ```
-{选定标题}
-（空行）
-{正文，换行符统一为 \n，行尾空白去除}
-（空行）
-#标签1 #标签2 #标签3
-```
-- 不含 Markdown 标记；保留 emoji；封面文案**不**并入复制文本（用于制作封面图），仅出现在 `markdown` 导出中。
-- 标签按版本中的顺序，以单个空格分隔，写作纯文本 `#标签`（已确认，ADR-005）。小红书发布端的实际识别效果待实测，结果记入决策日志，如需调整只改导出格式。
+- `tags` 不含 `#`；界面复制标签时拼成 `#Softcore #逐帧动画`（单个空格分隔）。
+- 正文换行符统一为 LF，行尾空白去除，不含 Markdown；保留 emoji。
+- **粘贴到发布页不会变成话题**（实测）：界面要提示用户在发布页用键盘输入 `#` 加话题名再按空格，或点“# 话题”按钮；并显示“已选 N / 10”。
+- 封面文案不并入以上三项（用于制作封面图），仅出现在 `markdown` 导出中。
 - 复制失败时界面提供纯文本框手动复制。
 
 ## 6. 合规规则（B）
