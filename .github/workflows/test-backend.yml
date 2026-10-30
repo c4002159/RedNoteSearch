@@ -3,7 +3,7 @@ name: Test Backend
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
 permissions:
   contents: read
@@ -43,5 +43,5 @@ jobs:
           path: backend/htmlcov
           include-hidden-files: true
       - name: Coverage report
-        run: uv run coverage report --fail-under=90
+        run: uv run bash scripts/check-coverage.sh
         working-directory: backend
