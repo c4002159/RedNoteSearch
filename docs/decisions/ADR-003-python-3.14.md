@@ -9,7 +9,7 @@
 - 用模板的 `uv.lock` 同步依赖并导入成功：fastapi 0.141.1、sqlmodel 0.0.47、pydantic 2.13.5、psycopg 3.3.6、alembic、pyjwt、pwdlib。
 - 本项目计划新增的库在 3.14 下安装并导入成功：pgvector（含 psycopg 适配器 `pgvector.psycopg.register_vector`）、regex 2026.9.29、pypdf、pdfplumber（pypdfium2 5.14.0）、python-docx 1.2.0、pyahocorasick 2.3.1、tenacity 9.2.1、jieba（仅源码发行，纯 Python，可用；分词示例正常）。
 - 仅要求二进制包的“只解析”检查通过：模板依赖、上述库、pytest/coverage/ruff/mypy，以及 ragas 的依赖集合（未安装 ragas）。
-- 字素簇计数：`regex` 的 `\X` 对“带组合重音的字母、ZWJ 家庭 emoji、笑脸 emoji、空格”计为 4，与预期一致，可作字数口径的实现基础。
+- 字素簇计数：`regex` 的 `\X` 对“带组合重音的字母、ZWJ 家庭 emoji、笑脸 emoji、空格”计为 4，与预期一致。字数口径后来改为与发布页一致（ADR-004 修订），字素簇不再用于字数约束。
 
 ## Linux CI 验证（2026-10-30，PR #3 的 CI 运行）
 - 运行环境：GitHub `ubuntu-latest`，日志显示 `Using CPython 3.14.9`（`test-backend` 与 `migrations` 两个 job）。
