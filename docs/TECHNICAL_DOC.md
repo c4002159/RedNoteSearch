@@ -69,8 +69,8 @@
 | F1 | 品牌与商品、品牌档案（版本化）。品牌上下文由服务端从授权关系取；商品卖点须关联资料来源。品牌创建仅管理员，P0 可由种子数据提供 | A | 品牌切换、商品管理、品牌档案页 | brands、products、voice-profile；brand、brand_member、product、brand_voice_profile | TC-003、004 |
 | F2 | 知识库审核流。管理员直接入库→approved 并记 admin_direct_ingest 审计；运营提交→pending_review，通过后才索引；待审永不检索；新版本重新审核，旧版本保留；停用而非物理删除；格式 PDF/DOCX/MD/CSV；不做扫描件 OCR | A | 资料列表与上传、待审队列、审核、版本与审核记录、停用 | knowledge-documents、knowledge-submissions、reviews、deactivate；解析与索引；kb_document、kb_review、kb_chunk、audit_log | TC-005–012、048 |
 | F3 | 任务输入快照。当次资料保存内容快照与哈希，只属于该任务；之后修改、停用或提交入库不影响旧版本。A 提供存储与接口，B 通过统一接口读取 | A（存储） / B（消费） | 生成工作台中的资料输入区（B） | task_input 与快照接口（A）；证据消费（B） | TC-013、021 |
-| F4 / F5 | 场景模板与风格、结构化生成：标题候选（每条 ≤20 字）、正文、标签、封面文案候选 2–3 条；可局部重写；不做图片 | B | 生成工作台、场景与风格选择、结果页四类字段 | scenarios、tasks、generate、versions；scenario_template、style_preset、task、generation_version | TC-014、015 |
-| F6 | 约束检查：标题字数、必含词、禁用词、字段完整；代码判定；失败按配置重试，仍失败为 constraint_failed | B | 约束结果面板、字数提示 | 约束服务；constraint_check | TC-016–018 |
+| F4 / F5 | 场景模板与风格、结构化生成：标题候选（每条 ≤20 字）、正文（≤1000 字）、标签、封面文案候选 2–3 条；可局部重写；不做图片 | B | 生成工作台、场景与风格选择、结果页四类字段 | scenarios、tasks、generate、versions；scenario_template、style_preset、task、generation_version | TC-014、015 |
+| F6 | 约束检查：标题 ≤20 字、正文 ≤1000 字、必含词、禁用词、字段完整；代码判定；失败按配置重试，仍失败为 constraint_failed | B | 约束结果面板、字数提示 | 约束服务；constraint_check | TC-016–018 |
 | F7 | 事实证据：抽取断言，匹配已审核知识库或任务资料；状态 system_supported / evidence_missing / needs_human_review；证据不足不写具体事实；人工确认入口 | B | 证据面板：来源级别、文档版本、状态、人工确认 | 证据服务；claim_evidence | TC-019–021 |
 | F8 | 合规风险提示三层：词库正则 / 语境 / 功效依据；规则带来源、版本、适用范围；block 级问题改写并重检；不称合规通过 | B | 风险面板（高亮、规则出处、严重度、建议）、规则查看页 | 合规服务；compliance_rule、compliance_check | TC-022–024 |
 | F9 | 编辑与交付：编辑产生新版本并复检最终文本；运营确认得 ready_to_copy；复制为小红书格式；导出 Markdown | B | 编辑器、版本对比、确认、复制（含降级文本框） | edit、recheck、confirm；generation_version | TC-025–027 |
@@ -598,7 +598,7 @@ AI 编码助手用于加快实现，不改变需求基线、接口、安全边�
 - 完成前：git diff --check；差异只涉及授权文件；运行所需测试或标明未运行及原因；检查权限、状态、错误边界、空值与恢复；更新契约、README、迁移说明；汇报改动、测试、风险、未完成项。
 - AI 不自行合并或推送；等待人类审查。PR 描述注明 AI 使用情况。
 
-模板自带 .agents 与 .claude 目录（含面向模板作者的助手配置）：Phase 0 由 A 审查后决定保留或删除，我尚未核对其内容。
+已处理：模板的 `.agents`、`.claude` 目录里只有 library-skills，以及两个在本仓库里已变成无效文本文件的条目（fastapi、sqlmodel，上游本是指向 `.venv` 的符号链接），连同 `pyproject.toml` 里遗留的 `smokeshow` 依赖一起移除。
 
 # 12. 开发环境与启动
 
@@ -659,10 +659,10 @@ AI 编码助手用于加快实现，不改变需求基线、接口、安全边�
 | # | 事项 | 负责 | 说明 |
 |---|---|---|---|
 | 1 | （已完成）仓库已设为私有，CHNERUI 已添加，初始快照已推送，分支保护已启用 | A | ADR-007、ADR-009 |
-| 2 | 在小红书发布端实测标题字数与 #标签 写法 | A 或 B | 结果记入 ADR-004、ADR-005 |
+| 2 | 在小红书发布页实测计数规则与 #标签 粘贴效果（标题 20、正文 1000 的上限已确认，步骤见 ADR-005） | A 或 B | 结果记入 ADR-004、ADR-005 |
 | 3 | 整体覆盖率基线数值 | A | CI 实测 93%；写入基线文件前须负责人确认 |
 | 4 | Linux CI 上的 Python 3.14、迁移与数据库验证 | A | 首次 CI 运行 |
-| 5 | 模板 workflow 逐个核对；.agents、.claude 目录处置 | A | Phase 0 |
+| 5 | 模板 workflow 逐个核对（已完成）；.agents、.claude 与 smokeshow 清理（已完成） | A | 已完成 |
 | 6 | 阿里云百炼嵌入模型的型号与维度 | A | 查官方文档后写入首个 kb_chunk 迁移 |
 | 7 | 重试默认值（模型调用 ≤2、约束重生成 ≤2、合规改写 ≤2） | A、B | 提案，待确认 |
 | 8 | B 的设计稿，及由此产生的契约字段（场景与结构模板、受众与重点、高级约束、上传入口） | B（A 审阅） | 需要改契约时走契约变更流程 |

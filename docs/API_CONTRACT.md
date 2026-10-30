@@ -157,7 +157,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 ```
 响应 201：`{"id","status":"queued","brand_id","created_at"}`。快照保存内容与 `content_hash`，之后源文件变化不影响本任务。
 
-标题长度（≤20）按 Unicode 字素簇计数，后端判定为准（ADR-004）。
+标题长度（≤20）、正文长度（≤1000）按 Unicode 字素簇计数，后端判定为准（ADR-004；发布页显示 0/20 与 0/1000）。正文是否把 `#标签` 文字算入 1000 待实测，暂按正文本身计数。
 
 ### `GET /tasks?brand_id=&status=&page=&sort=-created_at`
 任务列表（品牌成员）；`brand_id` 必填。

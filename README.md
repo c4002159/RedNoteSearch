@@ -45,6 +45,31 @@ cd frontend && bun install && bun run dev
 整栈：`docker compose run --rm backend bash scripts/prestart.sh && docker compose watch`。
 更多命令见 [development.md](./development.md)。CI 已在 Linux 上验证整栈 compose 启动、迁移与后端测试（PR #3）；上述本地命令尚未在开发机上实测。
 
+## 配置模型密钥（只放本机 `.env`）
+
+`.env` 已被 git 忽略；`.env.example` 里只有空的占位变量：`DEEPSEEK_API_KEY`、`DASHSCOPE_API_KEY`（阿里云百炼）、`OPENAI_API_KEY`。**不要把密钥发到聊天、提交或截图里。**
+
+Git Bash（输入时不回显；每个密钥执行一次）：
+
+```bash
+cd /d/RedBookMarketingAgent/app
+[ -f .env ] || cp .env.example .env
+read -rsp "DASHSCOPE_API_KEY: " k; echo; printf 'DASHSCOPE_API_KEY=%s
+' "$k" >> .env; unset k
+```
+
+PowerShell：
+
+```powershell
+cd D:\RedBookMarketingAgentpp
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+$s = Read-Host "DASHSCOPE_API_KEY" -AsSecureString
+$k = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))
+Add-Content -Path .env -Value "DASHSCOPE_API_KEY=$k"; Remove-Variable k, s
+```
+
+把变量名换成 `DEEPSEEK_API_KEY` 或 `OPENAI_API_KEY` 即可。检查是否写入（只显示变量名，不显示值）：`grep -o "^[A-Z_]*_API_KEY=" .env`；确认 `.env` 被忽略：`git check-ignore .env`（应输出 `.env`）。
+
 ## 不得提交
 
 品牌手册 PDF 原件、截图、API 密钥、`.env`。模型密钥（DeepSeek、阿里云百炼、OpenAI）只放本地 `.env`；CI 不使用真实密钥。
