@@ -170,7 +170,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - 重建索引（202）：用已保存的分块重新嵌入，只允许 `approved`；失败时 `index_status=failed`（失败期间不可检索）并返回 503。
 - 停用只允许 `approved`；审核只允许 `pending_review`；状态不符返回 409（`INVALID_STATE`）。
 - 按资源 ID 访问（详情、分块、审核、停用、重建索引）：资源不存在与非本品牌成员一律 404；成员但不是 admin 的写操作与分块预览 403。
-- 检索条件：本品牌、`approved`、当前版本、`index_status=ready`、已有向量；按余弦相似度排序，`score = 1 - 余弦距离`。`product_id` 暂未使用（资料尚未关联商品），`task_id` 暂被忽略（任务资料快照尚未实现），目前只返回 `approved_kb` 结果。
+- 检索条件：本品牌、`approved`、当前版本、`index_status=ready`、已有向量；按余弦相似度排序，`score = 1 - 余弦距离`。`product_id` 暂未使用（资料尚未关联商品）。传入 `task_id` 时还会返回该任务自己的资料快照分块（`task_material`，只限该品牌、该任务），与 `approved_kb` 结果按分数合并。
 - 嵌入模型：百炼 `text-embedding-v4`，写入与查询都显式传 `dimensions=1024`；密钥取自环境变量 `DASHSCOPE_API_KEY`，未配置时入库与审核通过返回 503。
 
 ## 5. 场景、风格、任务与生成（B）

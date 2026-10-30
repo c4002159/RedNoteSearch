@@ -4,6 +4,7 @@ from sqlmodel import Session, col, func, select
 
 from app.models import BrandVoiceProfile, VoiceProfileCreate
 from app.ports.voice import VoiceProfile
+from app.services.audit import record_audit
 from app.services.errors import NotFoundError
 
 
@@ -52,7 +53,7 @@ def create_version(
 
 
 def activate_version(
-    *, session: Session, brand_id: uuid.UUID, version: int
+    *, session: Session, brand_id: uuid.UUID, version: int, actor_id: uuid.UUID
 ) -> BrandVoiceProfile:
     target = session.exec(
         select(BrandVoiceProfile).where(
@@ -69,6 +70,15 @@ def activate_version(
         session.flush()  # release the one-active-per-brand index before activating
     target.is_active = True
     session.add(target)
+    record_audit(
+        session,
+        action="voice_profile.activate",
+        entity_type="brand_voice_profile",
+        actor_id=actor_id,
+        brand_id=brand_id,
+        entity_id=target.id,
+        detail={"version": version},
+    )
     session.commit()
     session.refresh(target)
     return target

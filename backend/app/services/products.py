@@ -16,6 +16,7 @@ from app.models import (
 )
 from app.models.common import get_datetime_utc
 from app.models.knowledge import DocumentStatus
+from app.services.audit import record_audit
 from app.services.errors import ConflictError, NotFoundError
 
 _REQUIRED = {"name", "category", "notes", "selling_points", "restricted_claims"}
@@ -152,10 +153,21 @@ def update_product(
     return product
 
 
-def archive_product(*, session: Session, product: Product) -> Product:
+def archive_product(
+    *, session: Session, product: Product, actor_id: uuid.UUID
+) -> Product:
     product.status = ProductStatus.ARCHIVED.value
     product.updated_at = get_datetime_utc()
     session.add(product)
+    record_audit(
+        session,
+        action="product.archive",
+        entity_type="product",
+        actor_id=actor_id,
+        brand_id=product.brand_id,
+        entity_id=product.id,
+        detail={"name": product.name},
+    )
     session.commit()
     session.refresh(product)
     return product
