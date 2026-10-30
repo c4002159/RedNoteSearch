@@ -26,7 +26,7 @@
 
 - 成员 A（c4002159）：main 维护者；认证、品牌、商品、知识库、解析索引、审计及对应页面与数据表；应用壳；CI、compose、依赖锁。
 - 成员 B（CHNERUI）：场景、生成、约束、证据、合规、评测、模型适配及对应页面与数据表。
-- `main` 受保护：禁止直推；合并须通过必选 CI 并获另一位成员批准；功能分支 `feat/<owner>-<ticket>-<short-name>`，修复 `fix/<owner>-<ticket>-<short-name>`。
+- `main` 受保护：禁止直推；合并须通过必选 CI（不强制他人批准，见 ADR-009）；改契约、迁移、认证与品牌授权、检索过滤、提示词与合规规则、CI、依赖锁的 PR，作者须在合并前 @ 对方并等到确认；功能分支 `feat/<owner>-<ticket>-<short-name>`，修复 `fix/<owner>-<ticket>-<short-name>`。
 
 ## 本地开发
 
