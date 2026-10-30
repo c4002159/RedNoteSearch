@@ -21,6 +21,11 @@
 - **本地没有 PostgreSQL**，迁移的升级、回滚、`alembic check` 与向量查询测试只能在 CI 里验证；本地已验证：模型导入、类型检查、结构测试（不需要数据库）、迁移生成的离线 SQL 与模型生成的 DDL 一致。
 - 与 B 的关系：B 的表（`task`、`generation_version` 等）可以外键引用 `brand`，但不得改动被引用的主键（ADR-001）。
 
+## 后续补充（2026-10-31，知识库入库与检索）
+- `kb_review.action` 增加 `admin_direct_ingest`（迁移 `f6b3d8e1a4c2`），用于记录管理员直接入库的审计事件。
+- 新依赖 `pypdf`（BSD-3-Clause）与 `python-docx`（MIT，间接依赖 `lxml`，BSD-3-Clause），只用于解析上传的 PDF 与 DOCX，不做 OCR。
+- 嵌入在写入前完成、一次性提交；没有后台任务队列，入库请求同步等待嵌入（单文件 ≤ 10 MB，演示规模可接受）。文件原件不保存，只保存分块与校验和，所以重建索引使用已保存的分块。
+
 ## 待办
-- `KnowledgeSearch` 的真实实现（只返回本品牌、`approved`、当前版本、已建好索引的分块）。
-- `product`、`brand_voice_profile`、`audit_log` 的模型与迁移；任务资料快照表 `task_input`。
+- `task_input` 任务资料快照表与 `audit_log`；资料与商品的关联（`KnowledgeSearch` 的 `product_id` 过滤）。
+- `audit_log` 的模型与迁移（`product`、`brand_voice_profile` 已在迁移 `e5a2c9d7b3f1` 中完成）。

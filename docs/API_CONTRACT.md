@@ -161,6 +161,18 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 ### `POST /knowledge-documents/{document_id}/deactivate`（admin）
 停用；新任务不得检索，历史 `generation_version` 保留原引用快照。不物理删除。
 
+**实现约定（2026-10-31）**
+- `{document_id}` 是**某个版本行的 id**（响应里的 `id`）；同一逻辑文档的各版本共享 `group_id`。`KnowledgeSearch` 返回的 `document_id` 是 `group_id`，`document_version` 是版本号（ADR-010）。
+- 支持 PDF（需有文字，不做 OCR）、DOCX、MD、TXT、CSV，单文件 ≤ 10 MB（超过 413）；解析失败、空文件、不支持的类型返回 422，不保存任何内容。
+- 分块：按段落合并，每块 ≤ 500 字，过长段落按句末切分。
+- 管理员直接入库与新版本：先解析、分块、嵌入，全部成功后才一次性写入（approved、ready、当前版本）；嵌入模型不可用返回 503，不留下半成品。审计记为 `kb_review` 的 `admin_direct_ingest`。
+- 运营提交：解析与分块在提交时完成，**嵌入在审核通过时进行**；通过时嵌入失败返回 503 且状态仍为 `pending_review`。带 `supersedes_document_id` 的提交，通过前仍使用旧的当前版本；supersedes 指向其他品牌的资料返回 404。
+- 重建索引（202）：用已保存的分块重新嵌入，只允许 `approved`；失败时 `index_status=failed`（失败期间不可检索）并返回 503。
+- 停用只允许 `approved`；审核只允许 `pending_review`；状态不符返回 409（`INVALID_STATE`）。
+- 按资源 ID 访问（详情、分块、审核、停用、重建索引）：资源不存在与非本品牌成员一律 404；成员但不是 admin 的写操作与分块预览 403。
+- 检索条件：本品牌、`approved`、当前版本、`index_status=ready`、已有向量；按余弦相似度排序，`score = 1 - 余弦距离`。`product_id` 暂未使用（资料尚未关联商品），`task_id` 暂被忽略（任务资料快照尚未实现），目前只返回 `approved_kb` 结果。
+- 嵌入模型：百炼 `text-embedding-v4`，写入与查询都显式传 `dimensions=1024`；密钥取自环境变量 `DASHSCOPE_API_KEY`，未配置时入库与审核通过返回 503。
+
 ## 5. 场景、风格、任务与生成（B）
 
 ### 场景与风格

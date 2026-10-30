@@ -6,11 +6,13 @@ member B consumes them. Both sides develop against these Protocols and the in-me
 that both members review.
 """
 
+from app.ports.embedding import EmbeddingProvider
 from app.ports.knowledge import KnowledgeChunk, KnowledgeSearch, SourceLevel
 from app.ports.task_input import TaskInputRepository, TaskInputSnapshot, content_hash
 from app.ports.voice import VoiceProfile, VoiceProfileProvider
 
 __all__ = [
+    "EmbeddingProvider",
     "KnowledgeChunk",
     "KnowledgeSearch",
     "SourceLevel",

@@ -8,7 +8,13 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.api.main import api_router
 from app.core.config import settings
-from app.services.errors import ConflictError, NotFoundError
+from app.services.errors import (
+    ConflictError,
+    InvalidStateError,
+    ModelUnavailableError,
+    NotFoundError,
+    ParseError,
+)
 
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 
@@ -35,6 +41,21 @@ def handle_not_found(_: Request, exc: NotFoundError) -> JSONResponse:
 @app.exception_handler(ConflictError)
 def handle_conflict(_: Request, exc: ConflictError) -> JSONResponse:
     return JSONResponse(status_code=409, content={"detail": exc.message})
+
+
+@app.exception_handler(InvalidStateError)
+def handle_invalid_state(_: Request, exc: InvalidStateError) -> JSONResponse:
+    return JSONResponse(status_code=409, content={"detail": exc.message})
+
+
+@app.exception_handler(ParseError)
+def handle_parse_error(_: Request, exc: ParseError) -> JSONResponse:
+    return JSONResponse(status_code=422, content={"detail": exc.message})
+
+
+@app.exception_handler(ModelUnavailableError)
+def handle_model_unavailable(_: Request, exc: ModelUnavailableError) -> JSONResponse:
+    return JSONResponse(status_code=503, content={"detail": exc.message})
 
 
 app.add_middleware(

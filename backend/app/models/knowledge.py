@@ -1,9 +1,10 @@
 import enum
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pgvector.sqlalchemy import Vector
+from pydantic import BaseModel, model_validator
 from sqlalchemy import CheckConstraint, Column, DateTime, Index, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
@@ -42,6 +43,7 @@ class ReviewAction(enum.StrEnum):
     APPROVE = "approve"
     REJECT = "reject"
     DEACTIVATE = "deactivate"
+    ADMIN_DIRECT_INGEST = "admin_direct_ingest"
 
 
 # One row per document VERSION. ``group_id`` identifies the logical document across versions;
@@ -141,3 +143,71 @@ class KbChunk(SQLModel, table=True):
         sa_column=Column(JSONB, nullable=False, server_default="{}"),
     )
     token_count: int | None = Field(default=None)
+
+
+# ---- API schemas (not tables) ----
+class DocumentVersionRef(SQLModel):
+    id: uuid.UUID
+    version: int
+    status: str
+    is_current: bool
+
+
+class DocumentPublic(SQLModel):
+    # ``id`` is the id of this version row; ``group_id`` is shared by all versions of the document.
+    id: uuid.UUID
+    group_id: uuid.UUID
+    brand_id: uuid.UUID
+    title: str
+    doc_type: str
+    status: str
+    index_status: str
+    version: int
+    is_current: bool
+    source_filename: str | None
+    submitted_by: uuid.UUID | None
+    created_at: datetime | None
+
+
+class DocumentsPublic(SQLModel):
+    items: list[DocumentPublic]
+    total: int
+    page: int
+    page_size: int
+
+
+class ReviewPublic(SQLModel):
+    action: str
+    actor_id: uuid.UUID | None
+    reason: str | None
+    created_at: datetime | None
+
+
+class DocumentDetail(DocumentPublic):
+    versions: list[DocumentVersionRef]
+    reviews: list[ReviewPublic]
+
+
+class ChunkPublic(BaseModel):  # not SQLModel: it reserves the name ``metadata``
+    id: uuid.UUID
+    chunk_index: int
+    content: str
+    metadata: dict[str, Any]
+
+
+class ChunksPublic(SQLModel):
+    items: list[ChunkPublic]
+    total: int
+    page: int
+    page_size: int
+
+
+class ReviewCreate(SQLModel):
+    action: Literal["approve", "reject"]
+    reason: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def _reject_needs_a_reason(self) -> ReviewCreate:
+        if self.action == "reject" and not (self.reason and self.reason.strip()):
+            raise ValueError("A reason is required when rejecting a document")
+        return self
