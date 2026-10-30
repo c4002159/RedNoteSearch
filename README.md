@@ -41,7 +41,7 @@ cd frontend && bun install && bun run dev
 ```
 
 整栈：`docker compose run --rm backend bash scripts/prestart.sh && docker compose watch`。
-更多命令见 [development.md](./development.md)。**以上命令尚未在本项目中实测**（Docker 引擎未运行时无法验证）。
+更多命令见 [development.md](./development.md)。CI 已在 Linux 上验证整栈 compose 启动、迁移与后端测试（PR #3）；上述本地命令尚未在开发机上实测。
 
 ## 不得提交
 
