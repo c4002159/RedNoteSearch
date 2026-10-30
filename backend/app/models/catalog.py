@@ -1,7 +1,9 @@
 import enum
 import uuid
 from datetime import datetime
+from typing import Annotated
 
+from pydantic import StringConstraints
 from sqlalchemy import CheckConstraint, DateTime, Index
 from sqlmodel import Field, SQLModel
 
@@ -76,3 +78,62 @@ class BrandMember(SQLModel, table=True):
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc, sa_type=DateTime(timezone=True)
     )
+
+
+# ---- API schemas (not tables) ----
+Slug = Annotated[
+    str, StringConstraints(min_length=2, max_length=60, pattern=r"^[a-z0-9][a-z0-9-]*$")
+]
+
+
+class BrandCreate(SQLModel):
+    name: str = Field(min_length=1, max_length=100)
+    category: BrandCategory = BrandCategory.OTHER
+    description: str | None = Field(default=None, max_length=1000)
+    # Optional: derived from the name when omitted.
+    slug: Slug | None = None
+
+
+class BrandUpdate(SQLModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    category: BrandCategory | None = None
+    description: str | None = Field(default=None, max_length=1000)
+
+
+class BrandPublic(SQLModel):
+    id: uuid.UUID
+    name: str
+    slug: str
+    category: str
+    description: str | None = None
+
+
+class BrandListItem(SQLModel):
+    id: uuid.UUID
+    name: str
+    category: str
+    role: str
+
+
+class BrandsPublic(SQLModel):
+    items: list[BrandListItem]
+
+
+class MemberCreate(SQLModel):
+    user_id: uuid.UUID
+    role: MemberRole
+
+
+class MemberUpdate(SQLModel):
+    role: MemberRole
+
+
+class MemberPublic(SQLModel):
+    user_id: uuid.UUID
+    email: str
+    full_name: str | None = None
+    role: str
+
+
+class MembersPublic(SQLModel):
+    items: list[MemberPublic]
