@@ -1,0 +1,13 @@
+# 默认：任何改动都由另一位成员审查（作者不能自批）。
+* @c4002159 @CHNERUI
+
+# 敏感路径：契约、迁移、认证与品牌授权、检索过滤、提示词与合规规则、CI、依赖锁、决策记录。
+# 这些路径的 PR，审查者须在评论里点明已检查权限、品牌隔离与契约影响。
+/docs/API_CONTRACT.md      @c4002159 @CHNERUI
+/docs/decisions/           @c4002159 @CHNERUI
+/backend/app/alembic/      @c4002159 @CHNERUI
+/.github/                  @c4002159 @CHNERUI
+/compose*.yml              @c4002159 @CHNERUI
+/uv.lock                   @c4002159 @CHNERUI
+/bun.lock                  @c4002159 @CHNERUI
+/AI_TEAM_GUIDE.md          @c4002159 @CHNERUI
