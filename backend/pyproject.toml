@@ -67,6 +67,9 @@ keep-runtime-typing = true
 
 [tool.coverage.run]
 source = ["app"]
+# Migrations are verified by the "migrations" CI job (upgrade, downgrade, alembic check), not by unit tests.
+# Once a test imports them (ScriptDirectory loads every revision) they would otherwise count as uncovered code.
+omit = ["app/alembic/versions/*"]
 dynamic_context = "test_function"
 
 [tool.coverage.report]
