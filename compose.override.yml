@@ -25,7 +25,8 @@ services:
       - --api.insecure=true
   db:
     ports:
-      - "5432:5432"
+      # Host port; change POSTGRES_PORT in .env if 5432 is taken, and the port in DATABASE_URL with it.
+      - "${POSTGRES_PORT:-5432}:5432"
 
   adminer:
     ports:
