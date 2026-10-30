@@ -19,5 +19,16 @@
 - 整体覆盖率在 CI 实测 93%；领域层要求 ≥90%（ADR-002）。
 - 不得提交：品牌手册 PDF 原件、截图、API 密钥、`.env`（ADR-007）。
 
+## 减少合并冲突（两人并行开发）
+- 开工前先同步 `main`；分支一两天内合并；一个 PR 只动一类共享文件，不要把依赖升级、公共组件改动混进业务 PR。
+- **自动生成的文件不要手工合并**：`frontend/src/routeTree.gen.ts`、`frontend/src/client/**` 冲突时，合并 `main` 后重新生成再提交（仓库根目录：`bun run --filter frontend build`、`bash scripts/generate-client.sh`），CI 的 `contract` 检查会验证。
+- 锁文件（`uv.lock`、`bun.lock`）冲突时以 `main` 为底重新生成，不要手改；新增依赖先在 PR 里说明用途与许可证。
+- `backend/app/models/__init__.py`、`backend/app/api/main.py` 冲突时，保留双方各自新增的导入与路由行。
+- 迁移出现两个 head：后合并者把自己迁移的 `down_revision` 改为 `main` 当前的 head，再确认 `alembic heads` 只有一个；不用 `alembic merge`（ADR-001）。
+- `docs/API_CONTRACT.md`、`docs/TEST_CASES.csv` 冲突时保留双方的条目，不要丢掉对方的内容。
+- 导航（`AppSidebar.tsx`）、公共组件、设计 token 归 A；B 需要加入口时提小 PR，不要在业务 PR 里顺手改。
+- Git 发现不了的冲突：改 `ports/` 接口、契约字段、状态枚举、错误码之前，先 @ 对方确认；不能为了解决冲突删对方的代码或测试。
+- 解决冲突后重新跑本地能跑的检查，并等 CI 通过；不要声称本地跑过没跑的检查。
+
 ## 本机的限制
 本地没有 Docker 时，后端测试、迁移、Playwright 跑不了，以 CI 结果为准，不要声称本地跑过。
