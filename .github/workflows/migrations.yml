@@ -49,6 +49,9 @@ jobs:
       - name: Upgrade an empty database to head
         working-directory: backend
         run: uv run alembic upgrade head
+      - name: Models match the migrations (every model is imported by app.models)
+        working-directory: backend
+        run: uv run alembic check
       - name: vector extension exists
         env:
           PGPASSWORD: changethis
