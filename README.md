@@ -54,14 +54,13 @@ Git Bash（输入时不回显；每个密钥执行一次）：
 ```bash
 cd /d/RedBookMarketingAgent/app
 [ -f .env ] || cp .env.example .env
-read -rsp "DASHSCOPE_API_KEY: " k; echo; printf 'DASHSCOPE_API_KEY=%s
-' "$k" >> .env; unset k
+read -rsp "DASHSCOPE_API_KEY: " k; echo; printf 'DASHSCOPE_API_KEY=%s\n' "$k" >> .env; unset k
 ```
 
 PowerShell：
 
 ```powershell
-cd D:\RedBookMarketingAgentpp
+cd D:\RedBookMarketingAgent\app
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 $s = Read-Host "DASHSCOPE_API_KEY" -AsSecureString
 $k = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))
