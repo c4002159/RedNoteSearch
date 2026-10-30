@@ -2,7 +2,7 @@
 
 import { type Client, type Options as Options2, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import type { brandsAddMemberData, brandsAddMemberErrors, brandsAddMemberResponses, brandsCreateBrandData, brandsCreateBrandErrors, brandsCreateBrandResponses, brandsReadBrandsData, brandsReadBrandsResponses, brandsReadMembersData, brandsReadMembersErrors, brandsReadMembersResponses, brandsRemoveMemberData, brandsRemoveMemberErrors, brandsRemoveMemberResponses, brandsUpdateBrandData, brandsUpdateBrandErrors, brandsUpdateBrandResponses, brandsUpdateMemberData, brandsUpdateMemberErrors, brandsUpdateMemberResponses, loginLoginAccessTokenData, loginLoginAccessTokenErrors, loginLoginAccessTokenResponses, loginRecoverPasswordData, loginRecoverPasswordErrors, loginRecoverPasswordHtmlContentData, loginRecoverPasswordHtmlContentErrors, loginRecoverPasswordHtmlContentResponses, loginRecoverPasswordResponses, loginResetPasswordData, loginResetPasswordErrors, loginResetPasswordResponses, loginTestTokenData, loginTestTokenResponses, privateCreateUserData, privateCreateUserErrors, privateCreateUserResponses, usersCreateUserData, usersCreateUserErrors, usersCreateUserResponses, usersDeleteUserData, usersDeleteUserErrors, usersDeleteUserMeData, usersDeleteUserMeResponses, usersDeleteUserResponses, usersReadUserByIdData, usersReadUserByIdErrors, usersReadUserByIdResponses, usersReadUserMeData, usersReadUserMeResponses, usersReadUsersData, usersReadUsersErrors, usersReadUsersResponses, usersRegisterUserData, usersRegisterUserErrors, usersRegisterUserResponses, usersUpdatePasswordMeData, usersUpdatePasswordMeErrors, usersUpdatePasswordMeResponses, usersUpdateUserData, usersUpdateUserErrors, usersUpdateUserMeData, usersUpdateUserMeErrors, usersUpdateUserMeResponses, usersUpdateUserResponses, utilsHealthCheckData, utilsHealthCheckResponses, utilsTestEmailData, utilsTestEmailErrors, utilsTestEmailResponses } from './types.gen';
+import type { brandsAddMemberData, brandsAddMemberErrors, brandsAddMemberResponses, brandsCreateBrandData, brandsCreateBrandErrors, brandsCreateBrandResponses, brandsReadBrandsData, brandsReadBrandsResponses, brandsReadMembersData, brandsReadMembersErrors, brandsReadMembersResponses, brandsRemoveMemberData, brandsRemoveMemberErrors, brandsRemoveMemberResponses, brandsUpdateBrandData, brandsUpdateBrandErrors, brandsUpdateBrandResponses, brandsUpdateMemberData, brandsUpdateMemberErrors, brandsUpdateMemberResponses, loginLoginAccessTokenData, loginLoginAccessTokenErrors, loginLoginAccessTokenResponses, loginRecoverPasswordData, loginRecoverPasswordErrors, loginRecoverPasswordHtmlContentData, loginRecoverPasswordHtmlContentErrors, loginRecoverPasswordHtmlContentResponses, loginRecoverPasswordResponses, loginResetPasswordData, loginResetPasswordErrors, loginResetPasswordResponses, loginTestTokenData, loginTestTokenResponses, privateCreateUserData, privateCreateUserErrors, privateCreateUserResponses, productsArchiveProductData, productsArchiveProductErrors, productsArchiveProductResponses, productsCreateProductData, productsCreateProductErrors, productsCreateProductResponses, productsReadProductsData, productsReadProductsErrors, productsReadProductsResponses, productsUpdateProductData, productsUpdateProductErrors, productsUpdateProductResponses, usersCreateUserData, usersCreateUserErrors, usersCreateUserResponses, usersDeleteUserData, usersDeleteUserErrors, usersDeleteUserMeData, usersDeleteUserMeResponses, usersDeleteUserResponses, usersReadUserByIdData, usersReadUserByIdErrors, usersReadUserByIdResponses, usersReadUserMeData, usersReadUserMeResponses, usersReadUsersData, usersReadUsersErrors, usersReadUsersResponses, usersRegisterUserData, usersRegisterUserErrors, usersRegisterUserResponses, usersUpdatePasswordMeData, usersUpdatePasswordMeErrors, usersUpdatePasswordMeResponses, usersUpdateUserData, usersUpdateUserErrors, usersUpdateUserMeData, usersUpdateUserMeErrors, usersUpdateUserMeResponses, usersUpdateUserResponses, utilsHealthCheckData, utilsHealthCheckResponses, utilsTestEmailData, utilsTestEmailErrors, utilsTestEmailResponses, voiceProfileActivateVersionData, voiceProfileActivateVersionErrors, voiceProfileActivateVersionResponses, voiceProfileCreateVersionData, voiceProfileCreateVersionErrors, voiceProfileCreateVersionResponses, voiceProfileReadActiveProfileData, voiceProfileReadActiveProfileErrors, voiceProfileReadActiveProfileResponses, voiceProfileReadVersionsData, voiceProfileReadVersionsErrors, voiceProfileReadVersionsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -386,6 +386,122 @@ export class BrandsService {
                 'Content-Type': 'application/json',
                 ...options.headers
             }
+        });
+    }
+}
+
+export class ProductsService {
+    /**
+     * Read Products
+     */
+    public static readProducts<ThrowOnError extends boolean = true>(options: Options<productsReadProductsData, ThrowOnError>) {
+        return (options.client ?? client).get<productsReadProductsResponses, productsReadProductsErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/products',
+            ...options
+        });
+    }
+    
+    /**
+     * Create Product
+     */
+    public static createProduct<ThrowOnError extends boolean = true>(options: Options<productsCreateProductData, ThrowOnError>) {
+        return (options.client ?? client).post<productsCreateProductResponses, productsCreateProductErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/products',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Update Product
+     */
+    public static updateProduct<ThrowOnError extends boolean = true>(options: Options<productsUpdateProductData, ThrowOnError>) {
+        return (options.client ?? client).patch<productsUpdateProductResponses, productsUpdateProductErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/products/{product_id}',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Archive Product
+     *
+     * Soft delete: the product stays so tasks that referenced it keep working.
+     */
+    public static archiveProduct<ThrowOnError extends boolean = true>(options: Options<productsArchiveProductData, ThrowOnError>) {
+        return (options.client ?? client).post<productsArchiveProductResponses, productsArchiveProductErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/products/{product_id}/archive',
+            ...options
+        });
+    }
+}
+
+export class VoiceProfileService {
+    /**
+     * Read Active Profile
+     *
+     * The active voice profile; 404 when the brand has none yet.
+     */
+    public static profileReadActiveProfile<ThrowOnError extends boolean = true>(options: Options<voiceProfileReadActiveProfileData, ThrowOnError>) {
+        return (options.client ?? client).get<voiceProfileReadActiveProfileResponses, voiceProfileReadActiveProfileErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/voice-profile',
+            ...options
+        });
+    }
+    
+    /**
+     * Read Versions
+     */
+    public static profileReadVersions<ThrowOnError extends boolean = true>(options: Options<voiceProfileReadVersionsData, ThrowOnError>) {
+        return (options.client ?? client).get<voiceProfileReadVersionsResponses, voiceProfileReadVersionsErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/voice-profile/versions',
+            ...options
+        });
+    }
+    
+    /**
+     * Create Version
+     */
+    public static profileCreateVersion<ThrowOnError extends boolean = true>(options: Options<voiceProfileCreateVersionData, ThrowOnError>) {
+        return (options.client ?? client).post<voiceProfileCreateVersionResponses, voiceProfileCreateVersionErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/voice-profile/versions',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Activate Version
+     */
+    public static profileActivateVersion<ThrowOnError extends boolean = true>(options: Options<voiceProfileActivateVersionData, ThrowOnError>) {
+        return (options.client ?? client).post<voiceProfileActivateVersionResponses, voiceProfileActivateVersionErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/voice-profile/versions/{version}/activate',
+            ...options
         });
     }
 }

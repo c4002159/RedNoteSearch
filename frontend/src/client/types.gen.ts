@@ -243,6 +243,178 @@ export type PrivateUserCreate = {
 };
 
 /**
+ * ProductCreate
+ */
+export type ProductCreate = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Product Line
+     */
+    product_line?: string | null;
+    category?: BrandCategory;
+    notes?: ProductNotes;
+    /**
+     * Selling Points
+     */
+    selling_points?: Array<SellingPoint>;
+    /**
+     * Restricted Claims
+     */
+    restricted_claims?: Array<string>;
+};
+
+/**
+ * ProductNotes
+ */
+export type ProductNotes = {
+    /**
+     * Top
+     */
+    top?: Array<string>;
+    /**
+     * Middle
+     */
+    middle?: Array<string>;
+    /**
+     * Base
+     */
+    base?: Array<string>;
+};
+
+/**
+ * ProductPublic
+ */
+export type ProductPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Product Line
+     */
+    product_line: string | null;
+    /**
+     * Category
+     */
+    category: string;
+    notes: ProductNotes;
+    /**
+     * Selling Points
+     */
+    selling_points: Array<SellingPointPublic>;
+    /**
+     * Restricted Claims
+     */
+    restricted_claims: Array<string>;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * ProductStatus
+ */
+export type ProductStatus = 'active' | 'archived';
+
+/**
+ * ProductUpdate
+ */
+export type ProductUpdate = {
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Product Line
+     */
+    product_line?: string | null;
+    category?: BrandCategory | null;
+    notes?: ProductNotes | null;
+    /**
+     * Selling Points
+     */
+    selling_points?: Array<SellingPoint> | null;
+    /**
+     * Restricted Claims
+     */
+    restricted_claims?: Array<string> | null;
+};
+
+/**
+ * ProductsPublic
+ */
+export type ProductsPublic = {
+    /**
+     * Items
+     */
+    items: Array<ProductPublic>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+};
+
+/**
+ * SellingPoint
+ */
+export type SellingPoint = {
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Source Document Id
+     */
+    source_document_id?: string | null;
+    /**
+     * Source Chunk Id
+     */
+    source_chunk_id?: string | null;
+};
+
+/**
+ * SellingPointPublic
+ */
+export type SellingPointPublic = {
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Source Document Id
+     */
+    source_document_id?: string | null;
+    /**
+     * Source Chunk Id
+     */
+    source_chunk_id?: string | null;
+    /**
+     * Evidence Status
+     */
+    evidence_status: string;
+};
+
+/**
  * Token
  */
 export type Token = {
@@ -424,6 +596,84 @@ export type ValidationError = {
     ctx?: {
         [key: string]: unknown;
     };
+};
+
+/**
+ * VoiceProfileCreate
+ */
+export type VoiceProfileCreate = {
+    /**
+     * Persona
+     */
+    persona: string;
+    /**
+     * Tone Keywords
+     */
+    tone_keywords?: Array<string>;
+    /**
+     * Preferred Words
+     */
+    preferred_words?: Array<string>;
+    /**
+     * Forbidden Words
+     */
+    forbidden_words?: Array<string>;
+    /**
+     * Sample Refs
+     */
+    sample_refs?: Array<string>;
+};
+
+/**
+ * VoiceProfilePublic
+ */
+export type VoiceProfilePublic = {
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Version
+     */
+    version: number;
+    /**
+     * Persona
+     */
+    persona: string;
+    /**
+     * Tone Keywords
+     */
+    tone_keywords: Array<string>;
+    /**
+     * Preferred Words
+     */
+    preferred_words: Array<string>;
+    /**
+     * Forbidden Words
+     */
+    forbidden_words: Array<string>;
+    /**
+     * Sample Refs
+     */
+    sample_refs: Array<string>;
+    /**
+     * Is Active
+     */
+    is_active: boolean;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+};
+
+/**
+ * VoiceProfilesPublic
+ */
+export type VoiceProfilesPublic = {
+    /**
+     * Items
+     */
+    items: Array<VoiceProfilePublic>;
 };
 
 export type loginLoginAccessTokenData = {
@@ -1054,6 +1304,260 @@ export type brandsUpdateMemberResponses = {
 };
 
 export type brandsUpdateMemberResponse = brandsUpdateMemberResponses[keyof brandsUpdateMemberResponses];
+
+export type productsReadProductsData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: {
+        status?: ProductStatus;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/brands/{brand_id}/products';
+};
+
+export type productsReadProductsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type productsReadProductsError = productsReadProductsErrors[keyof productsReadProductsErrors];
+
+export type productsReadProductsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductsPublic;
+};
+
+export type productsReadProductsResponse = productsReadProductsResponses[keyof productsReadProductsResponses];
+
+export type productsCreateProductData = {
+    body: ProductCreate;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/products';
+};
+
+export type productsCreateProductErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type productsCreateProductError = productsCreateProductErrors[keyof productsCreateProductErrors];
+
+export type productsCreateProductResponses = {
+    /**
+     * Successful Response
+     */
+    201: ProductPublic;
+};
+
+export type productsCreateProductResponse = productsCreateProductResponses[keyof productsCreateProductResponses];
+
+export type productsUpdateProductData = {
+    body: ProductUpdate;
+    path: {
+        /**
+         * Product Id
+         */
+        product_id: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_id}';
+};
+
+export type productsUpdateProductErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type productsUpdateProductError = productsUpdateProductErrors[keyof productsUpdateProductErrors];
+
+export type productsUpdateProductResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductPublic;
+};
+
+export type productsUpdateProductResponse = productsUpdateProductResponses[keyof productsUpdateProductResponses];
+
+export type productsArchiveProductData = {
+    body?: never;
+    path: {
+        /**
+         * Product Id
+         */
+        product_id: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_id}/archive';
+};
+
+export type productsArchiveProductErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type productsArchiveProductError = productsArchiveProductErrors[keyof productsArchiveProductErrors];
+
+export type productsArchiveProductResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductPublic;
+};
+
+export type productsArchiveProductResponse = productsArchiveProductResponses[keyof productsArchiveProductResponses];
+
+export type voiceProfileReadActiveProfileData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/voice-profile';
+};
+
+export type voiceProfileReadActiveProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type voiceProfileReadActiveProfileError = voiceProfileReadActiveProfileErrors[keyof voiceProfileReadActiveProfileErrors];
+
+export type voiceProfileReadActiveProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: VoiceProfilePublic;
+};
+
+export type voiceProfileReadActiveProfileResponse = voiceProfileReadActiveProfileResponses[keyof voiceProfileReadActiveProfileResponses];
+
+export type voiceProfileReadVersionsData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/voice-profile/versions';
+};
+
+export type voiceProfileReadVersionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type voiceProfileReadVersionsError = voiceProfileReadVersionsErrors[keyof voiceProfileReadVersionsErrors];
+
+export type voiceProfileReadVersionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: VoiceProfilesPublic;
+};
+
+export type voiceProfileReadVersionsResponse = voiceProfileReadVersionsResponses[keyof voiceProfileReadVersionsResponses];
+
+export type voiceProfileCreateVersionData = {
+    body: VoiceProfileCreate;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/voice-profile/versions';
+};
+
+export type voiceProfileCreateVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type voiceProfileCreateVersionError = voiceProfileCreateVersionErrors[keyof voiceProfileCreateVersionErrors];
+
+export type voiceProfileCreateVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: VoiceProfilePublic;
+};
+
+export type voiceProfileCreateVersionResponse = voiceProfileCreateVersionResponses[keyof voiceProfileCreateVersionResponses];
+
+export type voiceProfileActivateVersionData = {
+    body?: never;
+    path: {
+        /**
+         * Version
+         */
+        version: number;
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/voice-profile/versions/{version}/activate';
+};
+
+export type voiceProfileActivateVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type voiceProfileActivateVersionError = voiceProfileActivateVersionErrors[keyof voiceProfileActivateVersionErrors];
+
+export type voiceProfileActivateVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: VoiceProfilePublic;
+};
+
+export type voiceProfileActivateVersionResponse = voiceProfileActivateVersionResponses[keyof voiceProfileActivateVersionResponses];
 
 export type privateCreateUserData = {
     body: PrivateUserCreate;
