@@ -3,6 +3,7 @@ import {
   History,
   type LucideIcon,
   Settings,
+  ShieldCheck,
   Sparkles,
   Users,
 } from "lucide-react"
@@ -42,6 +43,17 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "品牌与商品",
     items: [
       { title: "品牌与切换", path: "/brands", icon: Building2, access: "all" },
+    ],
+  },
+  {
+    title: "质量与评测",
+    items: [
+      {
+        title: "风险提示规则",
+        path: "/compliance/rules",
+        icon: ShieldCheck,
+        access: "all",
+      },
     ],
   },
   {
