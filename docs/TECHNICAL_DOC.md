@@ -302,7 +302,7 @@ RedNoteSearch/
 ## 6.1 约定
 
 - 基路径 /api/v1；JSON snake_case；ID 为 UUID 字符串；时间为 ISO 8601 UTC；写接口需 JWT。
-- 错误统一：{"error":{"code","message","details","request_id"}}；错误码：VALIDATION_ERROR 422、UNAUTHENTICATED 401、FORBIDDEN 403、NOT_FOUND 404、CONFLICT 409、RATE_LIMITED 429、MODEL_UNAVAILABLE 503。
+- 错误统一：{"error":{"code","message","details","request_id"}}；错误码：BAD_REQUEST 400、VALIDATION_ERROR 422、UNAUTHENTICATED 401、FORBIDDEN 403、NOT_FOUND 404、CONFLICT 409、RATE_LIMITED 429、MODEL_UNAVAILABLE 503、INTERNAL_ERROR 500。
 - 新增字段默认可选；删除或改名须版本化；变更先提契约 PR，再改服务端，再改前端，并补成功、验证错误、未授权、越权测试。
 
 ## 6.2 端点摘要（v1.1，字段见 docs/API_CONTRACT.md）

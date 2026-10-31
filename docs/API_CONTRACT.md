@@ -16,7 +16,8 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 
 | code | HTTP | 说明 |
 |---|---|---|
-| `VALIDATION_ERROR` | 422 | 参数或体校验失败；`details` 给出字段 |
+| `BAD_REQUEST` | 400 | 请求本身有问题（例如密码错误、令牌无效），没有更具体的错误码时使用 |
+| `VALIDATION_ERROR` | 422 | 参数或体校验失败；`details.errors` 给出每个字段的 `loc`、`msg`、`type` |
 | `UNAUTHENTICATED` | 401 | 未登录或令牌无效 |
 | `FORBIDDEN` | 403 | 已登录但无权限（角色或品牌授权） |
 | `NOT_FOUND` | 404 | 资源不存在，或按 ID 访问的资源不属于你可访问的品牌（不泄露存在性） |
@@ -28,6 +29,7 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 | `PARSE_FAILED` | 422 | 解析失败；资料保持不可检索 |
 | `RATE_LIMITED` | 429 | 限流，带 `Retry-After` |
 | `MODEL_UNAVAILABLE` | 503 | 模型超时、限流或空响应，重试用尽 |
+| `INTERNAL_ERROR` | 500 | 未处理的异常；不返回原因，只在服务端日志里记录并带 `request_id` |
 
 不得返回 traceback、API 密钥、模型原始敏感内容。
 
@@ -94,9 +96,10 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 - **平台管理员不是品牌数据的万能钥匙**：`BrandAccessDep` 对非成员的平台管理员同样 403，品牌范围内的数据（资料、任务、版本等）要先成为成员。
 - 请求体里的 `brand_id` 不授予任何权限。
 
-### 实现状态与偏差（2026-10-31）
-- 错误响应暂时沿用模板格式 `{"detail": "..."}`，**统一错误信封（`error.code`、`request_id`）尚未实现**：它会改变前端对错误的读取方式，需要单独的 PR 与前端调整。
-- 令牌无效时模板返回 403（契约写 401），未登录没带令牌时返回 401；也留待统一错误处理时一并调整。
+### 实现状态（2026-10-31）
+- **统一错误信封已实现**（`backend/app/core/errors.py`）：所有错误都是 `{"error":{"code","message","details","request_id"}}`；`request_id` 取自客户端发来的 `X-Request-ID`（只接受 1–64 位字母、数字、`.`、`_`、`-`），否则服务端生成，并在响应头 `X-Request-ID` 里返回，成功响应也带。未处理的异常返回 500 `INTERNAL_ERROR`，不含原因或堆栈。
+- 令牌无效或过期返回 **401** `UNAUTHENTICATED`（带 `WWW-Authenticate: Bearer`）；未带令牌也是 401。此前模板对无效令牌返回 403，已改正。
+- 前端只在 401 时清除令牌并回到登录页；403 作为“无权限”显示给用户，不再被当成登录失效。错误提示读取 `error.message` 并附上 `request_id`；校验错误显示第一个字段的提示。
 
 ### 商品
 - `GET /brands/{brand_id}/products?status=active|archived&page=`：品牌成员。
@@ -111,12 +114,19 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 ```
 `selling_points` 每条须能关联已审核资料来源；无来源的卖点保存为草稿，不参与“可作证据”。
 
+**实现约定（2026-10-31）**
+- 列表：`status` 默认 `active`；`page` 从 1 起，`page_size` 默认 20、最大 100，越界返回 422；响应为 `{items,total,page,page_size}`。
+- `PATCH /products/{id}`、`POST /products/{id}/archive` 的品牌取自商品本身，调用者须是该品牌 admin；商品不存在与无权限都返回 403，不泄露存在性。PATCH 里 `null` 不会清空必填字段。
+- `selling_points[].evidence_status` 为响应附加字段：`linked`（有来源）或 `draft`（无来源）。来源必须是本品牌“已审核且为当前版本”的资料，分块必须属于该资料，否则 409；只给 `source_chunk_id` 不给资料同样 409。
+
 ### 品牌档案（版本化）
 - `GET /brands/{brand_id}/voice-profile`：当前生效档案及版本。
 - `GET /brands/{brand_id}/voice-profile/versions`：版本列表。
 - `POST /brands/{brand_id}/voice-profile/versions`（admin）：创建新版本（草稿），体含 `persona`、`tone_keywords`、`preferred_words`、`forbidden_words`、`sample_refs`。
 - `POST /brands/{brand_id}/voice-profile/versions/{version}/activate`（admin）：设为生效，旧版本保留。
 - `POST /brands/{brand_id}/voice-profile/drafts`（admin，**P1**）：基于已入库资料由模型起草，返回草稿，**须人工确认后才能创建版本**。
+
+**实现约定（2026-10-31）**：新版本创建后 `is_active=false`，激活时自动停用旧版本（每个品牌只有一个生效版本，数据库用部分唯一索引保证）；`GET /voice-profile` 在没有生效版本时返回 404；响应字段为 `brand_id, version, persona, tone_keywords, preferred_words, forbidden_words, sample_refs, is_active, created_at`。`drafts`（P1）尚未实现。B 的生成代码通过 `VoiceProfileProvider` 端口取档案，真实实现是 `app.services.voice_profiles.DbVoiceProfileProvider`。
 
 ## 4. 知识资料（A）
 
@@ -153,6 +163,18 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 ### `POST /knowledge-documents/{document_id}/deactivate`（admin）
 停用；新任务不得检索，历史 `generation_version` 保留原引用快照。不物理删除。
+
+**实现约定（2026-10-31）**
+- `{document_id}` 是**某个版本行的 id**（响应里的 `id`）；同一逻辑文档的各版本共享 `group_id`。`KnowledgeSearch` 返回的 `document_id` 是 `group_id`，`document_version` 是版本号（ADR-010）。
+- 支持 PDF（需有文字，不做 OCR）、DOCX、MD、TXT、CSV，单文件 ≤ 10 MB（超过 413）；解析失败、空文件、不支持的类型返回 422，不保存任何内容。
+- 分块：按段落合并，每块 ≤ 500 字，过长段落按句末切分。
+- 管理员直接入库与新版本：先解析、分块、嵌入，全部成功后才一次性写入（approved、ready、当前版本）；嵌入模型不可用返回 503，不留下半成品。审计记为 `kb_review` 的 `admin_direct_ingest`。
+- 运营提交：解析与分块在提交时完成，**嵌入在审核通过时进行**；通过时嵌入失败返回 503 且状态仍为 `pending_review`。带 `supersedes_document_id` 的提交，通过前仍使用旧的当前版本；supersedes 指向其他品牌的资料返回 404。
+- 重建索引（202）：用已保存的分块重新嵌入，只允许 `approved`；失败时 `index_status=failed`（失败期间不可检索）并返回 503。
+- 停用只允许 `approved`；审核只允许 `pending_review`；状态不符返回 409（`INVALID_STATE`）。
+- 按资源 ID 访问（详情、分块、审核、停用、重建索引）：资源不存在与非本品牌成员一律 404；成员但不是 admin 的写操作与分块预览 403。
+- 检索条件：本品牌、`approved`、当前版本、`index_status=ready`、已有向量；按余弦相似度排序，`score = 1 - 余弦距离`。`product_id` 暂未使用（资料尚未关联商品），`task_id` 暂被忽略（任务资料快照尚未实现），目前只返回 `approved_kb` 结果。
+- 嵌入模型：百炼 `text-embedding-v4`，写入与查询都显式传 `dimensions=1024`；密钥取自环境变量 `DASHSCOPE_API_KEY`，未配置时入库与审核通过返回 503。
 
 ## 5. 场景、风格、任务与生成（B）
 

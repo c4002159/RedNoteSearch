@@ -5,6 +5,55 @@ export type ClientOptions = {
 };
 
 /**
+ * Body_knowledge-ingest_document
+ */
+export type Body_knowledge_ingest_document = {
+    /**
+     * Title
+     */
+    title: string;
+    doc_type: DocumentType;
+    /**
+     * File
+     */
+    file: Blob | File;
+};
+
+/**
+ * Body_knowledge-ingest_new_version
+ */
+export type Body_knowledge_ingest_new_version = {
+    /**
+     * Title
+     */
+    title: string;
+    doc_type: DocumentType;
+    /**
+     * File
+     */
+    file: Blob | File;
+};
+
+/**
+ * Body_knowledge-submit_document
+ */
+export type Body_knowledge_submit_document = {
+    /**
+     * Title
+     */
+    title: string;
+    doc_type: DocumentType;
+    /**
+     * File
+     */
+    file: Blob | File;
+    /**
+     * Supersedes Document Id
+     */
+    supersedes_document_id?: string | null;
+};
+
+/**
  * Body_login-login_access_token
  */
 export type Body_login_login_access_token = {
@@ -132,6 +181,222 @@ export type BrandsPublic = {
 };
 
 /**
+ * ChunkPublic
+ */
+export type ChunkPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Chunk Index
+     */
+    chunk_index: number;
+    /**
+     * Content
+     */
+    content: string;
+    /**
+     * Metadata
+     */
+    metadata: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * ChunksPublic
+ */
+export type ChunksPublic = {
+    /**
+     * Items
+     */
+    items: Array<ChunkPublic>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+};
+
+/**
+ * DocumentDetail
+ */
+export type DocumentDetail = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Group Id
+     */
+    group_id: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Doc Type
+     */
+    doc_type: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Index Status
+     */
+    index_status: string;
+    /**
+     * Version
+     */
+    version: number;
+    /**
+     * Is Current
+     */
+    is_current: boolean;
+    /**
+     * Source Filename
+     */
+    source_filename: string | null;
+    /**
+     * Submitted By
+     */
+    submitted_by: string | null;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+    /**
+     * Versions
+     */
+    versions: Array<DocumentVersionRef>;
+    /**
+     * Reviews
+     */
+    reviews: Array<ReviewPublic>;
+};
+
+/**
+ * DocumentPublic
+ */
+export type DocumentPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Group Id
+     */
+    group_id: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Doc Type
+     */
+    doc_type: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Index Status
+     */
+    index_status: string;
+    /**
+     * Version
+     */
+    version: number;
+    /**
+     * Is Current
+     */
+    is_current: boolean;
+    /**
+     * Source Filename
+     */
+    source_filename: string | null;
+    /**
+     * Submitted By
+     */
+    submitted_by: string | null;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+};
+
+/**
+ * DocumentStatus
+ */
+export type DocumentStatus = 'pending_review' | 'approved' | 'rejected' | 'deactivated';
+
+/**
+ * DocumentType
+ */
+export type DocumentType = 'brand_story' | 'product_spec' | 'ingredient' | 'award_claim' | 'compliance_policy' | 'sample_note';
+
+/**
+ * DocumentVersionRef
+ */
+export type DocumentVersionRef = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Version
+     */
+    version: number;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Is Current
+     */
+    is_current: boolean;
+};
+
+/**
+ * DocumentsPublic
+ */
+export type DocumentsPublic = {
+    /**
+     * Items
+     */
+    items: Array<DocumentPublic>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+};
+
+/**
  * HTTPValidationError
  */
 export type HTTPValidationError = {
@@ -240,6 +505,214 @@ export type PrivateUserCreate = {
      * Is Verified
      */
     is_verified?: boolean;
+};
+
+/**
+ * ProductCreate
+ */
+export type ProductCreate = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Product Line
+     */
+    product_line?: string | null;
+    category?: BrandCategory;
+    notes?: ProductNotes;
+    /**
+     * Selling Points
+     */
+    selling_points?: Array<SellingPoint>;
+    /**
+     * Restricted Claims
+     */
+    restricted_claims?: Array<string>;
+};
+
+/**
+ * ProductNotes
+ */
+export type ProductNotes = {
+    /**
+     * Top
+     */
+    top?: Array<string>;
+    /**
+     * Middle
+     */
+    middle?: Array<string>;
+    /**
+     * Base
+     */
+    base?: Array<string>;
+};
+
+/**
+ * ProductPublic
+ */
+export type ProductPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Product Line
+     */
+    product_line: string | null;
+    /**
+     * Category
+     */
+    category: string;
+    notes: ProductNotes;
+    /**
+     * Selling Points
+     */
+    selling_points: Array<SellingPointPublic>;
+    /**
+     * Restricted Claims
+     */
+    restricted_claims: Array<string>;
+    /**
+     * Status
+     */
+    status: string;
+};
+
+/**
+ * ProductStatus
+ */
+export type ProductStatus = 'active' | 'archived';
+
+/**
+ * ProductUpdate
+ */
+export type ProductUpdate = {
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Product Line
+     */
+    product_line?: string | null;
+    category?: BrandCategory | null;
+    notes?: ProductNotes | null;
+    /**
+     * Selling Points
+     */
+    selling_points?: Array<SellingPoint> | null;
+    /**
+     * Restricted Claims
+     */
+    restricted_claims?: Array<string> | null;
+};
+
+/**
+ * ProductsPublic
+ */
+export type ProductsPublic = {
+    /**
+     * Items
+     */
+    items: Array<ProductPublic>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+};
+
+/**
+ * ReviewCreate
+ */
+export type ReviewCreate = {
+    /**
+     * Action
+     */
+    action: 'approve' | 'reject';
+    /**
+     * Reason
+     */
+    reason?: string | null;
+};
+
+/**
+ * ReviewPublic
+ */
+export type ReviewPublic = {
+    /**
+     * Action
+     */
+    action: string;
+    /**
+     * Actor Id
+     */
+    actor_id: string | null;
+    /**
+     * Reason
+     */
+    reason: string | null;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+};
+
+/**
+ * SellingPoint
+ */
+export type SellingPoint = {
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Source Document Id
+     */
+    source_document_id?: string | null;
+    /**
+     * Source Chunk Id
+     */
+    source_chunk_id?: string | null;
+};
+
+/**
+ * SellingPointPublic
+ */
+export type SellingPointPublic = {
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Source Document Id
+     */
+    source_document_id?: string | null;
+    /**
+     * Source Chunk Id
+     */
+    source_chunk_id?: string | null;
+    /**
+     * Evidence Status
+     */
+    evidence_status: string;
 };
 
 /**
@@ -424,6 +897,84 @@ export type ValidationError = {
     ctx?: {
         [key: string]: unknown;
     };
+};
+
+/**
+ * VoiceProfileCreate
+ */
+export type VoiceProfileCreate = {
+    /**
+     * Persona
+     */
+    persona: string;
+    /**
+     * Tone Keywords
+     */
+    tone_keywords?: Array<string>;
+    /**
+     * Preferred Words
+     */
+    preferred_words?: Array<string>;
+    /**
+     * Forbidden Words
+     */
+    forbidden_words?: Array<string>;
+    /**
+     * Sample Refs
+     */
+    sample_refs?: Array<string>;
+};
+
+/**
+ * VoiceProfilePublic
+ */
+export type VoiceProfilePublic = {
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Version
+     */
+    version: number;
+    /**
+     * Persona
+     */
+    persona: string;
+    /**
+     * Tone Keywords
+     */
+    tone_keywords: Array<string>;
+    /**
+     * Preferred Words
+     */
+    preferred_words: Array<string>;
+    /**
+     * Forbidden Words
+     */
+    forbidden_words: Array<string>;
+    /**
+     * Sample Refs
+     */
+    sample_refs: Array<string>;
+    /**
+     * Is Active
+     */
+    is_active: boolean;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+};
+
+/**
+ * VoiceProfilesPublic
+ */
+export type VoiceProfilesPublic = {
+    /**
+     * Items
+     */
+    items: Array<VoiceProfilePublic>;
 };
 
 export type loginLoginAccessTokenData = {
@@ -1054,6 +1605,556 @@ export type brandsUpdateMemberResponses = {
 };
 
 export type brandsUpdateMemberResponse = brandsUpdateMemberResponses[keyof brandsUpdateMemberResponses];
+
+export type productsReadProductsData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: {
+        status?: ProductStatus;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/brands/{brand_id}/products';
+};
+
+export type productsReadProductsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type productsReadProductsError = productsReadProductsErrors[keyof productsReadProductsErrors];
+
+export type productsReadProductsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductsPublic;
+};
+
+export type productsReadProductsResponse = productsReadProductsResponses[keyof productsReadProductsResponses];
+
+export type productsCreateProductData = {
+    body: ProductCreate;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/products';
+};
+
+export type productsCreateProductErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type productsCreateProductError = productsCreateProductErrors[keyof productsCreateProductErrors];
+
+export type productsCreateProductResponses = {
+    /**
+     * Successful Response
+     */
+    201: ProductPublic;
+};
+
+export type productsCreateProductResponse = productsCreateProductResponses[keyof productsCreateProductResponses];
+
+export type productsUpdateProductData = {
+    body: ProductUpdate;
+    path: {
+        /**
+         * Product Id
+         */
+        product_id: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_id}';
+};
+
+export type productsUpdateProductErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type productsUpdateProductError = productsUpdateProductErrors[keyof productsUpdateProductErrors];
+
+export type productsUpdateProductResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductPublic;
+};
+
+export type productsUpdateProductResponse = productsUpdateProductResponses[keyof productsUpdateProductResponses];
+
+export type productsArchiveProductData = {
+    body?: never;
+    path: {
+        /**
+         * Product Id
+         */
+        product_id: string;
+    };
+    query?: never;
+    url: '/api/v1/products/{product_id}/archive';
+};
+
+export type productsArchiveProductErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type productsArchiveProductError = productsArchiveProductErrors[keyof productsArchiveProductErrors];
+
+export type productsArchiveProductResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductPublic;
+};
+
+export type productsArchiveProductResponse = productsArchiveProductResponses[keyof productsArchiveProductResponses];
+
+export type knowledgeReadDocumentsData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: {
+        /**
+         * Status
+         */
+        status?: DocumentStatus | null;
+        /**
+         * Doc Type
+         */
+        doc_type?: DocumentType | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/brands/{brand_id}/knowledge-documents';
+};
+
+export type knowledgeReadDocumentsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeReadDocumentsError = knowledgeReadDocumentsErrors[keyof knowledgeReadDocumentsErrors];
+
+export type knowledgeReadDocumentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: DocumentsPublic;
+};
+
+export type knowledgeReadDocumentsResponse = knowledgeReadDocumentsResponses[keyof knowledgeReadDocumentsResponses];
+
+export type knowledgeIngestDocumentData = {
+    body: Body_knowledge_ingest_document;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/knowledge-documents';
+};
+
+export type knowledgeIngestDocumentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeIngestDocumentError = knowledgeIngestDocumentErrors[keyof knowledgeIngestDocumentErrors];
+
+export type knowledgeIngestDocumentResponses = {
+    /**
+     * Successful Response
+     */
+    201: DocumentPublic;
+};
+
+export type knowledgeIngestDocumentResponse = knowledgeIngestDocumentResponses[keyof knowledgeIngestDocumentResponses];
+
+export type knowledgeIngestNewVersionData = {
+    body: Body_knowledge_ingest_new_version;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-documents/{document_id}/versions';
+};
+
+export type knowledgeIngestNewVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeIngestNewVersionError = knowledgeIngestNewVersionErrors[keyof knowledgeIngestNewVersionErrors];
+
+export type knowledgeIngestNewVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: DocumentPublic;
+};
+
+export type knowledgeIngestNewVersionResponse = knowledgeIngestNewVersionResponses[keyof knowledgeIngestNewVersionResponses];
+
+export type knowledgeSubmitDocumentData = {
+    body: Body_knowledge_submit_document;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/knowledge-submissions';
+};
+
+export type knowledgeSubmitDocumentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeSubmitDocumentError = knowledgeSubmitDocumentErrors[keyof knowledgeSubmitDocumentErrors];
+
+export type knowledgeSubmitDocumentResponses = {
+    /**
+     * Successful Response
+     */
+    201: DocumentPublic;
+};
+
+export type knowledgeSubmitDocumentResponse = knowledgeSubmitDocumentResponses[keyof knowledgeSubmitDocumentResponses];
+
+export type knowledgeReadDocumentData = {
+    body?: never;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-documents/{document_id}';
+};
+
+export type knowledgeReadDocumentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeReadDocumentError = knowledgeReadDocumentErrors[keyof knowledgeReadDocumentErrors];
+
+export type knowledgeReadDocumentResponses = {
+    /**
+     * Successful Response
+     */
+    200: DocumentDetail;
+};
+
+export type knowledgeReadDocumentResponse = knowledgeReadDocumentResponses[keyof knowledgeReadDocumentResponses];
+
+export type knowledgeReadChunksData = {
+    body?: never;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/knowledge-documents/{document_id}/chunks';
+};
+
+export type knowledgeReadChunksErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeReadChunksError = knowledgeReadChunksErrors[keyof knowledgeReadChunksErrors];
+
+export type knowledgeReadChunksResponses = {
+    /**
+     * Successful Response
+     */
+    200: ChunksPublic;
+};
+
+export type knowledgeReadChunksResponse = knowledgeReadChunksResponses[keyof knowledgeReadChunksResponses];
+
+export type knowledgeReindexDocumentData = {
+    body?: never;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-documents/{document_id}/reindex';
+};
+
+export type knowledgeReindexDocumentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeReindexDocumentError = knowledgeReindexDocumentErrors[keyof knowledgeReindexDocumentErrors];
+
+export type knowledgeReindexDocumentResponses = {
+    /**
+     * Successful Response
+     */
+    202: DocumentPublic;
+};
+
+export type knowledgeReindexDocumentResponse = knowledgeReindexDocumentResponses[keyof knowledgeReindexDocumentResponses];
+
+export type knowledgeReviewDocumentData = {
+    body: ReviewCreate;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-documents/{document_id}/reviews';
+};
+
+export type knowledgeReviewDocumentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeReviewDocumentError = knowledgeReviewDocumentErrors[keyof knowledgeReviewDocumentErrors];
+
+export type knowledgeReviewDocumentResponses = {
+    /**
+     * Successful Response
+     */
+    200: DocumentPublic;
+};
+
+export type knowledgeReviewDocumentResponse = knowledgeReviewDocumentResponses[keyof knowledgeReviewDocumentResponses];
+
+export type knowledgeDeactivateDocumentData = {
+    body?: never;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-documents/{document_id}/deactivate';
+};
+
+export type knowledgeDeactivateDocumentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeDeactivateDocumentError = knowledgeDeactivateDocumentErrors[keyof knowledgeDeactivateDocumentErrors];
+
+export type knowledgeDeactivateDocumentResponses = {
+    /**
+     * Successful Response
+     */
+    200: DocumentPublic;
+};
+
+export type knowledgeDeactivateDocumentResponse = knowledgeDeactivateDocumentResponses[keyof knowledgeDeactivateDocumentResponses];
+
+export type voiceProfileReadActiveProfileData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/voice-profile';
+};
+
+export type voiceProfileReadActiveProfileErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type voiceProfileReadActiveProfileError = voiceProfileReadActiveProfileErrors[keyof voiceProfileReadActiveProfileErrors];
+
+export type voiceProfileReadActiveProfileResponses = {
+    /**
+     * Successful Response
+     */
+    200: VoiceProfilePublic;
+};
+
+export type voiceProfileReadActiveProfileResponse = voiceProfileReadActiveProfileResponses[keyof voiceProfileReadActiveProfileResponses];
+
+export type voiceProfileReadVersionsData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/voice-profile/versions';
+};
+
+export type voiceProfileReadVersionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type voiceProfileReadVersionsError = voiceProfileReadVersionsErrors[keyof voiceProfileReadVersionsErrors];
+
+export type voiceProfileReadVersionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: VoiceProfilesPublic;
+};
+
+export type voiceProfileReadVersionsResponse = voiceProfileReadVersionsResponses[keyof voiceProfileReadVersionsResponses];
+
+export type voiceProfileCreateVersionData = {
+    body: VoiceProfileCreate;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/voice-profile/versions';
+};
+
+export type voiceProfileCreateVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type voiceProfileCreateVersionError = voiceProfileCreateVersionErrors[keyof voiceProfileCreateVersionErrors];
+
+export type voiceProfileCreateVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: VoiceProfilePublic;
+};
+
+export type voiceProfileCreateVersionResponse = voiceProfileCreateVersionResponses[keyof voiceProfileCreateVersionResponses];
+
+export type voiceProfileActivateVersionData = {
+    body?: never;
+    path: {
+        /**
+         * Version
+         */
+        version: number;
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/voice-profile/versions/{version}/activate';
+};
+
+export type voiceProfileActivateVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type voiceProfileActivateVersionError = voiceProfileActivateVersionErrors[keyof voiceProfileActivateVersionErrors];
+
+export type voiceProfileActivateVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: VoiceProfilePublic;
+};
+
+export type voiceProfileActivateVersionResponse = voiceProfileActivateVersionResponses[keyof voiceProfileActivateVersionResponses];
 
 export type privateCreateUserData = {
     body: PrivateUserCreate;
