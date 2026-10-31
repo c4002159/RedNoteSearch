@@ -136,12 +136,22 @@ class OpenAICompatibleClient:
             if not isinstance(text, str) or not text.strip():
                 raise ValueError("empty completion")
         except (KeyError, IndexError, ValueError, TypeError) as exc:
-            self._record(request, "error", latency, error="bad_response", attempt=attempt)
-            raise ModelUnavailableError("The language model returned an unusable answer") from exc
+            self._record(
+                request, "error", latency, error="bad_response", attempt=attempt
+            )
+            raise ModelUnavailableError(
+                "The language model returned an unusable answer"
+            ) from exc
         cost = self._price.cost(usage) if self._price else None
         version = self._price.version if self._price else None
         self._record(
-            request, "ok", latency, usage=usage, cost=cost, version=version, attempt=attempt
+            request,
+            "ok",
+            latency,
+            usage=usage,
+            cost=cost,
+            version=version,
+            attempt=attempt,
         )
         return LlmResponse(
             text=text,

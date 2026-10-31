@@ -26,7 +26,9 @@ REQUEST = LlmRequest(
 PRICE = Price("v1", Decimal("2"), Decimal("8"))  # per million tokens
 
 
-def _ok_body(text: str = "你好", prompt: int = 1000, completion: int = 500) -> dict[str, object]:
+def _ok_body(
+    text: str = "你好", prompt: int = 1000, completion: int = 500
+) -> dict[str, object]:
     return {
         "choices": [{"message": {"content": text}}],
         "usage": {"prompt_tokens": prompt, "completion_tokens": completion},
@@ -62,13 +64,20 @@ def test_success_returns_text_usage_cost_and_records_the_call() -> None:
         return httpx.Response(200, json=_ok_body())
 
     recorder = ListCallRecorder()
-    response = _client(httpx.MockTransport(handler), recorder=recorder).complete(REQUEST)
+    response = _client(httpx.MockTransport(handler), recorder=recorder).complete(
+        REQUEST
+    )
 
     assert response.text == "你好" and response.provider == "deepseek"
     assert response.usage == LlmUsage(1000, 500) and response.usage.total_tokens == 1500
     assert response.cost == Decimal("0.006") and response.price_version == "v1"
     (call,) = recorder.records
-    assert (call.status, call.purpose, call.attempt, call.error) == ("ok", "generate", 1, "")
+    assert (call.status, call.purpose, call.attempt, call.error) == (
+        "ok",
+        "generate",
+        1,
+        "",
+    )
     assert call.cost == Decimal("0.006") and call.usage.prompt_tokens == 1000
 
     request = seen[0]
@@ -94,7 +103,9 @@ def test_transient_failures_are_retried_with_backoff_then_succeed() -> None:
         return httpx.Response(status, json=_ok_body() if status == 200 else {})
 
     recorder = ListCallRecorder()
-    response = _client(httpx.MockTransport(handler), recorder=recorder, sleeps=sleeps).complete(REQUEST)
+    response = _client(
+        httpx.MockTransport(handler), recorder=recorder, sleeps=sleeps
+    ).complete(REQUEST)
 
     assert response.text == "你好"
     assert [(c.status, c.error, c.attempt) for c in recorder.records] == [
@@ -140,7 +151,7 @@ def test_timeouts_and_network_errors_are_retried() -> None:
         httpx.ConnectError("down"),
     ]
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(_: httpx.Request) -> httpx.Response:
         if errors:
             raise errors.pop(0)
         return httpx.Response(200, json=_ok_body())
@@ -152,7 +163,12 @@ def test_timeouts_and_network_errors_are_retried() -> None:
 
 @pytest.mark.parametrize(
     "body",
-    [{}, {"choices": []}, {"choices": [{"message": {"content": "  "}}]}, {"choices": [{"message": {}}]}],
+    [
+        {},
+        {"choices": []},
+        {"choices": [{"message": {"content": "  "}}]},
+        {"choices": [{"message": {}}]},
+    ],
 )
 def test_unusable_answers_are_reported(body: dict[str, object]) -> None:
     recorder = ListCallRecorder()
@@ -168,7 +184,9 @@ def test_a_missing_key_fails_without_any_request() -> None:
 
     recorder = ListCallRecorder()
     with pytest.raises(ModelUnavailableError, match="not configured"):
-        _client(httpx.MockTransport(handler), recorder=recorder, key="").complete(REQUEST)
+        _client(httpx.MockTransport(handler), recorder=recorder, key="").complete(
+            REQUEST
+        )
     assert [c.error for c in recorder.records] == ["not_configured"]
 
 
@@ -178,7 +196,11 @@ def test_cost_is_empty_without_a_price() -> None:
         model="m",
         base_url="https://llm.test",
         api_key="k",
-        client=httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=_ok_body()))),
+        client=httpx.Client(
+            transport=httpx.MockTransport(
+                lambda _: httpx.Response(200, json=_ok_body())
+            )
+        ),
     )
     response = client.complete(REQUEST)
     assert response.cost is None and response.price_version is None
@@ -207,13 +229,17 @@ def test_valid_output_is_returned_after_one_call() -> None:
     assert fake.requests[0].json_mode is True
 
 
-def test_invalid_output_is_corrected_with_a_bounded_number_of_retries() -> None:  # TC-018
+def test_invalid_output_is_corrected_with_a_bounded_number_of_retries() -> (
+    None
+):  # TC-018
     fake = FakeLlmClient(["not json", '{"titles": "oops"}', GOOD])
     result = generate_structured(fake, REQUEST, Titles, max_attempts=3)
     assert result.attempts == 3 and result.value.count == 2
     correction = fake.requests[2].messages[-1]
     assert correction.role == "user" and "rejected" in correction.content
-    assert fake.requests[1].messages[-2].content == "not json"  # the bad answer is shown back
+    assert (
+        fake.requests[1].messages[-2].content == "not json"
+    )  # the bad answer is shown back
 
 
 def test_gives_up_after_max_attempts() -> None:  # TC-018
