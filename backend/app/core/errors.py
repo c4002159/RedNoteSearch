@@ -18,6 +18,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.services.errors import (
     ConflictError,
+    InvalidInputError,
     InvalidStateError,
     ModelUnavailableError,
     NotFoundError,
@@ -132,6 +133,13 @@ def _invalid_state_handler(request: Request, exc: Exception) -> Response:
     )
 
 
+def _invalid_input_handler(request: Request, exc: Exception) -> Response:
+    assert isinstance(exc, InvalidInputError)
+    return error_response(
+        request, status_code=422, code="VALIDATION_ERROR", message=exc.message
+    )
+
+
 def _parse_error_handler(request: Request, exc: Exception) -> Response:
     assert isinstance(exc, ParseError)
     return error_response(
@@ -177,6 +185,7 @@ def install_error_handling(app: FastAPI) -> None:
     app.add_exception_handler(NotFoundError, _not_found_handler)
     app.add_exception_handler(ConflictError, _conflict_handler)
     app.add_exception_handler(InvalidStateError, _invalid_state_handler)
+    app.add_exception_handler(InvalidInputError, _invalid_input_handler)
     app.add_exception_handler(ParseError, _parse_error_handler)
     app.add_exception_handler(ModelUnavailableError, _model_unavailable_handler)
     app.add_exception_handler(Exception, _unhandled_exception_handler)
