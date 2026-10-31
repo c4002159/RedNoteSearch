@@ -151,7 +151,7 @@ def test_generate_stores_a_checked_version(
     assert version["hashtags"] == ["日常香氛", "通勤好物"]
     assert version["constraint_checks"]["passed"] is True
     assert (version["prompt_version"], version["checker_version"]) == (
-        "gen-v2",
+        "gen-v3",
         "constraints-v1",
     )
     assert (
