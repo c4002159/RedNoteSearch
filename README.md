@@ -42,6 +42,8 @@ cd backend && uv sync && uv run bash scripts/prestart.sh && uv run fastapi dev
 cd frontend && bun install && bun run dev
 ```
 
+本机已有程序占用 5432 端口（比如另一个 Postgres）时，启动数据库会报 `port is already allocated`：在 `.env` 里把 `POSTGRES_PORT` 和 `DATABASE_URL` 里的端口一起改成 5433 即可。Windows 中文系统上运行后端测试若出现 `gbk` 解码错误，请确认已拉取最新代码（邮件模板读取已指定 UTF-8）。
+
 整栈：`docker compose run --rm backend bash scripts/prestart.sh && docker compose watch`。
 更多命令见 [development.md](./development.md)。CI 已在 Linux 上验证整栈 compose 启动、迁移与后端测试（PR #3）；上述本地命令尚未在开发机上实测。
 

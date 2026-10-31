@@ -20,6 +20,9 @@
 - 整体覆盖率在 CI 实测 93%；领域层要求 ≥90%（ADR-002）。
 - 不得提交：品牌手册 PDF 原件、截图、API 密钥、`.env`（ADR-007）。
 
+## 设计稿
+设计稿由 B 通过 PR 提交到 `docs/design/`（导出的 PNG 加每页一份 `spec.md`），约定见 `docs/design/README.md`。AI 读图只当视觉参考，字段、选项、文案以契约、文案模块和接口为准；图与契约冲突时先列出来问人，不要自己选一边。
+
 ## 减少合并冲突（两人并行开发）
 - 开工前先同步 `main`；分支一两天内合并；一个 PR 只动一类共享文件，不要把依赖升级、公共组件改动混进业务 PR。
 - **自动生成的文件不要手工合并**：`frontend/src/routeTree.gen.ts`、`frontend/src/client/**` 冲突时，合并 `main` 后重新生成再提交（仓库根目录：`bun run --filter frontend build`、`bash scripts/generate-client.sh`），CI 的 `contract` 检查会验证。
