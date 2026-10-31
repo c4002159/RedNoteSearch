@@ -124,7 +124,11 @@ def _not_found_handler(request: Request, exc: Exception) -> Response:
 def _conflict_handler(request: Request, exc: Exception) -> Response:
     assert isinstance(exc, ConflictError)
     return error_response(
-        request, status_code=409, code="CONFLICT", message=exc.message
+        request,
+        status_code=409,
+        code="CONFLICT",
+        message=exc.message,
+        details=exc.details,
     )
 
 
@@ -142,7 +146,11 @@ def _invalid_state_handler(request: Request, exc: Exception) -> Response:
 def _invalid_input_handler(request: Request, exc: Exception) -> Response:
     assert isinstance(exc, InvalidInputError)
     return error_response(
-        request, status_code=422, code="VALIDATION_ERROR", message=exc.message
+        request,
+        status_code=422,
+        code="VALIDATION_ERROR",
+        message=exc.message,
+        details=exc.details,
     )
 
 

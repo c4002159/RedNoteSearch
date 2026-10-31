@@ -9,6 +9,7 @@ from app.api.routes import (
     login,
     private,
     products,
+    rule_import,
     tasks,
     users,
     utils,
@@ -25,6 +26,7 @@ api_router.include_router(brands.router)
 api_router.include_router(products.router)
 api_router.include_router(tasks.router)
 api_router.include_router(evidence.router)
+api_router.include_router(rule_import.router)
 api_router.include_router(compliance.router)
 api_router.include_router(evaluation.router)
 api_router.include_router(versions.router)
