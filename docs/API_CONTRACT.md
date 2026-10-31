@@ -140,6 +140,7 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 ```json
 {"id":"doc-uuid","brand_id":"b-uuid","status":"approved","index_status":"ready","version":1,"submitted_by":"u-uuid"}
 ```
+**提交人与审核人姓名（2026-11-01 新增，只增字段）**：资料项多 `submitted_by_name`，资料详情的每条审核记录多 `actor_name`；取用户的姓名，没有姓名就取邮箱，用户已不存在时为 `null`（前端显示“未知用户”）。所有品牌成员都能读到，编辑者不需要再调成员列表（该接口仅管理员）。
 editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索。管理员直入库不是对审核流程的绕过：两条路径靠角色区分，都写审计。
 
 ### `POST /knowledge-documents/{document_id}/versions`（admin，multipart）
@@ -170,7 +171,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 **实现约定（2026-10-31）**
 - `{document_id}` 是**某个版本行的 id**（响应里的 `id`）；同一逻辑文档的各版本共享 `group_id`。`KnowledgeSearch` 返回的 `document_id` 是 `group_id`，`document_version` 是版本号（ADR-010）。
-- 支持 PDF（需有文字，不做 OCR）、DOCX、MD、TXT、CSV，单文件 ≤ 10 MB（超过 413）；解析失败、空文件、不支持的类型返回 422，不保存任何内容。
+- 支持 PDF（需有文字，不做 OCR）、DOCX、MD、TXT、CSV，单文件大小限制见 1.5（PDF、DOCX ≤ 50 MB，MD、TXT、CSV ≤ 5 MB，超限 422 `FILE_TOO_LARGE`）；解析失败、空文件、不支持的类型返回 422，不保存任何内容。
 - 分块：按段落合并，每块 ≤ 500 字，过长段落按句末切分。
 - 管理员直接入库与新版本：先解析、分块、嵌入，全部成功后才一次性写入（approved、ready、当前版本）；嵌入模型不可用返回 503，不留下半成品。审计记为 `kb_review` 的 `admin_direct_ingest`。
 - 运营提交：解析与分块在提交时完成，**嵌入在审核通过时进行**；通过时嵌入失败返回 503 且状态仍为 `pending_review`。带 `supersedes_document_id` 的提交，通过前仍使用旧的当前版本；supersedes 指向其他品牌的资料返回 404。
@@ -197,7 +198,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 ```
 响应 201：`{"id","status":"queued","brand_id","created_at"}`。快照保存内容与 `content_hash`，之后源文件变化不影响本任务。
 
-约束检查（与发布页一致，ADR-004、ADR-005）：标题加权长度 `title_weight ≤ 20`（ASCII 可打印字符计 0.5，其余计 1）；正文 `body_units ≤ 1000`（去掉换行后的 UTF-16 码元数，emoji 计 2）；标签 ≤10，且标签的可见字符计入正文预算。后端判定为准，前端镜像同一规则。
+约束检查（与发布页一致，ADR-004、ADR-005）：标题加权长度 `title_weight ≤ 20`（ASCII 可打印字符计 0.5，其余按 UTF-16 码元计 1，即汉字与全角标点 1、emoji 2，2026-11-01 发布页实测）；正文 `body_units ≤ 1000`（去掉换行后的 UTF-16 码元数，emoji 计 2）；标签 ≤10，且标签的可见字符计入正文预算。后端判定为准，前端镜像同一规则。
 
 ### F12：任务文件输入（已定稿，已实现）
 
@@ -291,7 +292,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - 一次生成最多 3 轮：第 1 轮正常生成，约束检查未通过则把问题告诉模型再生成，最多再 2 轮；每轮格式不符最多再问 1 次，因此一次生成最多 6 次模型调用。仍未通过时保存该版本并标 `constraint_failed`，检查结果里写明哪个标题、哪个字段、哪个词。
 - 约束检查对**每一个标题候选**单独判定，对正文加标签判定字数、标签数量、必含词和禁用词；禁用词包括品牌档案的禁用词和商品的“禁止宣称”。
 - 约束通过的版本状态为 `checking`，任务进度为 `evidence`：证据与合规检查是后续步骤，完成前版本不会变成 `checks_completed`，更不会是 `ready_to_copy`。
-- 版本记录 `template_version`、`prompt_version`（`gen-v1`）、`voice_version`、`checker_version`（`constraints-v1`）、`model`，以及当次检索到的资料快照 `retrieved_sources`（含来源级别、文档与版本、分块 id、哈希和 200 字摘录）。
+- 版本记录 `template_version`、`prompt_version`（`gen-v3`）、`voice_version`、`checker_version`（`constraints-v1`）、`model`，以及当次检索到的资料快照 `retrieved_sources`（含来源级别、文档与版本、分块 id、哈希和 200 字摘录）。
 - 提示词只把**有来源**的卖点当作事实；无来源的卖点标为“未核实，只可参考”；任务资料标为“未审核”。
 - 每次模型调用（含失败）写入 `llm_call_log`，用独立事务，调用失败回滚时也留痕。
 
@@ -373,7 +374,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 ## 6. 合规规则（B）
 
-- `GET /compliance-rules?layer=&rule_type=&severity=&brand_id=&page=`：登录用户可查全局规则与所属品牌规则。
+- `GET /compliance-rules?layer=&rule_type=&severity=&brand_id=&scope=&page=&page_size=`：登录用户可查全局规则与所属品牌规则。`scope`（2026-11-01 新增，只增参数）可选 `global`（只要全局规则）或 `brand`（只要 `brand_id` 指定的品牌的规则，必须带 `brand_id`，否则 422）；不传则仍是全局加品牌。`page_size` 默认 20、最大 100。列表包含已停用规则。
 - `GET /compliance-rules/{rule_id}`：规则详情。
 - 字段：`id`、`brand_id|null`、`layer`、`rule_type`（`absolute_term | efficacy_claim | medical_term | data_claim | platform_rule | brand_forbidden`）、`pattern`、`is_regex`、`severity`、`suggestion`、`source_name`、`source_url`、`source_clause`、`region_scope`、`effective_from`、`effective_to`、`rule_version`、`enabled`。
 - 规则的创建、修改、停用属 **P2**（品牌 admin）；P0 规则由种子数据或评测目录导入，不通过 API 编辑。

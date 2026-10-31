@@ -44,7 +44,14 @@ def test_title_weight_treats_everything_outside_ascii_printable_as_full_width() 
     assert title_weight("，") == 1  # full-width comma (assumption, see ADR-004)
     assert title_weight(" ") == 0.5 and title_weight("~") == 0.5
     assert title_weight("\x7f") == 1 and title_weight("é") == 1
-    assert title_weight("😀") == 1  # one code point
+    assert (
+        title_weight("😀") == 2
+    )  # two UTF-16 code units, measured on the publish page
+    assert title_weight("a😀，") == 3.5
+    assert (
+        title_weight("汉" * 10 + "😀" * 5) == 20
+        and title_weight("汉" * 10 + "😀" * 5 + "a") == 20.5
+    )
 
 
 def test_body_units_ignore_newlines_and_count_emoji_twice() -> None:
