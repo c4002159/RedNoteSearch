@@ -65,6 +65,9 @@ def _add_review(
     actor_id: uuid.UUID,
     reason: str | None = None,
 ) -> None:
+    detail: dict[str, object] = {"title": doc.title, "version": doc.version}
+    if reason:
+        detail["reason"] = reason
     session.add(
         KbReview(
             document_id=doc.id, action=action.value, actor_id=actor_id, reason=reason
@@ -77,7 +80,7 @@ def _add_review(
         actor_id=actor_id,
         brand_id=doc.brand_id,
         entity_id=doc.id,
-        detail={"title": doc.title, "version": doc.version},
+        detail=detail,
     )
 
 
@@ -252,7 +255,11 @@ def review_document(
 
 
 def deactivate_document(
-    *, session: Session, doc: KbDocument, actor_id: uuid.UUID
+    *,
+    session: Session,
+    doc: KbDocument,
+    actor_id: uuid.UUID,
+    reason: str | None = None,
 ) -> KbDocument:
     """Stop the document from being retrieved by new tasks. Nothing is deleted."""
     if doc.status != DocumentStatus.APPROVED.value:
@@ -262,7 +269,7 @@ def deactivate_document(
     doc.status = DocumentStatus.DEACTIVATED.value
     doc.is_current = False
     session.add(doc)
-    _add_review(session, doc, ReviewAction.DEACTIVATE, actor_id)
+    _add_review(session, doc, ReviewAction.DEACTIVATE, actor_id, reason)
     _commit(session)
     session.refresh(doc)
     return doc

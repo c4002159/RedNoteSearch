@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import type { brandsAddMemberData, brandsAddMemberErrors, brandsAddMemberResponses, brandsCreateBrandData, brandsCreateBrandErrors, brandsCreateBrandResponses, brandsReadBrandsData, brandsReadBrandsResponses, brandsReadMembersData, brandsReadMembersErrors, brandsReadMembersResponses, brandsRemoveMemberData, brandsRemoveMemberErrors, brandsRemoveMemberResponses, brandsUpdateBrandData, brandsUpdateBrandErrors, brandsUpdateBrandResponses, brandsUpdateMemberData, brandsUpdateMemberErrors, brandsUpdateMemberResponses, complianceCreateBrandRuleData, complianceCreateBrandRuleErrors, complianceCreateBrandRuleResponses, complianceCreateGlobalRuleData, complianceCreateGlobalRuleErrors, complianceCreateGlobalRuleResponses, complianceReadRuleData, complianceReadRuleErrors, complianceReadRuleResponses, complianceReadRulesData, complianceReadRulesErrors, complianceReadRulesResponses, complianceReadVersionComplianceData, complianceReadVersionComplianceErrors, complianceReadVersionComplianceResponses, complianceResolveCheckData, complianceResolveCheckErrors, complianceResolveCheckResponses, complianceUpdateRuleData, complianceUpdateRuleErrors, complianceUpdateRuleResponses, evaluationCreateDatasetData, evaluationCreateDatasetErrors, evaluationCreateDatasetResponses, evaluationCreateRunData, evaluationCreateRunErrors, evaluationCreateRunResponses, evaluationRateData, evaluationRateErrors, evaluationRateResponses, evaluationReadAgreementData, evaluationReadAgreementErrors, evaluationReadAgreementResponses, evaluationReadCasesData, evaluationReadCasesErrors, evaluationReadCasesResponses, evaluationReadDatasetsData, evaluationReadDatasetsErrors, evaluationReadDatasetsResponses, evaluationReadModelsData, evaluationReadModelsResponses, evaluationReadResultsData, evaluationReadResultsErrors, evaluationReadResultsResponses, evaluationReadRubricsData, evaluationReadRubricsResponses, evaluationReadRunData, evaluationReadRunErrors, evaluationReadRunResponses, evaluationReadRunsData, evaluationReadRunsErrors, evaluationReadRunsResponses, evidenceConfirmEvidenceData, evidenceConfirmEvidenceErrors, evidenceConfirmEvidenceResponses, evidenceReadVersionEvidenceData, evidenceReadVersionEvidenceErrors, evidenceReadVersionEvidenceResponses, knowledgeDeactivateDocumentData, knowledgeDeactivateDocumentErrors, knowledgeDeactivateDocumentResponses, knowledgeIngestDocumentData, knowledgeIngestDocumentErrors, knowledgeIngestDocumentResponses, knowledgeIngestNewVersionData, knowledgeIngestNewVersionErrors, knowledgeIngestNewVersionResponses, knowledgeReadChunksData, knowledgeReadChunksErrors, knowledgeReadChunksResponses, knowledgeReadDocumentData, knowledgeReadDocumentErrors, knowledgeReadDocumentResponses, knowledgeReadDocumentsData, knowledgeReadDocumentsErrors, knowledgeReadDocumentsResponses, knowledgeReindexDocumentData, knowledgeReindexDocumentErrors, knowledgeReindexDocumentResponses, knowledgeReviewDocumentData, knowledgeReviewDocumentErrors, knowledgeReviewDocumentResponses, knowledgeSubmitDocumentData, knowledgeSubmitDocumentErrors, knowledgeSubmitDocumentResponses, loginLoginAccessTokenData, loginLoginAccessTokenErrors, loginLoginAccessTokenResponses, loginRecoverPasswordData, loginRecoverPasswordErrors, loginRecoverPasswordHtmlContentData, loginRecoverPasswordHtmlContentErrors, loginRecoverPasswordHtmlContentResponses, loginRecoverPasswordResponses, loginResetPasswordData, loginResetPasswordErrors, loginResetPasswordResponses, loginTestTokenData, loginTestTokenResponses, privateCreateUserData, privateCreateUserErrors, privateCreateUserResponses, productsArchiveProductData, productsArchiveProductErrors, productsArchiveProductResponses, productsCreateProductData, productsCreateProductErrors, productsCreateProductResponses, productsReadProductsData, productsReadProductsErrors, productsReadProductsResponses, productsUpdateProductData, productsUpdateProductErrors, productsUpdateProductResponses, tasksCreateStylePresetData, tasksCreateStylePresetErrors, tasksCreateStylePresetResponses, tasksCreateTaskData, tasksCreateTaskErrors, tasksCreateTaskResponses, tasksGenerateTaskData, tasksGenerateTaskErrors, tasksGenerateTaskResponses, tasksReadScenariosData, tasksReadScenariosResponses, tasksReadStylePresetsData, tasksReadStylePresetsErrors, tasksReadStylePresetsResponses, tasksReadTaskData, tasksReadTaskErrors, tasksReadTaskMaterialsData, tasksReadTaskMaterialsErrors, tasksReadTaskMaterialsResponses, tasksReadTaskResponses, tasksReadTasksData, tasksReadTasksErrors, tasksReadTasksResponses, tasksReadTaskVersionsData, tasksReadTaskVersionsErrors, tasksReadTaskVersionsResponses, tasksReadVersionData, tasksReadVersionErrors, tasksReadVersionResponses, tasksUploadTaskMaterialData, tasksUploadTaskMaterialErrors, tasksUploadTaskMaterialResponses, usersCreateUserData, usersCreateUserErrors, usersCreateUserResponses, usersDeleteUserData, usersDeleteUserErrors, usersDeleteUserMeData, usersDeleteUserMeResponses, usersDeleteUserResponses, usersReadUserByIdData, usersReadUserByIdErrors, usersReadUserByIdResponses, usersReadUserMeData, usersReadUserMeResponses, usersReadUsersData, usersReadUsersErrors, usersReadUsersResponses, usersRegisterUserData, usersRegisterUserErrors, usersRegisterUserResponses, usersUpdatePasswordMeData, usersUpdatePasswordMeErrors, usersUpdatePasswordMeResponses, usersUpdateUserData, usersUpdateUserErrors, usersUpdateUserMeData, usersUpdateUserMeErrors, usersUpdateUserMeResponses, usersUpdateUserResponses, utilsHealthCheckData, utilsHealthCheckResponses, utilsTestEmailData, utilsTestEmailErrors, utilsTestEmailResponses, versionsConfirmVersionData, versionsConfirmVersionErrors, versionsConfirmVersionResponses, versionsEditVersionData, versionsEditVersionErrors, versionsEditVersionResponses, versionsExportVersionData, versionsExportVersionErrors, versionsExportVersionResponses, versionsRecheckVersionData, versionsRecheckVersionErrors, versionsRecheckVersionResponses, versionsRewritePartData, versionsRewritePartErrors, versionsRewritePartResponses, voiceProfileActivateVersionData, voiceProfileActivateVersionErrors, voiceProfileActivateVersionResponses, voiceProfileCreateVersionData, voiceProfileCreateVersionErrors, voiceProfileCreateVersionResponses, voiceProfileReadActiveProfileData, voiceProfileReadActiveProfileErrors, voiceProfileReadActiveProfileResponses, voiceProfileReadVersionsData, voiceProfileReadVersionsErrors, voiceProfileReadVersionsResponses } from './types.gen';
+import type { brandsAddMemberData, brandsAddMemberErrors, brandsAddMemberResponses, brandsCreateBrandData, brandsCreateBrandErrors, brandsCreateBrandResponses, brandsReadBrandsData, brandsReadBrandsResponses, brandsReadMembersData, brandsReadMembersErrors, brandsReadMembersResponses, brandsRemoveMemberData, brandsRemoveMemberErrors, brandsRemoveMemberResponses, brandsUpdateBrandData, brandsUpdateBrandErrors, brandsUpdateBrandResponses, brandsUpdateMemberData, brandsUpdateMemberErrors, brandsUpdateMemberResponses, complianceCreateBrandRuleData, complianceCreateBrandRuleErrors, complianceCreateBrandRuleResponses, complianceCreateGlobalRuleData, complianceCreateGlobalRuleErrors, complianceCreateGlobalRuleResponses, complianceDownloadRuleTemplateData, complianceDownloadRuleTemplateErrors, complianceDownloadRuleTemplateResponses, complianceExportBrandRulesData, complianceExportBrandRulesErrors, complianceExportBrandRulesResponses, complianceExportGlobalRulesData, complianceExportGlobalRulesErrors, complianceExportGlobalRulesResponses, complianceImportBrandRulesData, complianceImportBrandRulesErrors, complianceImportBrandRulesResponses, complianceImportGlobalRulesData, complianceImportGlobalRulesErrors, complianceImportGlobalRulesResponses, complianceReadRuleData, complianceReadRuleErrors, complianceReadRuleResponses, complianceReadRulesData, complianceReadRulesErrors, complianceReadRulesResponses, complianceReadVersionComplianceData, complianceReadVersionComplianceErrors, complianceReadVersionComplianceResponses, complianceResolveCheckData, complianceResolveCheckErrors, complianceResolveCheckResponses, complianceUpdateRuleData, complianceUpdateRuleErrors, complianceUpdateRuleResponses, evaluationCreateDatasetData, evaluationCreateDatasetErrors, evaluationCreateDatasetResponses, evaluationCreateRunData, evaluationCreateRunErrors, evaluationCreateRunResponses, evaluationRateData, evaluationRateErrors, evaluationRateResponses, evaluationReadAgreementData, evaluationReadAgreementErrors, evaluationReadAgreementResponses, evaluationReadCasesData, evaluationReadCasesErrors, evaluationReadCasesResponses, evaluationReadDatasetsData, evaluationReadDatasetsErrors, evaluationReadDatasetsResponses, evaluationReadModelsData, evaluationReadModelsResponses, evaluationReadResultsData, evaluationReadResultsErrors, evaluationReadResultsResponses, evaluationReadRubricsData, evaluationReadRubricsResponses, evaluationReadRunData, evaluationReadRunErrors, evaluationReadRunResponses, evaluationReadRunsData, evaluationReadRunsErrors, evaluationReadRunsResponses, evidenceConfirmEvidenceData, evidenceConfirmEvidenceErrors, evidenceConfirmEvidenceResponses, evidenceReadVersionEvidenceData, evidenceReadVersionEvidenceErrors, evidenceReadVersionEvidenceResponses, knowledgeDeactivateDocumentData, knowledgeDeactivateDocumentErrors, knowledgeDeactivateDocumentResponses, knowledgeIngestDocumentData, knowledgeIngestDocumentErrors, knowledgeIngestDocumentResponses, knowledgeIngestNewVersionData, knowledgeIngestNewVersionErrors, knowledgeIngestNewVersionResponses, knowledgeReadChunksData, knowledgeReadChunksErrors, knowledgeReadChunksResponses, knowledgeReadDocumentData, knowledgeReadDocumentErrors, knowledgeReadDocumentResponses, knowledgeReadDocumentsData, knowledgeReadDocumentsErrors, knowledgeReadDocumentsResponses, knowledgeReindexDocumentData, knowledgeReindexDocumentErrors, knowledgeReindexDocumentResponses, knowledgeReviewDocumentData, knowledgeReviewDocumentErrors, knowledgeReviewDocumentResponses, knowledgeSubmitDocumentData, knowledgeSubmitDocumentErrors, knowledgeSubmitDocumentResponses, loginLoginAccessTokenData, loginLoginAccessTokenErrors, loginLoginAccessTokenResponses, loginRecoverPasswordData, loginRecoverPasswordErrors, loginRecoverPasswordHtmlContentData, loginRecoverPasswordHtmlContentErrors, loginRecoverPasswordHtmlContentResponses, loginRecoverPasswordResponses, loginResetPasswordData, loginResetPasswordErrors, loginResetPasswordResponses, loginTestTokenData, loginTestTokenResponses, privateCreateUserData, privateCreateUserErrors, privateCreateUserResponses, productsArchiveProductData, productsArchiveProductErrors, productsArchiveProductResponses, productsCreateProductData, productsCreateProductErrors, productsCreateProductResponses, productsReadProductsData, productsReadProductsErrors, productsReadProductsResponses, productsUpdateProductData, productsUpdateProductErrors, productsUpdateProductResponses, tasksCreateStylePresetData, tasksCreateStylePresetErrors, tasksCreateStylePresetResponses, tasksCreateTaskData, tasksCreateTaskErrors, tasksCreateTaskResponses, tasksGenerateTaskData, tasksGenerateTaskErrors, tasksGenerateTaskResponses, tasksReadScenariosData, tasksReadScenariosResponses, tasksReadStylePresetsData, tasksReadStylePresetsErrors, tasksReadStylePresetsResponses, tasksReadTaskData, tasksReadTaskErrors, tasksReadTaskMaterialsData, tasksReadTaskMaterialsErrors, tasksReadTaskMaterialsResponses, tasksReadTaskResponses, tasksReadTasksData, tasksReadTasksErrors, tasksReadTasksResponses, tasksReadTaskVersionsData, tasksReadTaskVersionsErrors, tasksReadTaskVersionsResponses, tasksReadVersionData, tasksReadVersionErrors, tasksReadVersionResponses, tasksUploadTaskMaterialData, tasksUploadTaskMaterialErrors, tasksUploadTaskMaterialResponses, usersCreateUserData, usersCreateUserErrors, usersCreateUserResponses, usersDeleteUserData, usersDeleteUserErrors, usersDeleteUserMeData, usersDeleteUserMeResponses, usersDeleteUserResponses, usersReadUserByIdData, usersReadUserByIdErrors, usersReadUserByIdResponses, usersReadUserMeData, usersReadUserMeResponses, usersReadUsersData, usersReadUsersErrors, usersReadUsersResponses, usersRegisterUserData, usersRegisterUserErrors, usersRegisterUserResponses, usersUpdatePasswordMeData, usersUpdatePasswordMeErrors, usersUpdatePasswordMeResponses, usersUpdateUserData, usersUpdateUserErrors, usersUpdateUserMeData, usersUpdateUserMeErrors, usersUpdateUserMeResponses, usersUpdateUserResponses, utilsHealthCheckData, utilsHealthCheckResponses, utilsTestEmailData, utilsTestEmailErrors, utilsTestEmailResponses, versionsConfirmVersionData, versionsConfirmVersionErrors, versionsConfirmVersionResponses, versionsEditVersionData, versionsEditVersionErrors, versionsEditVersionResponses, versionsExportVersionData, versionsExportVersionErrors, versionsExportVersionResponses, versionsRecheckVersionData, versionsRecheckVersionErrors, versionsRecheckVersionResponses, versionsRewritePartData, versionsRewritePartErrors, versionsRewritePartResponses, viralAnalyzeSampleData, viralAnalyzeSampleErrors, viralAnalyzeSampleResponses, viralConvertPatternData, viralConvertPatternErrors, viralConvertPatternResponses, viralCreateSampleData, viralCreateSampleErrors, viralCreateSampleResponses, viralReadPatternData, viralReadPatternErrors, viralReadPatternResponses, viralReadPatternsData, viralReadPatternsErrors, viralReadPatternsResponses, viralReadSampleData, viralReadSampleErrors, viralReadSampleResponses, viralReadSamplesData, viralReadSamplesErrors, viralReadSamplesResponses, voiceProfileActivateVersionData, voiceProfileActivateVersionErrors, voiceProfileActivateVersionResponses, voiceProfileCreateVersionData, voiceProfileCreateVersionErrors, voiceProfileCreateVersionResponses, voiceProfileReadActiveProfileData, voiceProfileReadActiveProfileErrors, voiceProfileReadActiveProfileResponses, voiceProfileReadVersionsData, voiceProfileReadVersionsErrors, voiceProfileReadVersionsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -640,6 +640,76 @@ export class EvidenceService {
 
 export class ComplianceService {
     /**
+     * Import Global Rules
+     */
+    public static importGlobalRules<ThrowOnError extends boolean = true>(options: Options<complianceImportGlobalRulesData, ThrowOnError>) {
+        return (options.client ?? client).post<complianceImportGlobalRulesResponses, complianceImportGlobalRulesErrors, ThrowOnError>({
+            ...formDataBodySerializer,
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/compliance-rules/import',
+            ...options,
+            headers: {
+                'Content-Type': null,
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Import Brand Rules
+     */
+    public static importBrandRules<ThrowOnError extends boolean = true>(options: Options<complianceImportBrandRulesData, ThrowOnError>) {
+        return (options.client ?? client).post<complianceImportBrandRulesResponses, complianceImportBrandRulesErrors, ThrowOnError>({
+            ...formDataBodySerializer,
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/compliance-rules/import',
+            ...options,
+            headers: {
+                'Content-Type': null,
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Export Global Rules
+     */
+    public static exportGlobalRules<ThrowOnError extends boolean = true>(options?: Options<complianceExportGlobalRulesData, ThrowOnError>) {
+        return (options?.client ?? client).get<complianceExportGlobalRulesResponses, complianceExportGlobalRulesErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/compliance-rules/export',
+            ...options
+        });
+    }
+    
+    /**
+     * Export Brand Rules
+     */
+    public static exportBrandRules<ThrowOnError extends boolean = true>(options: Options<complianceExportBrandRulesData, ThrowOnError>) {
+        return (options.client ?? client).get<complianceExportBrandRulesResponses, complianceExportBrandRulesErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/compliance-rules/export',
+            ...options
+        });
+    }
+    
+    /**
+     * Download Rule Template
+     */
+    public static downloadRuleTemplate<ThrowOnError extends boolean = true>(options?: Options<complianceDownloadRuleTemplateData, ThrowOnError>) {
+        return (options?.client ?? client).get<complianceDownloadRuleTemplateResponses, complianceDownloadRuleTemplateErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/compliance-rules/import-template',
+            ...options
+        });
+    }
+    
+    /**
      * Read Rules
      */
     public static readRules<ThrowOnError extends boolean = true>(options?: Options<complianceReadRulesData, ThrowOnError>) {
@@ -1114,7 +1184,11 @@ export class KnowledgeService {
             responseType: 'json',
             security: [{ scheme: 'bearer', type: 'http' }],
             url: '/api/v1/knowledge-documents/{document_id}/deactivate',
-            ...options
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
         });
     }
 }
@@ -1171,6 +1245,118 @@ export class VoiceProfileService {
             security: [{ scheme: 'bearer', type: 'http' }],
             url: '/api/v1/brands/{brand_id}/voice-profile/versions/{version}/activate',
             ...options
+        });
+    }
+}
+
+export class ViralService {
+    /**
+     * Read Samples
+     *
+     * List sample metadata, without returning full text.
+     */
+    public static readSamples<ThrowOnError extends boolean = true>(options: Options<viralReadSamplesData, ThrowOnError>) {
+        return (options.client ?? client).get<viralReadSamplesResponses, viralReadSamplesErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/viral-samples',
+            ...options
+        });
+    }
+    
+    /**
+     * Create Sample
+     *
+     * Save a manually supplied text sample within one brand.
+     */
+    public static createSample<ThrowOnError extends boolean = true>(options: Options<viralCreateSampleData, ThrowOnError>) {
+        return (options.client ?? client).post<viralCreateSampleResponses, viralCreateSampleErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/viral-samples',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Read Sample
+     *
+     * Read the original sample text after refreshing the page.
+     */
+    public static readSample<ThrowOnError extends boolean = true>(options: Options<viralReadSampleData, ThrowOnError>) {
+        return (options.client ?? client).get<viralReadSampleResponses, viralReadSampleErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/viral-samples/{sample_id}',
+            ...options
+        });
+    }
+    
+    /**
+     * Read Patterns
+     *
+     * Read saved analyses, newest first.
+     */
+    public static readPatterns<ThrowOnError extends boolean = true>(options: Options<viralReadPatternsData, ThrowOnError>) {
+        return (options.client ?? client).get<viralReadPatternsResponses, viralReadPatternsErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/viral-samples/{sample_id}/patterns',
+            ...options
+        });
+    }
+    
+    /**
+     * Read Pattern
+     *
+     * Read one saved structural analysis.
+     */
+    public static readPattern<ThrowOnError extends boolean = true>(options: Options<viralReadPatternData, ThrowOnError>) {
+        return (options.client ?? client).get<viralReadPatternResponses, viralReadPatternErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/viral-patterns/{pattern_id}',
+            ...options
+        });
+    }
+    
+    /**
+     * Analyze Sample
+     *
+     * Analyze synchronously; callers should allow at least ninety seconds.
+     */
+    public static analyzeSample<ThrowOnError extends boolean = true>(options: Options<viralAnalyzeSampleData, ThrowOnError>) {
+        return (options.client ?? client).post<viralAnalyzeSampleResponses, viralAnalyzeSampleErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/viral-samples/{sample_id}/analyze',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Convert Pattern
+     *
+     * Create the next version of a brand scene template; only brand admins may convert.
+     */
+    public static convertPattern<ThrowOnError extends boolean = true>(options: Options<viralConvertPatternData, ThrowOnError>) {
+        return (options.client ?? client).post<viralConvertPatternResponses, viralConvertPatternErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/viral-patterns/{pattern_id}/to-template',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
         });
     }
 }

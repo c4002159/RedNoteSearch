@@ -122,6 +122,7 @@ from app.models.knowledge import (
     EMBEDDING_DIMENSIONS,
     ChunkPublic,
     ChunksPublic,
+    DeactivateRequest,
     DocumentDetail,
     DocumentPublic,
     DocumentsPublic,
@@ -152,6 +153,8 @@ from app.models.product import (
     VoiceProfilesPublic,
 )
 from app.models.task_input import AuditLog, TaskInput, TaskInputChunk
+from app.models.viral import ViralPattern as ViralPattern
+from app.models.viral import ViralSample as ViralSample
 
 __all__ = [
     "EvidenceSummaryPublic",
@@ -230,6 +233,7 @@ __all__ = [
     "DocumentPublic",
     "DocumentsPublic",
     "DocumentVersionRef",
+    "DeactivateRequest",
     "ReviewCreate",
     "ReviewPublic",
     "BrandVoiceProfile",

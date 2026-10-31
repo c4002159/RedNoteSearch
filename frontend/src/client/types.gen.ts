@@ -35,6 +35,26 @@ export type AgreementPublic = {
 };
 
 /**
+ * Body_compliance-import_brand_rules
+ */
+export type Body_compliance_import_brand_rules = {
+    /**
+     * File
+     */
+    file: Blob | File;
+};
+
+/**
+ * Body_compliance-import_global_rules
+ */
+export type Body_compliance_import_global_rules = {
+    /**
+     * File
+     */
+    file: Blob | File;
+};
+
+/**
  * Body_knowledge-ingest_document
  */
 export type Body_knowledge_ingest_document = {
@@ -609,6 +629,16 @@ export type DatasetsPublic = {
      * Items
      */
     items: Array<DatasetPublic>;
+};
+
+/**
+ * DeactivateRequest
+ */
+export type DeactivateRequest = {
+    /**
+     * Reason
+     */
+    reason?: string | null;
 };
 
 /**
@@ -1564,6 +1594,42 @@ export type RuleCreate = {
 };
 
 /**
+ * RuleImportResult
+ */
+export type RuleImportResult = {
+    /**
+     * Dry Run
+     */
+    dry_run: boolean;
+    /**
+     * Mode
+     */
+    mode: 'merge' | 'replace';
+    /**
+     * Created
+     */
+    created: number;
+    /**
+     * Updated
+     */
+    updated: number;
+    /**
+     * Unchanged
+     */
+    unchanged: number;
+    /**
+     * Disabled
+     */
+    disabled: number;
+    /**
+     * Errors
+     */
+    errors: Array<{
+        [key: string]: string;
+    }>;
+};
+
+/**
  * RulePublic
  */
 export type RulePublic = {
@@ -1689,6 +1755,10 @@ export type RuleUpdate = {
      * Enabled
      */
     enabled?: boolean | null;
+    /**
+     * Reason
+     */
+    reason?: string | null;
 };
 
 /**
@@ -1877,6 +1947,11 @@ export type ScenariosPublic = {
      */
     items: Array<ScenarioPublic>;
 };
+
+/**
+ * Scene
+ */
+export type Scene = 'seeding' | 'review' | 'tutorial' | 'launch' | 'promotion' | 'story';
 
 /**
  * SellingPoint
@@ -2377,6 +2452,215 @@ export type ValidationError = {
     ctx?: {
         [key: string]: unknown;
     };
+};
+
+/**
+ * ViralAnalyzeRequest
+ */
+export type ViralAnalyzeRequest = {
+    /**
+     * Model Id
+     */
+    model_id: string;
+};
+
+/**
+ * ViralPatternPublic
+ */
+export type ViralPatternPublic = {
+    /**
+     * Title Pattern
+     */
+    title_pattern: string;
+    /**
+     * Hook Type
+     */
+    hook_type: string;
+    /**
+     * Paragraph Structure
+     */
+    paragraph_structure: Array<string>;
+    /**
+     * Tone
+     */
+    tone: string;
+    /**
+     * Emoji Usage
+     */
+    emoji_usage: string;
+    /**
+     * Hashtag Usage
+     */
+    hashtag_usage: string;
+    /**
+     * Abstract Template
+     */
+    abstract_template: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Sample Id
+     */
+    sample_id: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Model Id
+     */
+    model_id: string;
+    /**
+     * Prompt Version
+     */
+    prompt_version: string;
+    /**
+     * Checker Version
+     */
+    checker_version: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+};
+
+/**
+ * ViralPatternsPublic
+ */
+export type ViralPatternsPublic = {
+    /**
+     * Items
+     */
+    items: Array<ViralPatternPublic>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+};
+
+/**
+ * ViralSampleCreate
+ */
+export type ViralSampleCreate = {
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Note
+     */
+    note?: string | null;
+    /**
+     * Source Url
+     */
+    source_url?: string | null;
+};
+
+/**
+ * ViralSampleListItem
+ */
+export type ViralSampleListItem = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Note
+     */
+    note: string | null;
+    /**
+     * Source Url
+     */
+    source_url: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Char Count
+     */
+    char_count: number;
+    /**
+     * Excerpt
+     */
+    excerpt: string;
+};
+
+/**
+ * ViralSamplePublic
+ */
+export type ViralSamplePublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Note
+     */
+    note: string | null;
+    /**
+     * Source Url
+     */
+    source_url: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+};
+
+/**
+ * ViralSamplesPublic
+ */
+export type ViralSamplesPublic = {
+    /**
+     * Items
+     */
+    items: Array<ViralSampleListItem>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+};
+
+/**
+ * ViralToTemplateRequest
+ */
+export type ViralToTemplateRequest = {
+    /**
+     * Name
+     */
+    name: string;
+    scene: Scene;
 };
 
 /**
@@ -3642,6 +3926,180 @@ export type evidenceConfirmEvidenceResponses = {
 
 export type evidenceConfirmEvidenceResponse = evidenceConfirmEvidenceResponses[keyof evidenceConfirmEvidenceResponses];
 
+export type complianceImportGlobalRulesData = {
+    body: Body_compliance_import_global_rules;
+    path?: never;
+    query?: {
+        /**
+         * Mode
+         */
+        mode?: 'merge' | 'replace';
+        /**
+         * Dry Run
+         */
+        dry_run?: boolean;
+    };
+    url: '/api/v1/compliance-rules/import';
+};
+
+export type complianceImportGlobalRulesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceImportGlobalRulesError = complianceImportGlobalRulesErrors[keyof complianceImportGlobalRulesErrors];
+
+export type complianceImportGlobalRulesResponses = {
+    /**
+     * Successful Response
+     */
+    200: RuleImportResult;
+};
+
+export type complianceImportGlobalRulesResponse = complianceImportGlobalRulesResponses[keyof complianceImportGlobalRulesResponses];
+
+export type complianceImportBrandRulesData = {
+    body: Body_compliance_import_brand_rules;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: {
+        /**
+         * Mode
+         */
+        mode?: 'merge' | 'replace';
+        /**
+         * Dry Run
+         */
+        dry_run?: boolean;
+    };
+    url: '/api/v1/brands/{brand_id}/compliance-rules/import';
+};
+
+export type complianceImportBrandRulesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceImportBrandRulesError = complianceImportBrandRulesErrors[keyof complianceImportBrandRulesErrors];
+
+export type complianceImportBrandRulesResponses = {
+    /**
+     * Successful Response
+     */
+    200: RuleImportResult;
+};
+
+export type complianceImportBrandRulesResponse = complianceImportBrandRulesResponses[keyof complianceImportBrandRulesResponses];
+
+export type complianceExportGlobalRulesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Format
+         */
+        format?: 'csv' | 'json';
+    };
+    url: '/api/v1/compliance-rules/export';
+};
+
+export type complianceExportGlobalRulesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceExportGlobalRulesError = complianceExportGlobalRulesErrors[keyof complianceExportGlobalRulesErrors];
+
+export type complianceExportGlobalRulesResponses = {
+    /**
+     * Download file
+     */
+    200: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+export type complianceExportGlobalRulesResponse = complianceExportGlobalRulesResponses[keyof complianceExportGlobalRulesResponses];
+
+export type complianceExportBrandRulesData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: {
+        /**
+         * Format
+         */
+        format?: 'csv' | 'json';
+    };
+    url: '/api/v1/brands/{brand_id}/compliance-rules/export';
+};
+
+export type complianceExportBrandRulesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceExportBrandRulesError = complianceExportBrandRulesErrors[keyof complianceExportBrandRulesErrors];
+
+export type complianceExportBrandRulesResponses = {
+    /**
+     * Download file
+     */
+    200: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+export type complianceExportBrandRulesResponse = complianceExportBrandRulesResponses[keyof complianceExportBrandRulesResponses];
+
+export type complianceDownloadRuleTemplateData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Format
+         */
+        format?: 'csv' | 'json';
+    };
+    url: '/api/v1/compliance-rules/import-template';
+};
+
+export type complianceDownloadRuleTemplateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceDownloadRuleTemplateError = complianceDownloadRuleTemplateErrors[keyof complianceDownloadRuleTemplateErrors];
+
+export type complianceDownloadRuleTemplateResponses = {
+    /**
+     * Download file
+     */
+    200: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+export type complianceDownloadRuleTemplateResponse = complianceDownloadRuleTemplateResponses[keyof complianceDownloadRuleTemplateResponses];
+
 export type complianceReadRulesData = {
     body?: never;
     path?: never;
@@ -4619,7 +5077,10 @@ export type knowledgeReviewDocumentResponses = {
 export type knowledgeReviewDocumentResponse = knowledgeReviewDocumentResponses[keyof knowledgeReviewDocumentResponses];
 
 export type knowledgeDeactivateDocumentData = {
-    body?: never;
+    /**
+     * Body
+     */
+    body?: DeactivateRequest | null;
     path: {
         /**
          * Document Id
@@ -4771,6 +5232,238 @@ export type voiceProfileActivateVersionResponses = {
 };
 
 export type voiceProfileActivateVersionResponse = voiceProfileActivateVersionResponses[keyof voiceProfileActivateVersionResponses];
+
+export type viralReadSamplesData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+        /**
+         * Sort
+         */
+        sort?: 'created_at' | '-created_at';
+    };
+    url: '/api/v1/brands/{brand_id}/viral-samples';
+};
+
+export type viralReadSamplesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type viralReadSamplesError = viralReadSamplesErrors[keyof viralReadSamplesErrors];
+
+export type viralReadSamplesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ViralSamplesPublic;
+};
+
+export type viralReadSamplesResponse = viralReadSamplesResponses[keyof viralReadSamplesResponses];
+
+export type viralCreateSampleData = {
+    body: ViralSampleCreate;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/viral-samples';
+};
+
+export type viralCreateSampleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type viralCreateSampleError = viralCreateSampleErrors[keyof viralCreateSampleErrors];
+
+export type viralCreateSampleResponses = {
+    /**
+     * Successful Response
+     */
+    201: ViralSamplePublic;
+};
+
+export type viralCreateSampleResponse = viralCreateSampleResponses[keyof viralCreateSampleResponses];
+
+export type viralReadSampleData = {
+    body?: never;
+    path: {
+        /**
+         * Sample Id
+         */
+        sample_id: string;
+    };
+    query?: never;
+    url: '/api/v1/viral-samples/{sample_id}';
+};
+
+export type viralReadSampleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type viralReadSampleError = viralReadSampleErrors[keyof viralReadSampleErrors];
+
+export type viralReadSampleResponses = {
+    /**
+     * Successful Response
+     */
+    200: ViralSamplePublic;
+};
+
+export type viralReadSampleResponse = viralReadSampleResponses[keyof viralReadSampleResponses];
+
+export type viralReadPatternsData = {
+    body?: never;
+    path: {
+        /**
+         * Sample Id
+         */
+        sample_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/viral-samples/{sample_id}/patterns';
+};
+
+export type viralReadPatternsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type viralReadPatternsError = viralReadPatternsErrors[keyof viralReadPatternsErrors];
+
+export type viralReadPatternsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ViralPatternsPublic;
+};
+
+export type viralReadPatternsResponse = viralReadPatternsResponses[keyof viralReadPatternsResponses];
+
+export type viralReadPatternData = {
+    body?: never;
+    path: {
+        /**
+         * Pattern Id
+         */
+        pattern_id: string;
+    };
+    query?: never;
+    url: '/api/v1/viral-patterns/{pattern_id}';
+};
+
+export type viralReadPatternErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type viralReadPatternError = viralReadPatternErrors[keyof viralReadPatternErrors];
+
+export type viralReadPatternResponses = {
+    /**
+     * Successful Response
+     */
+    200: ViralPatternPublic;
+};
+
+export type viralReadPatternResponse = viralReadPatternResponses[keyof viralReadPatternResponses];
+
+export type viralAnalyzeSampleData = {
+    body: ViralAnalyzeRequest;
+    path: {
+        /**
+         * Sample Id
+         */
+        sample_id: string;
+    };
+    query?: never;
+    url: '/api/v1/viral-samples/{sample_id}/analyze';
+};
+
+export type viralAnalyzeSampleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type viralAnalyzeSampleError = viralAnalyzeSampleErrors[keyof viralAnalyzeSampleErrors];
+
+export type viralAnalyzeSampleResponses = {
+    /**
+     * Successful Response
+     */
+    201: ViralPatternPublic;
+};
+
+export type viralAnalyzeSampleResponse = viralAnalyzeSampleResponses[keyof viralAnalyzeSampleResponses];
+
+export type viralConvertPatternData = {
+    body: ViralToTemplateRequest;
+    path: {
+        /**
+         * Pattern Id
+         */
+        pattern_id: string;
+    };
+    query?: never;
+    url: '/api/v1/viral-patterns/{pattern_id}/to-template';
+};
+
+export type viralConvertPatternErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type viralConvertPatternError = viralConvertPatternErrors[keyof viralConvertPatternErrors];
+
+export type viralConvertPatternResponses = {
+    /**
+     * Successful Response
+     */
+    201: ScenarioPublic;
+};
+
+export type viralConvertPatternResponse = viralConvertPatternResponses[keyof viralConvertPatternResponses];
 
 export type privateCreateUserData = {
     body: PrivateUserCreate;

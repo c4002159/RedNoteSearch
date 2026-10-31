@@ -274,6 +274,7 @@ def update_rule(
     *, session: Session, row: ComplianceRule, data: RuleUpdate, user_id: uuid.UUID
 ) -> ComplianceRule:
     changes = data.model_dump(exclude_unset=True)
+    reason = changes.pop("reason", None)
     required = {
         "layer",
         "rule_type",
@@ -307,7 +308,13 @@ def update_rule(
         actor_id=user_id,
         brand_id=row.brand_id,
         entity_id=row.id,
-        detail={"rule_version": row.rule_version, "fields": sorted(changes)},
+        detail={
+            "rule_version": row.rule_version,
+            "fields": sorted(changes),
+            **(
+                {"reason": reason} if reason and changes.get("enabled") is False else {}
+            ),
+        },
     )
     session.commit()
     session.refresh(row)

@@ -9,10 +9,12 @@ from app.api.routes import (
     login,
     private,
     products,
+    rule_import,
     tasks,
     users,
     utils,
     versions,
+    viral,
     voice_profile,
 )
 from app.core.config import settings
@@ -25,11 +27,13 @@ api_router.include_router(brands.router)
 api_router.include_router(products.router)
 api_router.include_router(tasks.router)
 api_router.include_router(evidence.router)
+api_router.include_router(rule_import.router)
 api_router.include_router(compliance.router)
 api_router.include_router(evaluation.router)
 api_router.include_router(versions.router)
 api_router.include_router(knowledge.router)
 api_router.include_router(voice_profile.router)
+api_router.include_router(viral.router)
 
 
 if settings.FASTAPI_ENV == "development":

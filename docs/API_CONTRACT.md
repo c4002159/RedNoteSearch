@@ -166,6 +166,8 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 ### `POST /knowledge-documents/{document_id}/deactivate`（admin）
 停用；新任务不得检索，历史 `generation_version` 保留原引用快照。不物理删除。
 
+请求体可选 `{"reason": string}`（≤500 字符，不填也可以）：写入该次停用的审核记录 `kb_review.reason` 和审计详情。界面可以要求必填，这只是前端的校验。
+
 **实现约定（2026-10-31）**
 - `{document_id}` 是**某个版本行的 id**（响应里的 `id`）；同一逻辑文档的各版本共享 `group_id`。`KnowledgeSearch` 返回的 `document_id` 是 `group_id`，`document_version` 是版本号（ADR-010）。
 - 支持 PDF（需有文字，不做 OCR）、DOCX、MD、TXT、CSV，单文件 ≤ 10 MB（超过 413）；解析失败、空文件、不支持的类型返回 422，不保存任何内容。
@@ -377,7 +379,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - 规则的创建、修改、停用属 **P2**（品牌 admin）；P0 规则由种子数据或评测目录导入，不通过 API 编辑。
 
 **合规规则与风险提示的实现约定（2026-10-31）**
-- 本节取代上面“规则的创建、修改、停用属 P2”的说法：规则现在可由人在前端维护。`POST /compliance-rules` 创建**全局**规则（仅平台管理员）；`POST /brands/{brand_id}/compliance-rules` 创建**品牌**规则（仅该品牌 admin）；`PATCH /compliance-rules/{id}` 修改或停用（`enabled=false`），全局规则由平台管理员改，品牌规则由该品牌 admin 改；每次修改 `rule_version` 加 1，并写审计。读取：全局规则所有登录用户可见，品牌规则只对该品牌成员可见（否则 404）；带 `brand_id` 查询需是该品牌成员（否则 403）。
+- 本节取代上面“规则的创建、修改、停用属 P2”的说法：规则现在可由人在前端维护。`POST /compliance-rules` 创建**全局**规则（仅平台管理员）；`POST /brands/{brand_id}/compliance-rules` 创建**品牌**规则（仅该品牌 admin）；`PATCH /compliance-rules/{id}` 修改或停用（`enabled=false`），请求体可带可选 `reason`（≤500 字符，只写进审计详情，不是规则的字段，也不会出现在响应里），全局规则由平台管理员改，品牌规则由该品牌 admin 改；每次修改 `rule_version` 加 1，并写审计。读取：全局规则所有登录用户可见，品牌规则只对该品牌成员可见（否则 404）；带 `brand_id` 查询需是该品牌成员（否则 403）。
 - 规则内容 `pattern`（≤200 字）可以是普通文字或正则；正则会被校验，嵌套重复等可能让检查卡住的写法和无效表达式返回 422。`layer = context` 由模型判断，不能用规则内容配置。
 - 随项目提供的起步规则标为 `is_sample = true`，来源写“示例规则（来源待人工核对，不是正式依据）”；人工修改后不再是示例。**它们不是法律依据，使用前须按真实来源核对。**
 - 三层：`lexicon`（命中即提示）；`efficacy_basis`（功效、医疗、数据类说法：该句有 `system_supported` 或已人工确认的断言支持时，`basis = found` 并从 `block` 降为 `warn`，否则 `basis = none` 保持原严重度）；`context`（模型读全文找没有违禁词的隐含说法，模型指出的句子必须真的出现在文中，否则丢弃）。
@@ -385,7 +387,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - `GET /generation-versions/{id}/compliance` 返回提示列表和 `unresolved_block`（未处理的 `block` 级提示数）；`POST /compliance-checks/{id}/resolve`（体 `{note}`）记录“有人处理过”，提示本身保留，**不表示文字合规**。
 - 这些只是风险提示，供人工复核；任何界面或文案都不得称为“合规通过”或“法务批准”。
 
-### 6.1 风险提示规则批量导入、导出与模板（契约草案，待 A/B 确认，尚未实现）
+### 6.1 风险提示规则批量导入、导出与模板（契约已定稿，实现待 PR 复审）
 
 本节只新增批量接口，不改变既有单条创建/修改字段的含义。用于客户维护自己的词表；所有来源由用户填写，不从模型或文件名推断来源。
 
@@ -512,7 +514,17 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 
 **A 已决定**：批量允许空来源、单条创建不变、PATCH省略来源不校验存量空值、命中提示显示占位；已有重复键按上述范围整次409且id可消歧；停用记录参与匹配和冲突检查，enabled按文件更新。以上来自A在本会话的明确决定。
 
-**A 已决定（2026-11-01，PR #43 评论）**：模板下载允许平台管理员或任一品牌 admin；空文件与零记录按 empty_file 拒绝；CSV 空单元格表示三个可空文本列的 null，空字符串/null 等同比较，不增加自定义转义。三项均已写入本稿，等待 A 复审修订后的契约并确认定稿后才开实现 PR。本轮只修订契约，不修改 PATCH、列表或检查器代码。
+**A 已决定（2026-11-01，PR #43 评论）**：模板下载允许平台管理员或任一品牌 admin；空文件与零记录按 empty_file 拒绝；CSV 空单元格表示三个可空文本列的 null，空字符串/null 等同比较，不增加自定义转义。A 已在 PR #43 评论确认契约定稿并合并；后续实现仍须独立 PR 复审。
+
+#### 实现约定（2026-11-01，规则批量维护实现 PR）
+
+- 静态路由由 `api/routes/rule_import.py` 提供，在规则资源 id 路由前注册。复用平台管理员和品牌 admin 授权依赖；模板只检查平台管理员或任一品牌 admin 身份，不读取品牌业务数据。
+- 文件与完整行校验、空值规范化、匹配计划、下载格式均在纯领域模块 `domain/compliance/import_rules.py`；服务按授权范围读取全部规则。顺序为授权 → 扩展名与大小 → 解码 → 空文件 → 逐行校验（含文件重复及 id 归属，422）→ 已有重复键冲突（409）→ 应用。不会让重复键冲突覆盖同文件的校验错误。
+- 接收一个 file 文件，不接收其他表单字段；最多读取上限加一个字节，原文件不保存。审计文件名去除路径并截到 300 字符，不写规则全文。日期仅接受 YYYY-MM-DD，复用已有正则安全检查；JSON 布尔须为布尔值，CSV 沿用本节约定。
+- 同范围使用 SHA-256 派生的稳定有符号 64 位咨询锁键，事务级 `pg_advisory_xact_lock` 在读取规则前获取。品牌与全局使用不同范围键，空范围也加锁；等待后重新读取数据库计算，不采用预览中的旧计划。预览回滚释放锁，应用与一次审计原子提交，失败显式回滚；不新增表或迁移。
+- 三个可空文本列仅空字符串与 null 等同，不额外折叠空白或改变其他字段含义。只有空值规范化差异时 unchanged，不写回存量记录；实际发生其他更新时三列统一存 null。文件多行通过不同定位方式命中同一已有 id 时，按重复定位的行错误 422 拒绝，避免一条规则被重复覆盖。
+- 下载接口在 OpenAPI 声明 CSV 文件与 JSON 数组，客户端由脚本生成。前端下载可传 responseType=blob；前端页面、空来源显示占位与 replace 二次确认仍按本节流程对接，本 PR 不改页面。可选 source_missing 筛选本轮未实现；API 和命中提示的 source_name 保持原空字符串，不写入显示占位符。
+- TC-158～TC-182 的后端解析、计划、权限、事务、并发及往返行为有纯逻辑/真实 PostgreSQL 集成覆盖；界面显示与客户 Excel 手工操作仍待前端联调。
 
 ## 7. 评测（B）
 
@@ -632,9 +644,9 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 
 - 多模型对比（B）：`POST /model-comparisons`（幂等）；`GET /model-comparisons/{id}`：并列各模型的约束通过率、人工评分、延迟、费用；失败模型单独显示。
 
-### 10.1 F13：爆款结构分析（契约审议稿，待 A/B 确认，尚未实现）
+### 10.1 F13：爆款结构分析（已定稿，已实现）
 
-仅支持用户手动贴入已获授权的文本，提取结构标签和抽象模板，不承诺传播效果；样本属于当前品牌，不进入知识库或任务检索。下列接口尚未实现。F15 不在本次交付范围。
+仅支持用户手动贴入已获授权的文本，提取结构标签和抽象模板，不承诺传播效果；样本属于当前品牌，不进入知识库或任务检索。下列接口已实现。F15 不在本次交付范围。
 
 #### 样本创建与读取
 
@@ -642,9 +654,9 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 |---|---|---|
 | `POST /brands/{brand_id}/viral-samples` | 品牌成员；JSON `{text,note?,source_url?}` | 201 `ViralSample` |
 | `GET /brands/{brand_id}/viral-samples` | 品牌成员；分页同 §1.3，sort 仅 ±created_at | 200 标准分页，items 为去掉 text 的样本元数据加 excerpt |
-| `GET /viral-samples/{sample_id}`（新增读取建议） | 样本品牌成员 | 200 `ViralSample`，供刷新恢复 |
-| `GET /viral-samples/{sample_id}/patterns`（新增读取建议） | 样本品牌成员；分页同 §1.3 | 200 标准分页，items 为已成功保存的模式，created_at DESC、id DESC |
-| `GET /viral-patterns/{pattern_id}`（新增读取建议） | 模式品牌成员 | 200 `ViralPattern`，供分析结果刷新恢复 |
+| `GET /viral-samples/{sample_id}`（已实现） | 样本品牌成员 | 200 `ViralSample`，供刷新恢复 |
+| `GET /viral-samples/{sample_id}/patterns`（已实现） | 样本品牌成员；分页同 §1.3 | 200 标准分页，items 为已成功保存的模式，created_at DESC、id DESC |
+| `GET /viral-patterns/{pattern_id}`（已实现） | 模式品牌成员 | 200 `ViralPattern`，供分析结果刷新恢复 |
 
 显式品牌路径非成员为 403；样本/模式 id 不存在或非成员为 404。平台管理员也不能跳过品牌成员检查。所有接口需 JWT。`source_url` 在前端仅显示为纯文本，不渲染成可跳转链接。
 
@@ -664,7 +676,7 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 
 #### 分析与结果
 
-`POST /viral-samples/{sample_id}/analyze`，品牌成员，JSON 请求 `{model_id}`（必须是 GET /models 已知模型，1–80 字符）。同步分析，成功 201 `ViralPattern`。最多 2 次模型调用，预期等待约 20–60 秒（非时限保证），前端请求超时建议至少 90 秒，并保留等待状态。demo 为降低后台作业与轮询复杂度采用同步 201，未采用生成接口的 202+轮询；本次不创建独立后台作业。网络超时后先读取模式列表核对是否已有结果，再决定是否重新请求，避免无意重复生成。
+`POST /viral-samples/{sample_id}/analyze`，品牌成员，JSON 请求 `{model_id}`（必须是 GET /models 已知模型，1–80 字符）。同步分析，成功 201 `ViralPattern`。最多 2 轮分析，每轮含 1 次瞬时错误重试（即最多 4 次供应商请求），预期等待约 20–90 秒（非时限保证），前端请求超时建议至少 120 秒，并保留等待状态。demo 为降低后台作业与轮询复杂度采用同步 201，未采用生成接口的 202+轮询；本次不创建独立后台作业。网络超时后先读取模式列表核对是否已有结果，再决定是否重新请求，避免无意重复生成。
 
 ```json
 {"model_id":"deepseek-flash"}
@@ -673,12 +685,12 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 `ViralPattern` 示例：
 
 ```json
-{"id":"77777777-7777-4777-8777-777777777777","sample_id":"66666666-6666-4666-8666-666666666666","brand_id":"22222222-2222-4222-8222-222222222222","title_pattern":"场景与选择问题","hook_type":"场景设问","paragraph_structure":["引入场景","展开资料","收束建议"],"tone":"克制","emoji_usage":"少量分隔段落","hashtag_usage":"使用场景类话题","abstract_template":"围绕{{scene}}提出问题，以{{supported_facts}}展开，给出{{closing}}。","model_id":"deepseek-flash","prompt_version":"viral-v1","checker_version":"viral-copy-v1","created_at":"2026-11-01T00:00:00Z"}
+{"id":"77777777-7777-4777-8777-777777777777","sample_id":"66666666-6666-4666-8666-666666666666","brand_id":"22222222-2222-4222-8222-222222222222","title_pattern":"场景与选择问题","hook_type":"场景设问","paragraph_structure":["引入场景","展开资料","收束建议"],"tone":"克制","emoji_usage":"少量分隔段落","hashtag_usage":"使用场景类话题","abstract_template":"开头从一个具体使用场景提出问题，中段结合已审核资料逐步展开，结尾给出克制的收束建议。","model_id":"deepseek-flash","prompt_version":"viral-v2","checker_version":"viral-copy-v2","created_at":"2026-11-01T00:00:00Z"}
 ```
 
-- `title_pattern`、`hook_type`、`tone`、`emoji_usage`、`hashtag_usage` 为非空描述文本，各 ≤200 码点；不是前端写死的枚举。`paragraph_structure` 有序列表 1–20 条，每条非空、≤300 码点；`abstract_template` 非空、≤5000 码点，使用 `{{scene}}`、`{{supported_facts}}`、`{{closing}}` 等占位符，不保存样本长句。模型结果只接受本节结构字段；id/品牌/版本由服务端赋值。
+- `title_pattern`、`hook_type`、`tone`、`emoji_usage`、`hashtag_usage` 为非空描述文本，各 ≤200 码点；不是前端写死的枚举。`paragraph_structure` 有序列表 1–20 条，每条非空、≤300 码点；`abstract_template` 非空、≤5000 码点，是一段通顺的中文写作指引（说明开头、中段、结尾各写什么），不含花括号、方括号、占位符、代码块，不保存样本长句；五个描述字段与段落数组同样不得含 `{ } 【 】`、代码块标记或乱码替换字符。模型结果只接受本节结构字段；id/品牌/版本由服务端赋值。
 - 输出先做结构校验，再做复制检查：样本与所有结构文本字段分别经过 Unicode NFKC、移除 Unicode 空白；任一输出字段出现与样本连续 ≥12 个相同码点即拒绝。包括 abstract_template，不仅检查模板字段，避免其他字段夹带原句。短样本仍接受但该阈值不能发现 <12 字复用；此检查不代表所有改写或授权问题均已排除。
-- 模型结构或复制检查不满足时反馈一次并最多重试一轮（总计最多 2 次分析模型调用）。最终不合格返回拟新增 422 `INVALID_MODEL_OUTPUT`（不是既有任务 last_error 字段），details.reason 为 `schema_invalid` 或 `copied_text`；不保存不合格模式。模型超时/不可用返回 503 MODEL_UNAVAILABLE，不保存半成品。
+- 模型结构、复制检查或格式检查不满足时反馈一次并最多重试一轮（总计最多 2 轮分析）。最终不合格返回新增 422 `INVALID_MODEL_OUTPUT`（不是既有任务 last_error 字段），details.reason 为 `schema_invalid`、`copied_text` 或 `format_invalid`；不保存不合格模式。模型超时/不可用返回 503 MODEL_UNAVAILABLE，不保存半成品。
 - 分析过程为请求内“校验→模型分析→代码检查→提交成功结果”；不增改既有任务 flow_status。样本只读；重复成功请求会产生新的模式，不覆盖旧模式。网络超时不代表服务端失败，先读取已保存结果再决定是否重新分析。
 
 #### 转为品牌场景模板
@@ -692,7 +704,7 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 `name` 去首尾空白后 1–100 码点；`scene` 只取现有 `seeding|review|tutorial|launch|promotion|story`。不接受 brand_id 或替换模式内容。成功 201 示例（该品牌、scene、name 首次创建为版本 1；后续版本按下述规则递增）：
 
 ```json
-{"id":"88888888-8888-4888-8888-888888888888","brand_id":"22222222-2222-4222-8222-222222222222","name":"场景引导模板","scene":"seeding","structure":"围绕{{scene}}提出问题，以{{supported_facts}}展开，给出{{closing}}。","template_version":1}
+{"id":"88888888-8888-4888-8888-888888888888","brand_id":"22222222-2222-4222-8222-222222222222","name":"场景引导模板","scene":"seeding","structure":"开头从一个具体使用场景提出问题，中段结合已审核资料逐步展开，结尾给出克制的收束建议。","template_version":1}
 ```
 
 模式属于哪个品牌，模板就创建在哪个品牌，不能转成全局模板或另一品牌模板。结构来自已校验的 abstract_template，模板启用后由现有 GET /scenarios 返回给有权用户，不改变旧模板，不把样本原文带入模板。重复成功请求会产生新的模板，不覆盖旧模板；同品牌、同 scene、同 name 的 `template_version` 取现有最大值加 1，不存在时为 1。版本分配与插入必须在事务中串行化，并发同名转换也不能产生相同版本或让唯一约束冲突暴露为 500；创建与审计原子提交。
@@ -705,7 +717,7 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 | 403 `FORBIDDEN` | 显式品牌路径非成员；或同品牌 editor 调用 to-template | 由该品牌 admin 操作 |
 | 404 `NOT_FOUND` | 样本/模式不存在或非所属品牌成员 | 不泄露存在性 |
 | 422 `VALIDATION_ERROR` | 空文本/超长、非法 URL/scene/model_id/UUID/分页；details.errors | 修正输入 |
-| 422 `INVALID_MODEL_OUTPUT`（拟新增） | 分析重试后仍结构错/连续复制；details.reason | 换输入或新请求；不返回模型原始输出 |
+| 422 `INVALID_MODEL_OUTPUT`（新增） | 分析重试后仍结构错/连续复制；details.reason | 换输入或新请求；不返回模型原始输出 |
 | 503 `MODEL_UNAVAILABLE` | 模型未配置、超时或不可用 | 样本保留，无模式半成品；恢复后可重新请求 |
 | 500 `INTERNAL_ERROR` | 意外故障，仅通用错误与 request_id | 先读取已保存结果，再决定是否重新请求 |
 
@@ -720,6 +732,12 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 - 每次模型调用（含失败及重试）独立记录 llm_call_log，不在错误/审计里保存原始敏感模型输出。成功创建样本写 viral.sample_create，成功分析写 viral.analyze，转换写 viral.to_template；detail 仅资源 id、长度、模型/版本，原文与原链接不写审计。失败不写成功审计；每次成功请求均保存新结果并原子写入审计，旧模式与模板不覆盖。
 - 新增三个读取接口的理由：原占位只有创建/分析/转换，无法在页面刷新后恢复样本全文与已分析结果；读取仍沿用品牌成员隔离，不引入跨品牌访问。
 
+#### 实现补充（2026-11-01）
+
+- 迁移 a3d7e9f1b5c2 接在 f2c0e6b8d4a1 后，只创建 viral_sample 和 viral_pattern；带对应 downgrade。样本列表默认 -created_at，分页沿用通用约定。
+- 同品牌模板版本分配使用品牌父行锁串行化，以覆盖首次尚无同名模板的情况；再查同场景同名最大版本并加一，旧模板不覆盖。
+- 模型客户端对瞬时错误最多内部重试 1 次，结构、复制或格式检查失败最多补问一次，因此一次请求最多 4 次供应商请求；每次请求通过现有 DbLlmCallRecorder 独立记录，错误不含原始输出。
+
 ## 11. 合同变更流程
 
 1. 提案人先更新本文与 JSON 样例，说明兼容影响。
@@ -728,6 +746,9 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 4. 每个新增或修改的端点补成功、验证错误、未授权、越权测试。
 
 ## 12. 变更记录
+
+- 2026-11-01 F13 实现：样本与模式读写、同步分析与复制检查、品牌模板递增转换、审计和调用日志；新增一条线性迁移并重新生成客户端。
+- 2026-11-01 停用接口新增可选 `reason`：资料停用和规则修改，写入审计，不改变既有字段含义
 
 - 2026-11-01 F14 实现：品牌串味评测、独立归属诊断、代码指标与虚构示例集入口。
 - 2026-11-01 规则批量维护契约草案：导入预览/应用、merge/replace、导出/模板、事务与行级错误；TC-158～TC-182。已补 A 的空来源、id定位、含停用重复键、模板权限、empty_file 与可空文本等同决定，等待 A 复审确认定稿，尚未实现。

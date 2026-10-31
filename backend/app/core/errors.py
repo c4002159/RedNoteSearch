@@ -20,6 +20,7 @@ from app.services.errors import (
     ConflictError,
     FileTooLargeError,
     InvalidInputError,
+    InvalidModelOutputError,
     InvalidStateError,
     MaterialLimitExceededError,
     MaterialTooLongError,
@@ -126,7 +127,11 @@ def _not_found_handler(request: Request, exc: Exception) -> Response:
 def _conflict_handler(request: Request, exc: Exception) -> Response:
     assert isinstance(exc, ConflictError)
     return error_response(
-        request, status_code=409, code="CONFLICT", message=exc.message
+        request,
+        status_code=409,
+        code="CONFLICT",
+        message=exc.message,
+        details=exc.details,
     )
 
 
@@ -160,6 +165,17 @@ def _material_limit_handler(request: Request, exc: Exception) -> Response:
         code="MATERIAL_TOO_LONG"
         if isinstance(exc, MaterialTooLongError)
         else "MATERIAL_LIMIT_EXCEEDED",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+def _invalid_model_output_handler(request: Request, exc: Exception) -> Response:
+    assert isinstance(exc, InvalidModelOutputError)
+    return error_response(
+        request,
+        status_code=422,
+        code="INVALID_MODEL_OUTPUT",
         message=exc.message,
         details=exc.details,
     )
@@ -233,6 +249,7 @@ def install_error_handling(app: FastAPI) -> None:
     app.add_exception_handler(ConflictError, _conflict_handler)
     app.add_exception_handler(InvalidStateError, _invalid_state_handler)
     app.add_exception_handler(InvalidInputError, _invalid_input_handler)
+    app.add_exception_handler(InvalidModelOutputError, _invalid_model_output_handler)
     app.add_exception_handler(MaterialTooLongError, _material_limit_handler)
     app.add_exception_handler(MaterialLimitExceededError, _material_limit_handler)
     app.add_exception_handler(FileTooLargeError, _file_too_large_handler)
