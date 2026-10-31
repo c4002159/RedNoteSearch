@@ -16,7 +16,8 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 
 | code | HTTP | 说明 |
 |---|---|---|
-| `VALIDATION_ERROR` | 422 | 参数或体校验失败；`details` 给出字段 |
+| `BAD_REQUEST` | 400 | 请求本身有问题（例如密码错误、令牌无效），没有更具体的错误码时使用 |
+| `VALIDATION_ERROR` | 422 | 参数或体校验失败；`details.errors` 给出每个字段的 `loc`、`msg`、`type` |
 | `UNAUTHENTICATED` | 401 | 未登录或令牌无效 |
 | `FORBIDDEN` | 403 | 已登录但无权限（角色或品牌授权） |
 | `NOT_FOUND` | 404 | 资源不存在，或按 ID 访问的资源不属于你可访问的品牌（不泄露存在性） |
@@ -28,6 +29,7 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 | `PARSE_FAILED` | 422 | 解析失败；资料保持不可检索 |
 | `RATE_LIMITED` | 429 | 限流，带 `Retry-After` |
 | `MODEL_UNAVAILABLE` | 503 | 模型超时、限流或空响应，重试用尽 |
+| `INTERNAL_ERROR` | 500 | 未处理的异常；不返回原因，只在服务端日志里记录并带 `request_id` |
 
 不得返回 traceback、API 密钥、模型原始敏感内容。
 
@@ -94,9 +96,10 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 - **平台管理员不是品牌数据的万能钥匙**：`BrandAccessDep` 对非成员的平台管理员同样 403，品牌范围内的数据（资料、任务、版本等）要先成为成员。
 - 请求体里的 `brand_id` 不授予任何权限。
 
-### 实现状态与偏差（2026-10-31）
-- 错误响应暂时沿用模板格式 `{"detail": "..."}`，**统一错误信封（`error.code`、`request_id`）尚未实现**：它会改变前端对错误的读取方式，需要单独的 PR 与前端调整。
-- 令牌无效时模板返回 403（契约写 401），未登录没带令牌时返回 401；也留待统一错误处理时一并调整。
+### 实现状态（2026-10-31）
+- **统一错误信封已实现**（`backend/app/core/errors.py`）：所有错误都是 `{"error":{"code","message","details","request_id"}}`；`request_id` 取自客户端发来的 `X-Request-ID`（只接受 1–64 位字母、数字、`.`、`_`、`-`），否则服务端生成，并在响应头 `X-Request-ID` 里返回，成功响应也带。未处理的异常返回 500 `INTERNAL_ERROR`，不含原因或堆栈。
+- 令牌无效或过期返回 **401** `UNAUTHENTICATED`（带 `WWW-Authenticate: Bearer`）；未带令牌也是 401。此前模板对无效令牌返回 403，已改正。
+- 前端只在 401 时清除令牌并回到登录页；403 作为“无权限”显示给用户，不再被当成登录失效。错误提示读取 `error.message` 并附上 `request_id`；校验错误显示第一个字段的提示。
 
 ### 商品
 - `GET /brands/{brand_id}/products?status=active|archived&page=`：品牌成员。
