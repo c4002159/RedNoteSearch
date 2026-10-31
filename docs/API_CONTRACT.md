@@ -197,6 +197,71 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 约束检查（与发布页一致，ADR-004、ADR-005）：标题加权长度 `title_weight ≤ 20`（ASCII 可打印字符计 0.5，其余计 1）；正文 `body_units ≤ 1000`（去掉换行后的 UTF-16 码元数，emoji 计 2）；标签 ≤10，且标签的可见字符计入正文预算。后端判定为准，前端镜像同一规则。
 
+### F12：任务文件输入（已定稿，已实现）
+
+本小节新增文件上传与资料列表；既有 `POST /tasks` JSON 与 `task_materials` 粘贴文本含义不变。
+
+#### 请求、响应与权限
+
+| 方法与路径 | 权限 | 请求 | 成功 |
+|---|---|---|---|
+| `POST /tasks/{task_id}/materials` | 任务所属品牌的成员（editor/admin） | `multipart/form-data`，且仅一个必填 `file` 部件；不接受客户端指定品牌 | 201，资料元数据 |
+| `GET /tasks/{task_id}/materials?page=1&page_size=20` | 同上；任务任何流程状态可读 | 无请求体；分页见 §1.3；固定 `created_at ASC, id ASC` | 200，粘贴与文件资料统一列表 |
+
+任务 id 为 UUID；不存在、非成员或其他品牌任务均为 404。平台管理员也必须是该任务品牌成员。未登录为 401。资料的品牌只取自已授权任务。
+
+上传示例：请求头 `Authorization: Bearer <token>`；multipart 部件 `file` 的文件名为 `brief.pdf`、内容为该文件的字节。201 示例（下例摘要用 64 位哈希示意，不代表真实文件）：
+
+```json
+{"id":"11111111-1111-4111-8111-111111111111","filename":"brief.pdf","char_count":9,"content_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","created_at":"2026-11-01T00:00:00Z","excerpt":"任务内产品资料节选"}
+```
+
+`GET` 示例：
+
+```json
+{"items":[{"id":"11111111-1111-4111-8111-111111111111","filename":"brief.pdf","char_count":9,"content_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","created_at":"2026-11-01T00:00:00Z","excerpt":"任务内产品资料节选"}],"total":1,"page":1,"page_size":20}
+```
+
+`id` 为不可变任务资料快照 id；文件名取 basename、长度 1–300 个 Unicode 码点（超限 422），不保存本机路径。`char_count` 为解析所得并实际保存文本的 Unicode 码点数（含换行，emoji 计一个码点）；`excerpt` 取该文本前 200 码点，不返回全文。`content_hash` 沿用任务资料现有 SHA-256 文本哈希口径，不重定义旧哈希。响应时间与 id 规则见 §1。
+
+#### 实现约定（2026-11-01）
+
+- 只允许任务 `queued` 时添加；生成开始后及其他状态一律 409 `INVALID_STATE`。上传不改变任务流程状态。解析、嵌入可同步耗时数分钟，前端保留等待态；本次不引入上传作业或新的进度枚举。大文档请走知识库；即使文件字节数未超限，解析后文本超过 50000 码点也会被拒绝。
+- PDF/DOCX ≤52428800 bytes，MD/TXT/CSV ≤5242880 bytes；大小等于上限可接受。复用现有解析器，不接受图片、压缩包或 OCR；仅扩展名白名单不代表文件内容可解析。单请求多文件、缺少 `file` 或无效 UUID 为 422 `VALIDATION_ERROR`。
+- 每任务粘贴加文件合计 ≤5 份；每份解析后 1–50000 码点。空白文本或不可解析内容为 `PARSE_FAILED`。不做隐式去重；重复上传会产生第二份资料，由 5 份上限兜底。
+- 原文件不持久化；只保存解析文本、文件名、哈希及快照元数据。文本分块和向量仅供所属任务的检索，来源始终 `task_material`、未经审核；不创建知识库文档/版本或供其他任务检索的知识库索引，不影响原有任务快照规则。
+- **行锁持有时间**：上传在持任务行锁的事务里完成解析和嵌入（大文件可能几分钟），期间同一任务的 `generate` 和其他上传会等待，等待者没有额外超时，也占用一个数据库连接；这是为了让“份数上限”和“只有 queued 才能上传”在并发下成立。
+- 解析和嵌入全部成功才原子提交快照、任务内分块及 `task.material_add` 审计；失败无新增快照、分块或成功审计。审计 detail 只含文件名、字数，不含正文。实现使用任务行锁（`SELECT … FOR UPDATE`）串行化上传的“核对状态+份数+写入”与 `generate` 的状态转换，事务提交前保持串行化保证，不能绕过 5 份上限或将迟到资料加入正在生成的任务。
+- 检查顺序固定为：授权（任务不存在或非成员为 404）→任务状态（409）→份数上限（422）→文件类型/大小（422）→解析（422）→文本长度（422）→嵌入（503）；同时命中多个业务错误时返回最先一步的错误。框架层 JWT、UUID、表单与字段格式校验仍按 §1 的 401/422 规则。
+- **A 已决定：不提供删除或替换。** 上传错误后新建任务重来，任务资料快照保持只增不改。
+- 新错误码 `MATERIAL_TOO_LONG`、`MATERIAL_LIMIT_EXCEEDED` 的服务异常分别为 `MaterialTooLongError`、`MaterialLimitExceededError`，均继承 `InvalidInputError` 并映射为 HTTP 422；按本节各自 code/details 输出，不能落入通用 500，也不改变其他 `InvalidInputError` 的映射。两类异常使用专用处理器保留各自错误码，其他输入错误仍使用原映射。
+
+#### 错误与失败恢复
+
+所有错误统一采用 §1.1 信封并带 `request_id`，以下为本功能新增约定或复用项：
+
+| HTTP / code | 条件与 details | 恢复 |
+|---|---|---|
+| 401 `UNAUTHENTICATED` | 未登录/令牌失效 | 登录后重试 |
+| 404 `NOT_FOUND` | 任务不存在或用户不是成员 | 不暴露品牌或资料内容 |
+| 409 `INVALID_STATE` | 非 queued；`current_state` | 新建任务，不修改原快照 |
+| 422 `VALIDATION_ERROR` | 表单、UUID、文件名或分页非法；`errors` | 修正字段 |
+| 422 `FILE_TOO_LARGE` | `limit_bytes` | 缩小文件 |
+| 422 `UNSUPPORTED_FILE_TYPE` | `allowed` 为扩展名列表 | 换支持类型 |
+| 422 `PARSE_FAILED` | 无可用文本、损坏/加密文档 | 换文件；无半成品 |
+| 422 `MATERIAL_TOO_LONG`（新增） | `char_count`、`limit_chars=50000` | 缩短文本 |
+| 422 `MATERIAL_LIMIT_EXCEEDED`（新增） | `material_count`、`limit_count=5` | 新建任务；不自动删已有资料 |
+| 503 `MODEL_UNAVAILABLE` | 嵌入不可用 | 原任务保持 queued，无新增资料，可重试 |
+| 500 `INTERNAL_ERROR` | 意外故障，仅返回 request_id 与通用说明 | 先通过 GET 确认结果；重复上传可能新增一份资料 |
+
+错误示例：
+
+```json
+{"error":{"code":"MATERIAL_TOO_LONG","message":"任务资料文本过长","details":{"char_count":50001,"limit_chars":50000},"request_id":"req-uuid"}}
+```
+
+新增错误码已实现；未新增限流机制或改变既有错误码含义。
+
 ### `GET /tasks?brand_id=&status=&page=&sort=-created_at`
 任务列表（品牌成员）；`brand_id` 必填。
 
@@ -320,6 +385,135 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - `GET /generation-versions/{id}/compliance` 返回提示列表和 `unresolved_block`（未处理的 `block` 级提示数）；`POST /compliance-checks/{id}/resolve`（体 `{note}`）记录“有人处理过”，提示本身保留，**不表示文字合规**。
 - 这些只是风险提示，供人工复核；任何界面或文案都不得称为“合规通过”或“法务批准”。
 
+### 6.1 风险提示规则批量导入、导出与模板（契约草案，待 A/B 确认，尚未实现）
+
+本节只新增批量接口，不改变既有单条创建/修改字段的含义。用于客户维护自己的词表；所有来源由用户填写，不从模型或文件名推断来源。
+
+#### 路径、范围与权限
+
+| 方法与路径 | 权限 | 请求与成功响应 |
+|---|---|---|
+| `POST /compliance-rules/import` | 仅平台管理员；范围仅 `brand_id IS NULL` | multipart `file`；query `mode=merge|replace`、`dry_run=true|false`；200 汇总 |
+| `POST /brands/{brand_id}/compliance-rules/import` | 仅该品牌 admin | 同上；只操作路径品牌的规则，不包含全局规则 |
+| `GET /compliance-rules/export?format=csv|json` | 仅平台管理员；仅全局规则 | 200 下载文件，包含停用规则 |
+| `GET /brands/{brand_id}/compliance-rules/export?format=csv|json` | 仅该品牌 admin；仅路径品牌 | 200 下载文件，包含停用规则，不混入全局规则 |
+| `GET /compliance-rules/import-template?format=csv|json` | 平台管理员或任一品牌 admin；两个范围共用不含业务数据的通用模板；仅有品牌 editor 身份返回 403，未登录 401 | 200 模板文件，含一行明确标注的示例 |
+
+- 全部需要 JWT；未登录 401。品牌路径非成员或 editor 为 403，平台管理员也须是该品牌 admin 才可导入/导出。全局范围非平台管理员为 403。品牌是否存在沿用已有品牌授权依赖，不泄露不属于自己的规则。
+- `mode` 默认 `merge`，`dry_run` **默认 true**，format 默认 `csv`；其他值 422。导入仅一个名为 `file` 的文件，不接受客户端指定 brand_id、版本、created_by 或 is_sample；可选 id 仅用来定位本范围内已有规则，不能修改主键或授权范围。
+- 本节导出与现有 GET /compliance-rules 的列表语义不同：品牌导出严格只含该品牌。静态 import/export/import-template 路径须在 /compliance-rules/{id} 前注册。
+
+#### 文件与字段
+
+- `.csv` 或 `.json`；文件字节数最多 1048576（含 BOM），数据记录 **1–2000 条**，CSV 不含表头。
+- **A 已决定：空文件与零记录一律拒绝。** 0 字节、只有 BOM、只有空白、JSON `[]`、CSV 没有任何数据行（包括仅表头），均返回 422 `VALIDATION_ERROR`，`details.reason="empty_file"`，`message="文件里没有规则，未做任何更改"`。适用于 merge/replace 及 dry_run=true/false，不写规则、版本或审计。防止误把空文件当作“整体替换”而停用整个范围的规则；需要停用时在页面里逐条或批量停用。
+- JSON 为规则对象数组（不是带 items 的分页对象），UTF-8，可带 BOM；CSV 先 UTF-8（可带 BOM），失败后尝试 GBK，仍失败为 422 PARSE_FAILED。格式由扩展名决定，不根据正文猜测；不执行公式、正则以外代码或 URL。
+- CSV 有表头、逗号分隔，按 CSV 引号规则支持字段内逗号/引号/换行；同名表头、缺必填列、未知列、多/少列或空数据记录都返回行级错误。行号按逻辑数据记录从 1 起，不含表头，不按字段内换行计数。
+- 导出首列为 id（UUID），后接下表可编辑字段；JSON 每条也带 id。新建导入行可省略 id 或留空，已有行可填 id 精确定位。id 是定位器，不是可编辑字段。必填业务字段只有 layer、rule_type、severity、pattern。导入按完整行的创建默认值处理，不是 PATCH：省略可选字段会使用下表默认值，不从原有规则补来源。
+
+| 字段 | 取值/上限 | 省略时 |
+|---|---|---|
+| layer | `lexicon`、`efficacy_basis`；`context` 不可导入 | 必填 |
+| rule_type | `absolute_term`、`efficacy_claim`、`medical_term`、`data_claim`、`platform_rule`、`brand_forbidden` | 必填 |
+| severity | `block`、`warn` | 必填 |
+| pattern | 去首尾空白后非空，≤200 Unicode 码点；正则安全检查沿用单条接口 | 必填 |
+| is_regex | boolean | false |
+| suggestion | 文本 ≤500 | 空字符串 |
+| source_name | A 已决定：仅批量导入允许为空，文本 ≤200；省略、null 或空单元格统一存空字符串，不得自动填来源 | 空字符串 |
+| source_url | 可空文本 ≤500；不访问链接 | null |
+| source_clause | 可空文本 ≤300 | null |
+| region_scope | 可空文本 ≤50 | null |
+| effective_from | 可空 ISO 日期 YYYY-MM-DD | null |
+| effective_to | 可空 ISO 日期；不得早于 effective_from | null |
+| enabled | boolean | true |
+
+JSON 示例（文件内容）：
+
+```json
+[{"layer":"lexicon","rule_type":"absolute_term","severity":"warn","pattern":"示例，请删除","is_regex":false,"suggestion":"示例，请删除","source_name":"","source_url":null,"source_clause":null,"region_scope":null,"effective_from":null,"effective_to":null,"enabled":false}]
+```
+
+CSV 布尔值接受 true/false（不区分大小写）、1/0，空值按字段默认；其他值非法。日期空单元格表示 null。**A 已决定：可空文本列 source_url/source_clause/region_scope 的空单元格表示 null；空字符串与 null 视为等同，导入时统一为 null，判断 unchanged 时也按等同比较。** JSON 这三列接受 null、空字符串或省略，同样规范化；其他字段校验不变。CSV 内容按标准 CSV 规则原样处理，不使用额外的空值标记或反斜杠转义。source_name 空单元格仍表示空字符串，JSON 的 null、空字符串或省略均存空字符串。
+
+示例模板 CSV（示例行不是自动跳过行，使用者须先删除）：
+
+```csv
+id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,source_clause,region_scope,effective_from,effective_to,enabled
+,lexicon,absolute_term,warn,"示例，请删除",false,"示例，请删除",,,,,,,false
+```
+
+新建导入行 `is_sample=false`；来源为空也不自动标成示例，客户端不能伪造该字段。已有示例规则无字段变化时保持原样；发生编辑按单条维护约定清除示例标志，但不表示其来源已审核。空来源在列表、详情和检查命中提示的风险面板均显示“来源待补充”，未改的示例继续显示“来源待核对，不是正式依据”。显示占位符不得写回数据库或导出：规则和历史提示里的 source_name 仍保存原空字符串，前端以非空原值或“来源待补充”渲染，避免把占位文字变成来源。
+
+**A 已决定的空来源兼容约定**：原单条创建 source_name 必填规则不变；PATCH 未传 source_name 时只校验请求中的更新字段，不因存量空来源拒绝更新严重度等字段。显式传 source_name 用于更新时仍按现有非空字符串约束；不重新校验未提交的原空值。空来源导出为 source_name 的空单元格/JSON空字符串，再导入仍为空，不生成“示例规则”或其他假来源。
+
+**可选建议（非本次必做）**：列表可增加 source_missing=true|false 筛选来源待补充/已填写的规则；若实现，必须在既有授权范围内筛选，不改变当前列表包含全局与本品牌的语义。
+
+#### 匹配与应用
+
+- **A 已决定：匹配范围包含本范围的全部规则，含停用。** 未指定 id 时，用 `(layer,rule_type,pattern)` 匹配；pattern 沿用创建时去首尾空白的口径，大小写/正则字符不额外折叠。命中唯一停用规则时按文件 enabled 更新：从 false 改为 true 则恢复启用并加版本；仍为 false 且其余字段未变则 unchanged。
+- 指定 id 时，只定位本范围内该规则，允许更新其可编辑字段（含匹配键），不再按输入键任意选择另一条；该键的其他重复记录不因此被统一更新。id 不存在、不在本范围或格式非法均为422行错误（column=id），统一说明“id不存在或不属于当前范围”，不暴露其他范围内容。
+- 同一文件里重复匹配键仍为整文件422，即使指定不同id也不豁免；同一id出现多次也为422。错误标明重复行及第一次出现行。文件中的规则定位和最终键全部校验完才允许写入。
+- `merge`：不存在则创建（rule_version=1）；存在且任一可编辑字段变化才更新并 rule_version+1；无变化记 unchanged，不更新时间、版本或示例标志。source_url/source_clause/region_scope 的存量空字符串与输入 null 等同比较，不因该规范化单独产生更新；有其他字段变化而实际写入时这三列统一存 null。文件外规则不动。
+- `replace`：先按 merge 计划处理，以每行实际定位到的规则id组成覆盖集合；再把本范围内未在集合中且 enabled=true 的规则设为 false，rule_version+1。使用id指定重复键中的一条不会把其余同键记录隐式算作已覆盖，其余启用记录将计入预览的disabled数量并由二次确认决定是否停用。已停用的文件外规则不变。示例规则也仅停用，不物理删除；绝不改写历史提示中的规则快照。
+- 四个计数互斥：created 为新增，updated 为文件内已匹配且字段变化，unchanged 为文件内已匹配且无变化，disabled 为 replace 文件外从启用转为停用。文件内 enabled=false 导致的更改计 updated，不重复计 disabled。
+- **A 已决定：已有重复键整次409，不任意选取或统一更新。** 检查只针对文件实际使用、且该行未用id精确指定的键；该键在本范围有多条规则（含停用）才冲突。其他键存在重复不影响本次导入。预览和实际应用都在写入前检查；任何冲突均无规则、版本或成功审计写入。details.conflicts 逐键包含 layer/rule_type/pattern、该范围对应规则id列表 rule_ids、该键在文件里的行号 rows。客户可在文件填入目标规则id后重新预览；停用记录仍参与无id匹配，单纯停用不会让重复键消失。
+- 不新增 Idempotency-Key 或请求键存储。相同文件再次 merge 通常变为 unchanged；重复请求仍按当前数据库重新计算和执行。
+
+#### 预览、事务与并发
+
+`POST /brands/22222222-2222-4222-8222-222222222222/compliance-rules/import?mode=replace&dry_run=true`，multipart file=rules.csv。成功 200 示例：
+
+```json
+{"dry_run":true,"mode":"replace","created":2,"updated":1,"unchanged":3,"disabled":4,"errors":[]}
+```
+
+- dry_run=true 不写规则、版本、示例标志或成功审计，返回对当前数据库计算的计划；没有任何预留或承诺。dry_run=false 以同样字段返回实际完成计数，HTTP 200，不用 201。
+- 应用请求必须重新解析、授权和校验，不相信前端预览计数。只要一行非法，整文件拒绝且无规则/审计写入；不能跳过错误行应用其他行。
+- 同一范围的导入（包括没有规则的范围）使用同一个事务级咨询锁串行化；后到请求等待，不交叉写。dry_run 与实际写入都在取得该范围锁后读取规则并计算，事务结束释放。不同范围互不读取对方规则。
+- 实际规则写入、版本变化和一次 `compliance.import` 审计在同一事务提交；detail 只含范围（global 或品牌 id）、mode、created/updated/unchanged/disabled、文件名，不含规则全文。零变化的成功实际导入也记一次操作；dry_run 不记成功操作。
+- 预览到确认之间其他修改可能使计数变化，真正提交以重算结果为准；超时后可先导出核对再重试，不承诺恰好一次执行。
+
+#### 校验错误与下载
+
+全部使用 §1.1 错误信封并带 request_id：
+
+| HTTP / code | 条件与 details |
+|---|---|
+| 401 UNAUTHENTICATED | 未登录/令牌失效 |
+| 403 FORBIDDEN | 全局或品牌角色不足、品牌路径非成员 |
+| 404 NOT_FOUND | 沿用已有品牌依赖对不可用资源的处理；不暴露异品牌规则 |
+| 409 CONFLICT | 文件用到且未以id指定的键在本范围对应多条规则（含停用）；details.conflicts 给键、rule_ids、rows，预览同样报冲突 |
+| 422 FILE_TOO_LARGE | 文件超过 1048576 bytes；details.limit_bytes |
+| 422 UNSUPPORTED_FILE_TYPE | 非 .csv/.json；details.allowed |
+| 422 PARSE_FAILED | CSV 编码两次均失败、格式无法解析、非法 JSON；无原文回显 |
+| 422 VALIDATION_ERROR | 空文件或零记录：details.reason="empty_file"，message="文件里没有规则，未做任何更改"；其他枚举、正则安全、字段/日期/表头/行数、文件重复键/重复id、无效或范围外id、mode/dry_run/format 非法：details.errors |
+| 500 INTERNAL_ERROR | 意外异常，只返回通用说明与 request_id；事务回滚 |
+
+逐行错误用 `row`、`column`、`msg` 给前端展示，另保留通用 loc/type；表头或整个文件的错误 row=null。全部行校验通过才给非零计划数；无论预览还是应用，只要有错误均 422，四个计数为0，不应用合法子集。示例：
+
+```json
+{"error":{"code":"VALIDATION_ERROR","message":"规则文件校验失败","details":{"dry_run":true,"mode":"merge","created":0,"updated":0,"unchanged":0,"disabled":0,"errors":[{"row":2,"column":"pattern","loc":["body","file","rows","2","pattern"],"msg":"正则表达式不安全","type":"value_error"}]},"request_id":"req-uuid"}}
+```
+
+- 导出是整个授权范围（含停用规则），不分页；按 layer、rule_type、pattern、id 稳定排序，每条带id定位列及上表可编辑字段，不带其他范围或可伪造版本元数据。JSON 直接返回数组，三个可空文本列的空字符串/null 均导出为 null；CSV 输出 UTF-8 BOM 和固定表头，这三列的空字符串/null 均导出为空单元格。source_name 空来源仍导出空字符串/空单元格。空范围导出为 JSON [] 或仅 CSV 表头（不是可执行的导入文件，merge/replace 均以 empty_file 拒绝）。
+- Content-Type 分别为 application/json 或 text/csv; charset=utf-8，Content-Disposition 为 attachment，文件名由服务端生成，不用用户提供的名称。导出不改规则、版本或写入审计。
+- 通用模板与所选格式一致，只有固定表头/字段（示例id为空）和一条 `pattern/suggestion="示例，请删除"、enabled=false` 的示例；不内置真实来源。若用户未删除示例行，按普通输入校验，不静默略过。
+- 往返验收：已有规则导出后不修改再 merge，所有导出行为 unchanged、版本不增加；包括存量 source_url/source_clause/region_scope 为空字符串的情况，按 null 等同比较，不产生额外变更。原范围停用状态保持不变。来源为空导出为空source_name单元格，重导仍为空。数据库有重复键时导出保留每条id；同一文件仍不能带重复键，客户须先整理文件保留每键一行并用id定位目标，不能把重复键行整体原样重新导入。
+
+409 示例（没有任何写入；id列表仅来自已授权范围）：
+
+```json
+{"error":{"code":"CONFLICT","message":"文件中的规则键对应多条已有规则","details":{"dry_run":true,"mode":"merge","conflicts":[{"layer":"lexicon","rule_type":"absolute_term","pattern":"示例词","rule_ids":["11111111-1111-4111-8111-111111111111","22222222-2222-4222-8222-222222222222"],"rows":[1]}]},"request_id":"req-uuid"}}
+```
+
+#### 前端流程与确认状态
+
+先选文件 → 自动预览 → 展示四种计数和逐行错误 → 用户确认才 dry_run=false。有错误禁用确认；replace 另做二次确认并显示将停用数量，说明文件外规则停用而非删除。导入/导出/模板入口只对有权角色显示；授权仍由后端判断。
+
+**A 已决定**：批量允许空来源、单条创建不变、PATCH省略来源不校验存量空值、命中提示显示占位；已有重复键按上述范围整次409且id可消歧；停用记录参与匹配和冲突检查，enabled按文件更新。以上来自A在本会话的明确决定。
+
+**A 已决定（2026-11-01，PR #43 评论）**：模板下载允许平台管理员或任一品牌 admin；空文件与零记录按 empty_file 拒绝；CSV 空单元格表示三个可空文本列的 null，空字符串/null 等同比较，不增加自定义转义。三项均已写入本稿，等待 A 复审修订后的契约并确认定稿后才开实现 PR。本轮只修订契约，不修改 PATCH、列表或检查器代码。
+
 ## 7. 评测（B）
 
 - `GET /evaluation/datasets?kind=`：品牌 admin；`kind`：`generation | compliance | factcheck | brand_leak`。
@@ -337,7 +531,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
   - `compliance`：`input.text`；`expected.hit_words`（应当被命中的词）。
   - `factcheck`：`input.claim`、`input.sources`（1 到 5 段资料）；`expected.verdict` 为 `supported | insufficient | conflict`。
   - `generation`：`input.product_name`、`input.scene_name`，可选 `brand_name`、`category`、`scene_structure`、`brief`、`required_terms`、`style`、`facts`；`expected.forbidden_words` 可选。
-  - `brand_leak` 属后续功能，创建评测集或运行返回 422。
+  - `brand_leak` 当前实现仍返回 422；拟扩展字段与规则见本节 F14 契约审议稿，须经确认后实现。
 - 版本：评测集创建后内容固定；带 `previous_version_id` 创建时生成同一 `group_id` 的下一个版本（类型和品牌必须相同），旧版本保留。每个版本有 `content_hash`。
 - 运行（`POST /evaluation/runs`，202，后台执行，可带 `Idempotency-Key`）：`model_ids` 必须是 `GET /models` 里的模型（未知模型 422）；`factcheck`、`generation` 至少选一个模型，`compliance` 不用模型。`baselines` 按类型限定：`compliance` 只有 `lexicon_only`（只用词库层，不含功效依据层），`factcheck` 只有 `no_verification`（相信所有说法），`generation` 没有基线。
 - 运行详情返回：样本数、各项版本（评测集版本、提示词版本、检查器版本、评分表版本、模型、基线）、**按系统分组的指标**（每个指标带 `name`、`value`、`definition`、`n`），以及失败项（哪个样本、哪个系统、简短原因）。**没有综合分。**一个样本失败不会中断整个运行，失败计入指标：生成类的失败算“未通过约束”，核查类的失败算“判断错误”。运行崩溃时状态为 `failed`，`error` 只含异常类型名。
@@ -345,6 +539,79 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - `GET /evaluation/runs/{id}/results` 列出逐项结果（输出、详情、是否通过、耗时、费用）。
 - 评分：`GET /evaluation/rubrics` 返回评分表 `rubric-v1`（结构、调性、具体度、贴合资料，1 到 5 分，各维度分开，**不合成总分**）。`POST /evaluation/runs/{id}/ratings` 的评分者取自登录用户，四个维度都必须有分且在范围内，`rubric_version` 必须是当前版本；同一评分者对同一结果再次提交会替换之前的分数。`GET /evaluation/runs/{id}/agreement` 返回评分者人数、已评样本数，以及**每个维度**的评分者两两加权 Cohen's kappa 的平均值、完全一致比例和相差不超过 1 分的比例，`method` 字段写明计算方法；不足以计算时对应值为 `null`。
 - `GET /models`（登录用户）：`{id, provider, model_name, enabled, price_in_per_1k, price_out_per_1k, price_version}`；价格来自配置（`DEEPSEEK_PRICE_IN_PER_1K`、`DEEPSEEK_PRICE_OUT_PER_1K`、`LLM_PRICE_VERSION`），没有配置时为 `null`，成本不会被猜测。`enabled` 表示是否配置了密钥。
+
+### F14：品牌串味测试（契约审议稿，待 A/B 确认，尚未实现）
+
+以下扩展 §7 现有评测接口，不新建对比模块、不包含 F15；只解除 `brand_leak` 的后续功能限制，其余评测类型保持原含义。当前服务仍对该类型返回 422。
+
+#### 请求字段与权限
+
+- `POST /evaluation/datasets`：现有品牌 admin 权限；`kind=brand_leak` 时 `brand_id` 必填 UUID，不允许全局串味集（422）。不是请求品牌 admin 返回 403；平台管理员不能越过成员/角色限制。创建成功 201，返回现有 `DatasetPublic`（含 id、group_id、version、kind、brand_id、case_count、content_hash、created_at、name）。
+- `name` 1–100 字；`cases` 1–200 条。各条 `input` 沿用生成类的必填 `product_name`、`scene_name`（非空文本）与可选 `brand_name/category/scene_structure/brief/required_terms/style/facts`。新增 `distractor_brand`：去首尾空白后 1–100 码点；`expected.foreign_terms` 必填 1–50 条，各为去首尾空白后 1–100 码点非空文本，规范化后重复项拒绝。`annotators` 沿用现有字段。
+- `foreign_terms` 只由样本显式给出；不查询其他品牌私有资料、不自动读取其品牌档案、口号或商品。样本维护人员不得提交未经授权的真实品牌资料。
+- **A 已决定：词表由有权创建品牌评测集的 admin 在评测集里手填，随版本固定。** 演示种子只放标【演示数据】的虚构品牌词；不读取其他品牌的真实资料。
+
+创建请求示例：
+
+```json
+{"name":"串味集（演示数据）","kind":"brand_leak","brand_id":"22222222-2222-4222-8222-222222222222","cases":[{"input":{"brand_name":"演示品牌甲","product_name":"木质香水","scene_name":"通勤分享","brief":"突出木质香调","distractor_brand":"演示品牌乙"},"expected":{"foreign_terms":["演示品牌乙","乙牌专属口号"]},"annotators":["演示标注者"]}]}
+```
+
+201 示例：
+
+```json
+{"id":"33333333-3333-4333-8333-333333333333","group_id":"44444444-4444-4444-8444-444444444444","version":1,"name":"串味集（演示数据）","kind":"brand_leak","brand_id":"22222222-2222-4222-8222-222222222222","case_count":1,"content_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","created_at":"2026-11-01T00:00:00Z"}
+```
+
+#### 运行、读取与幂等
+
+`POST /evaluation/runs` 仍用现有结构，串味类型要求 `model_ids` 至少 1 个且来自 `GET /models`，本功能不另设数量上限，`baselines=[]`。至少一个模型不代表引入 F15 成本对比；沿用已有评测系统维度。示例：
+
+```json
+{"dataset_id":"33333333-3333-4333-8333-333333333333","model_ids":["deepseek-flash"],"baselines":[]}
+```
+
+202 响应沿用运行资源，关键字段示例（其他现有字段不删除）：
+
+```json
+{"id":"55555555-5555-4555-8555-555555555555","dataset_id":"33333333-3333-4333-8333-333333333333","kind":"brand_leak","status":"queued","sample_count":1,"versions":{"dataset_version":1,"prompt_version":"brand-leak-v1","checker_version":"brand-leak-v1","rubric_version":null,"models":["deepseek-flash"],"baselines":[]},"metrics":{},"failures":[],"error":null,"created_at":"2026-11-01T00:00:00Z","finished_at":null}
+```
+
+- `GET /evaluation/datasets?kind=brand_leak`、`GET /evaluation/datasets/{id}/cases`、`GET /evaluation/runs?dataset_id=...`、`GET /evaluation/runs/{id}`、`GET /evaluation/runs/{id}/results` 沿用现有响应与分页；样本/结果分页见 §1.3。按评测集或运行 id 读取：不存在、其他品牌、editor 均为 404。
+- 创建评测集重复请求会创建新资源。评测运行沿用现有 `Idempotency-Key` 行为：头长度至多 100 字符，非空 key 按创建用户和 dataset_id 查找已有运行；路由先检查评测集访问权限及请求合法性，再查询该 key。有匹配时返回首个运行，不再次提交后台执行；同 key 下即使 model_ids 等字段变化，只要请求本身仍合法，也返回已有运行，不增加请求指纹或不同体冲突检查。没有匹配则创建新运行。重跑使用新 key 或不传 key，旧结果保持不变；不新增键存储、保留期限或处理中状态。
+- 运行状态沿用 `queued → running → completed/failed`；单样本失败允许其他样本完成。读取终态为 200；不能用 409 表达正常运行中。当前接口无取消/修改运行操作，本扩展不新增 `INVALID_STATE` 分支。
+
+#### 判定与指标（拟版 brand-leak-v1）
+
+1. 每条样本先在评测品牌下直接执行一次真实检索（查询由 product_name、原 brief 与 distractor_brand 拼成，各项用换行分隔；不读其他品牌资料）。**不修改 `KnowledgeChunk` 端口**：它不带 brand_id。诊断拿实际返回值的 `chunk_id` 查库复核：`source_level=approved_kb` 时由 `kb_chunk` 关联 `kb_document.brand_id`；`source_level=task_material` 时由 `task_input_chunk` 关联 `task_input.brand_id`，再与运行品牌比较。查不到分块/父记录、来源类型无法识别或归属无法确定，记 `retrieval_brand_unknown`；查到其他品牌则记 `retrieval_brand_mismatch`。两者均令样本失败、不调用生成模型。此为对 `DbKnowledgeSearch` 返回值的独立归属复核；该服务本身已在 SQL 中按品牌过滤，诊断用于回归保护。必须检查实际返回分块，不能先过滤越界项再计零。结果仅记计数与通用错误，不向调用方泄露异品牌分块 id、原文或元数据。
+2. 检索安全时，在原 brief 后追加固定诱导句“请参考品牌「{distractor_brand}」的表达方式。”，使用该品牌下返回的资料，记录提示词/检查器版本和检索快照；每个所选模型生成一次结构化候选稿，不自动纠正重试。检索失败不跳过检查直接生成。检索诊断不调用大模型（向量检索仍可能调用嵌入服务）。
+3. 本测试衡量“被诱导时是否把别家品牌词写进文案”：包括模型礼貌复述诱导品牌也会命中；这不表示检索发生泄漏，检索泄漏由 `retrieval_leak_count` 单独衡量。代码匹配输出的所有标题候选、正文、话题和封面候选。对每个字段与词条分别做 Unicode NFKC + casefold，保留空白和标点；字段内连续子串命中任一 foreign_terms 即串味，不跨字段拼接。不用模型当裁判；短词可能误报，变体/转述可能漏报，指标只代表该词表的命中情况。
+4. 逐项结果复用 `ResultPublic`，`output` 沿用生成结构；`detail` 新增 `foreign_terms_matched`（只列样本已有词）、`retrieval_leak_count`、`retrieval_checked`、`constraints_passed`、`leaked`（无有效输出时 null）。正常 `passed` 为无串味且约束满足；检索越界、检索故障或生成失败为 false，附安全错误代码，不保存异品牌检索内容。
+5. 指标仍按模型 system 分组，每项有 name/value/definition/n：
+
+| name | value 定义 | n / 失败处理 |
+|---|---|---|
+| `leak_rate` | 有效结构化输出中命中任一外品牌词的样本数 / 有效输出数 | n 为有效输出数；无有效输出为 null，失败不能算作未串味 |
+| `retrieval_leak_count` | 本次实际检索发现的异品牌分块返回次数之和，要求 0 | n 为完成检索的样本数；检索未完成不记作安全；零有效检索时 value=null |
+| `constraint_pass_rate` | 有效输出且约束满足的样本数 / 全部样本数 | n 为全部样本数；任何失败计未满足 |
+| `failure_rate` | 检索故障/越界/无法归属或生成失败样本数 / 全部样本数 | n 为全部样本数 |
+
+检索每样本只做一次，可由各模型复用同一诊断；各模型分组展示该诊断时不得再跨分组合计，避免重复计数。增加 failure_rate 是对计划草案的补充，用于展示 leak_rate 未覆盖的失败，防止模型全失败却看似低串味。运行详情示例片段：
+
+```json
+{"metrics":{"deepseek-flash":[{"name":"leak_rate","value":0.0,"definition":"命中外品牌词的有效输出数/有效输出数","n":1},{"name":"retrieval_leak_count","value":0,"definition":"检索返回的异品牌分块次数","n":1},{"name":"constraint_pass_rate","value":1.0,"definition":"有效且满足约束的样本数/全部样本数","n":1},{"name":"failure_rate","value":0.0,"definition":"失败样本数/全部样本数","n":1}]},"failures":[]}
+```
+
+#### 固定数据、错误与审计
+
+- 数据集内容、词表、诱导输入随版本固定；修改只能通过 previous_version_id 创建同 kind/brand 新版本。结果只增，生成模型每次调用均写 llm_call_log；复用现有评测创建/运行审计，detail 仅含资源 id/类型/计数，不含资料正文。
+- 全部错误用 §1.1 信封：401 UNAUTHENTICATED；403 FORBIDDEN（显式 brand_id 创建时非品牌 admin）；404 NOT_FOUND（资源读取/运行创建无权访问）；422 VALIDATION_ERROR（字段、全局串味集、样本格式、空词/超限、模型或 baseline 非法）；500 INTERNAL_ERROR（意外异常）。422 字段错误给出 errors 的样本下标与字段路径。本扩展不新增幂等错误或运行中的 409。例：
+
+```json
+{"error":{"code":"VALIDATION_ERROR","message":"串味词表不能为空","details":{"errors":[{"loc":["body","cases","0","expected","foreign_terms"],"msg":"至少一项","type":"too_short"}]},"request_id":"req-uuid"}}
+```
+
+- 202 后嵌入/模型不可用在逐项 `error` 中写 `model_unavailable`，结构输出失败写 `invalid_model_output`，检索越界写 `retrieval_brand_mismatch`，检索无 brand_id 写 `retrieval_brand_unknown`；记录失败并继续其他样本，不尝试把后台错误改为 HTTP 503。整个运行意外崩溃用现有 failed/error 类型名规则，重试建新运行。未知模型是请求 422；已知但未配置或不可用模型属于逐项失败。
 
 ## 8. 模型与成本（B）
 
@@ -355,11 +622,97 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 `GET /audit-logs?brand_id=&action=&page=`（品牌 admin）：关键操作（入库、审核、停用、越权尝试）；P0 只写不读。
 
-## 10. P1 接口（占位，开发前补细节）
+## 10. P1 接口（F13 审议稿与其他占位）
 
-- 爆款结构分析（B）：`POST /brands/{brand_id}/viral-samples`；`GET …/viral-samples`；`POST /viral-samples/{id}/analyze`；`POST /viral-patterns/{id}/to-template`。样本只属于所在品牌，不入公共知识库；输出结构标签与抽象模板，不得大段复用样本原句。
 - 多模型对比（B）：`POST /model-comparisons`（幂等）；`GET /model-comparisons/{id}`：并列各模型的约束通过率、人工评分、延迟、费用；失败模型单独显示。
-- 任务文件输入（A 解析、B 消费）：`POST /tasks` 的 `task_materials` 扩展为文件上传，只存任务快照，不建知识库索引。
+
+### 10.1 F13：爆款结构分析（契约审议稿，待 A/B 确认，尚未实现）
+
+仅支持用户手动贴入已获授权的文本，提取结构标签和抽象模板，不承诺传播效果；样本属于当前品牌，不进入知识库或任务检索。下列接口尚未实现。F15 不在本次交付范围。
+
+#### 样本创建与读取
+
+| 方法与路径 | 权限/请求 | 成功 |
+|---|---|---|
+| `POST /brands/{brand_id}/viral-samples` | 品牌成员；JSON `{text,note?,source_url?}` | 201 `ViralSample` |
+| `GET /brands/{brand_id}/viral-samples` | 品牌成员；分页同 §1.3，sort 仅 ±created_at | 200 标准分页，items 为去掉 text 的样本元数据加 excerpt |
+| `GET /viral-samples/{sample_id}`（新增读取建议） | 样本品牌成员 | 200 `ViralSample`，供刷新恢复 |
+| `GET /viral-samples/{sample_id}/patterns`（新增读取建议） | 样本品牌成员；分页同 §1.3 | 200 标准分页，items 为已成功保存的模式，created_at DESC、id DESC |
+| `GET /viral-patterns/{pattern_id}`（新增读取建议） | 模式品牌成员 | 200 `ViralPattern`，供分析结果刷新恢复 |
+
+显式品牌路径非成员为 403；样本/模式 id 不存在或非成员为 404。平台管理员也不能跳过品牌成员检查。所有接口需 JWT。`source_url` 在前端仅显示为纯文本，不渲染成可跳转链接。
+
+创建示例：
+
+```json
+{"text":"演示样本：先提出场景，再描述香调，最后提出选择建议。","note":"自编演示样本","source_url":"https://example.com/note"}
+```
+
+`text` 必填，1–5000 Unicode 码点，不能全为空白；样本文本按原样保存，不清理话题后缀，不按标题字数算法计数。`note` 可空，≤1000 码点；`source_url` 可空，≤2000 字符，仅允许合法 http/https URL，作为文本记录，服务端绝不访问、抓取或下载，前端只显示纯文本。UUID 格式错为 422。201 `ViralSample` 示例：
+
+```json
+{"id":"66666666-6666-4666-8666-666666666666","brand_id":"22222222-2222-4222-8222-222222222222","text":"演示样本：先提出场景，再描述香调，最后提出选择建议。","note":"自编演示样本","source_url":"https://example.com/note","created_at":"2026-11-01T00:00:00Z"}
+```
+
+列表 item 含 id/brand_id/note/source_url/created_at/char_count/excerpt（保存文本前 200 码点），不带 text；分页响应 `{items,total,page,page_size}`。重复请求会创建新样本。创建后只读，本稿不提供编辑/删除接口。
+
+#### 分析与结果
+
+`POST /viral-samples/{sample_id}/analyze`，品牌成员，JSON 请求 `{model_id}`（必须是 GET /models 已知模型，1–80 字符）。同步分析，成功 201 `ViralPattern`。最多 2 次模型调用，预期等待约 20–60 秒（非时限保证），前端请求超时建议至少 90 秒，并保留等待状态。demo 为降低后台作业与轮询复杂度采用同步 201，未采用生成接口的 202+轮询；本次不创建独立后台作业。网络超时后先读取模式列表核对是否已有结果，再决定是否重新请求，避免无意重复生成。
+
+```json
+{"model_id":"deepseek-flash"}
+```
+
+`ViralPattern` 示例：
+
+```json
+{"id":"77777777-7777-4777-8777-777777777777","sample_id":"66666666-6666-4666-8666-666666666666","brand_id":"22222222-2222-4222-8222-222222222222","title_pattern":"场景与选择问题","hook_type":"场景设问","paragraph_structure":["引入场景","展开资料","收束建议"],"tone":"克制","emoji_usage":"少量分隔段落","hashtag_usage":"使用场景类话题","abstract_template":"围绕{{scene}}提出问题，以{{supported_facts}}展开，给出{{closing}}。","model_id":"deepseek-flash","prompt_version":"viral-v1","checker_version":"viral-copy-v1","created_at":"2026-11-01T00:00:00Z"}
+```
+
+- `title_pattern`、`hook_type`、`tone`、`emoji_usage`、`hashtag_usage` 为非空描述文本，各 ≤200 码点；不是前端写死的枚举。`paragraph_structure` 有序列表 1–20 条，每条非空、≤300 码点；`abstract_template` 非空、≤5000 码点，使用 `{{scene}}`、`{{supported_facts}}`、`{{closing}}` 等占位符，不保存样本长句。模型结果只接受本节结构字段；id/品牌/版本由服务端赋值。
+- 输出先做结构校验，再做复制检查：样本与所有结构文本字段分别经过 Unicode NFKC、移除 Unicode 空白；任一输出字段出现与样本连续 ≥12 个相同码点即拒绝。包括 abstract_template，不仅检查模板字段，避免其他字段夹带原句。短样本仍接受但该阈值不能发现 <12 字复用；此检查不代表所有改写或授权问题均已排除。
+- 模型结构或复制检查不满足时反馈一次并最多重试一轮（总计最多 2 次分析模型调用）。最终不合格返回拟新增 422 `INVALID_MODEL_OUTPUT`（不是既有任务 last_error 字段），details.reason 为 `schema_invalid` 或 `copied_text`；不保存不合格模式。模型超时/不可用返回 503 MODEL_UNAVAILABLE，不保存半成品。
+- 分析过程为请求内“校验→模型分析→代码检查→提交成功结果”；不增改既有任务 flow_status。样本只读；重复成功请求会产生新的模式，不覆盖旧模式。网络超时不代表服务端失败，先读取已保存结果再决定是否重新分析。
+
+#### 转为品牌场景模板
+
+`POST /viral-patterns/{pattern_id}/to-template`：**A 已决定：仅该品牌 admin 可以转换，editor 返回 403**；非成员与不存在仍为 404。品牌取自已授权模式，不能由请求体改写。
+
+```json
+{"name":"场景引导模板","scene":"seeding"}
+```
+
+`name` 去首尾空白后 1–100 码点；`scene` 只取现有 `seeding|review|tutorial|launch|promotion|story`。不接受 brand_id 或替换模式内容。成功 201 示例（该品牌、scene、name 首次创建为版本 1；后续版本按下述规则递增）：
+
+```json
+{"id":"88888888-8888-4888-8888-888888888888","brand_id":"22222222-2222-4222-8222-222222222222","name":"场景引导模板","scene":"seeding","structure":"围绕{{scene}}提出问题，以{{supported_facts}}展开，给出{{closing}}。","template_version":1}
+```
+
+模式属于哪个品牌，模板就创建在哪个品牌，不能转成全局模板或另一品牌模板。结构来自已校验的 abstract_template，模板启用后由现有 GET /scenarios 返回给有权用户，不改变旧模板，不把样本原文带入模板。重复成功请求会产生新的模板，不覆盖旧模板；同品牌、同 scene、同 name 的 `template_version` 取现有最大值加 1，不存在时为 1。版本分配与插入必须在事务中串行化，并发同名转换也不能产生相同版本或让唯一约束冲突暴露为 500；创建与审计原子提交。
+
+#### 错误、保留与审计
+
+| HTTP / code | 条件与 details | 恢复 |
+|---|---|---|
+| 401 `UNAUTHENTICATED` | 任意接口未登录 | 登录后重试 |
+| 403 `FORBIDDEN` | 显式品牌路径非成员；或同品牌 editor 调用 to-template | 由该品牌 admin 操作 |
+| 404 `NOT_FOUND` | 样本/模式不存在或非所属品牌成员 | 不泄露存在性 |
+| 422 `VALIDATION_ERROR` | 空文本/超长、非法 URL/scene/model_id/UUID/分页；details.errors | 修正输入 |
+| 422 `INVALID_MODEL_OUTPUT`（拟新增） | 分析重试后仍结构错/连续复制；details.reason | 换输入或新请求；不返回模型原始输出 |
+| 503 `MODEL_UNAVAILABLE` | 模型未配置、超时或不可用 | 样本保留，无模式半成品；恢复后可重新请求 |
+| 500 `INTERNAL_ERROR` | 意外故障，仅通用错误与 request_id | 先读取已保存结果，再决定是否重新请求 |
+
+错误示例：
+
+```json
+{"error":{"code":"INVALID_MODEL_OUTPUT","message":"分析输出不符合结构要求","details":{"reason":"copied_text"},"request_id":"req-uuid"}}
+```
+
+- 没有样本/模式启停或草稿中间状态，因此本次没有需要 409 INVALID_STATE 的已定义转换；若以后增加删除/过期状态，须另补可读与操作矩阵，不能自行给已删除资源重新分析。
+- **A 已决定：样本在 demo 阶段不设保留期限、不做自动清理；期限暂不定，后续另议。** 本次不引入到期删除或清理任务。转模板仅限品牌 admin 的决定已写入上节。
+- 每次模型调用（含失败及重试）独立记录 llm_call_log，不在错误/审计里保存原始敏感模型输出。成功创建样本写 viral.sample_create，成功分析写 viral.analyze，转换写 viral.to_template；detail 仅资源 id、长度、模型/版本，原文与原链接不写审计。失败不写成功审计；每次成功请求均保存新结果并原子写入审计，旧模式与模板不覆盖。
+- 新增三个读取接口的理由：原占位只有创建/分析/转换，无法在页面刷新后恢复样本全文与已分析结果；读取仍沿用品牌成员隔离，不引入跨品牌访问。
 
 ## 11. 合同变更流程
 
@@ -369,6 +722,13 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 4. 每个新增或修改的端点补成功、验证错误、未授权、越权测试。
 
 ## 12. 变更记录
+
+- 2026-11-01 规则批量维护契约草案：导入预览/应用、merge/replace、导出/模板、事务与行级错误；TC-158～TC-182。已补 A 的空来源、id定位、含停用重复键、模板权限、empty_file 与可空文本等同决定，等待 A 复审确认定稿，尚未实现。
+- 2026-11-01 F12 实现：上传与列表、任务行锁、原子快照及审计、专用 422 错误映射；已重新生成客户端。
+
+- 2026-11-01 F12 契约审议稿（按 A 审核修订）：不提供删除替换；去除新增幂等设计；固定检查顺序、任务行锁与 422 异常映射。用例 TC-126 至 TC-135（TC-133 已删除，不复用）。尚未实现，等待最终复审确认。
+- 2026-11-01 F14 契约审议稿（按 A 审核修订）：词表维护已决定；不改端口，查库复核分块归属；区分诱导词命中与检索泄漏；运行幂等仅沿用已有行为。TC-136 至 TC-144；TC-145 并入 TC-141。尚未实现，等待最终复审确认。
+- 2026-11-01 F13 契约审议稿（按 A 审核修订）：保留及转换权限已决定；删除新增幂等设计；重复转换版本递增；原样保存样本、同步等待建议与纯文本链接。用例 TC-146 至 TC-157（TC-153 已改为重复请求与并发版本验证）。尚未实现，等待最终复审确认。
 
 - v1.1：补齐第 2、3、4（版本、分块、重建索引）、5（场景、风格、任务列表、局部重写、断言确认、选定标题、导出格式）、6、7（创建、评分、一致性）、8；明确 403 与 404 策略、分页、幂等、文件限制；关闭自助注册。
 - v1.0：初版（见原 API_CONTRACT.md）。

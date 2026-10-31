@@ -40,3 +40,11 @@ class ModelUnavailableError(ServiceError):
 
 class InvalidInputError(ServiceError):
     """A value the request carried is not acceptable (for example an unsafe regular expression)."""
+
+
+class MaterialTooLongError(InvalidInputError):
+    """Parsed task material exceeds the text limit."""
+
+
+class MaterialLimitExceededError(InvalidInputError):
+    """A task already contains the maximum number of material snapshots."""
