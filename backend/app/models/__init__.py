@@ -153,6 +153,8 @@ from app.models.product import (
     VoiceProfilesPublic,
 )
 from app.models.task_input import AuditLog, TaskInput, TaskInputChunk
+from app.models.viral import ViralPattern as ViralPattern
+from app.models.viral import ViralSample as ViralSample
 
 __all__ = [
     "EvidenceSummaryPublic",

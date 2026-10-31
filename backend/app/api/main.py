@@ -14,6 +14,7 @@ from app.api.routes import (
     users,
     utils,
     versions,
+    viral,
     voice_profile,
 )
 from app.core.config import settings
@@ -32,6 +33,7 @@ api_router.include_router(evaluation.router)
 api_router.include_router(versions.router)
 api_router.include_router(knowledge.router)
 api_router.include_router(voice_profile.router)
+api_router.include_router(viral.router)
 
 
 if settings.FASTAPI_ENV == "development":
