@@ -20,6 +20,7 @@ from sqlmodel import Field, SQLModel
 from app.domain.flow import FlowStatus
 from app.models.catalog import _in_list
 from app.models.common import get_datetime_utc
+from app.models.evidence import ClaimEvidencePublic
 
 
 class Scene(enum.StrEnum):
@@ -327,6 +328,7 @@ class GenerationVersionPublic(SQLModel):
     selected_cover_index: int | None
     confirmed_at: datetime | None
     created_at: datetime | None
+    claim_evidence: list[ClaimEvidencePublic] = Field(default_factory=list)
 
 
 class GenerationVersionsPublic(SQLModel):

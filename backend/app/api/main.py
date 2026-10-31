@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     brands,
+    evidence,
     knowledge,
     login,
     private,
@@ -20,6 +21,7 @@ api_router.include_router(utils.router)
 api_router.include_router(brands.router)
 api_router.include_router(products.router)
 api_router.include_router(tasks.router)
+api_router.include_router(evidence.router)
 api_router.include_router(knowledge.router)
 api_router.include_router(voice_profile.router)
 

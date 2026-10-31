@@ -14,6 +14,7 @@ from app.domain.flow import FlowStatus
 from app.infra.openai_compat import deepseek_client
 from app.models import (
     BrandMember,
+    ClaimEvidencePublic,
     GenerationVersion,
     GenerationVersionPublic,
     GenerationVersionsPublic,
@@ -32,6 +33,7 @@ from app.models import (
 )
 from app.ports.embedding import EmbeddingProvider
 from app.ports.llm import LlmClient
+from app.services import evidence as evidence_service
 from app.services import generation as generation_service
 from app.services import scenarios as scenario_service
 from app.services import tasks as task_service
@@ -259,8 +261,17 @@ def read_task_versions(
 
 
 @router.get("/generation-versions/{version_id}", response_model=GenerationVersionPublic)
-def read_version(access: VersionAccessDep) -> GenerationVersionPublic:
-    return GenerationVersionPublic.model_validate(access[0], from_attributes=True)
+def read_version(
+    access: VersionAccessDep, session: SessionDep
+) -> GenerationVersionPublic:
+    version = GenerationVersionPublic.model_validate(access[0], from_attributes=True)
+    version.claim_evidence = [
+        ClaimEvidencePublic.model_validate(r, from_attributes=True)
+        for r in evidence_service.list_evidence(
+            session=session, version_id=access[0].id
+        )
+    ]
+    return version
 
 
 @router.post("/tasks/{task_id}/generate", response_model=TaskPublic, status_code=202)

@@ -29,6 +29,13 @@ from app.models.catalog import (
     Tenant,
 )
 from app.models.common import Message, get_datetime_utc
+from app.models.evidence import (
+    ClaimEvidence,
+    ClaimEvidenceListPublic,
+    ClaimEvidencePublic,
+    ConfirmEvidence,
+    SourceLevel,
+)
 from app.models.generation import (
     FlowStatus,
     GenerationVersion,
@@ -102,6 +109,11 @@ from app.models.product import (
 from app.models.task_input import AuditLog, TaskInput, TaskInputChunk
 
 __all__ = [
+    "ClaimEvidence",
+    "ClaimEvidenceListPublic",
+    "ClaimEvidencePublic",
+    "ConfirmEvidence",
+    "SourceLevel",
     "FlowStatus",
     "GenerationVersion",
     "GenerationVersionPublic",
