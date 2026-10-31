@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import type { brandsAddMemberData, brandsAddMemberErrors, brandsAddMemberResponses, brandsCreateBrandData, brandsCreateBrandErrors, brandsCreateBrandResponses, brandsReadBrandsData, brandsReadBrandsResponses, brandsReadMembersData, brandsReadMembersErrors, brandsReadMembersResponses, brandsRemoveMemberData, brandsRemoveMemberErrors, brandsRemoveMemberResponses, brandsUpdateBrandData, brandsUpdateBrandErrors, brandsUpdateBrandResponses, brandsUpdateMemberData, brandsUpdateMemberErrors, brandsUpdateMemberResponses, knowledgeDeactivateDocumentData, knowledgeDeactivateDocumentErrors, knowledgeDeactivateDocumentResponses, knowledgeIngestDocumentData, knowledgeIngestDocumentErrors, knowledgeIngestDocumentResponses, knowledgeIngestNewVersionData, knowledgeIngestNewVersionErrors, knowledgeIngestNewVersionResponses, knowledgeReadChunksData, knowledgeReadChunksErrors, knowledgeReadChunksResponses, knowledgeReadDocumentData, knowledgeReadDocumentErrors, knowledgeReadDocumentResponses, knowledgeReadDocumentsData, knowledgeReadDocumentsErrors, knowledgeReadDocumentsResponses, knowledgeReindexDocumentData, knowledgeReindexDocumentErrors, knowledgeReindexDocumentResponses, knowledgeReviewDocumentData, knowledgeReviewDocumentErrors, knowledgeReviewDocumentResponses, knowledgeSubmitDocumentData, knowledgeSubmitDocumentErrors, knowledgeSubmitDocumentResponses, loginLoginAccessTokenData, loginLoginAccessTokenErrors, loginLoginAccessTokenResponses, loginRecoverPasswordData, loginRecoverPasswordErrors, loginRecoverPasswordHtmlContentData, loginRecoverPasswordHtmlContentErrors, loginRecoverPasswordHtmlContentResponses, loginRecoverPasswordResponses, loginResetPasswordData, loginResetPasswordErrors, loginResetPasswordResponses, loginTestTokenData, loginTestTokenResponses, privateCreateUserData, privateCreateUserErrors, privateCreateUserResponses, productsArchiveProductData, productsArchiveProductErrors, productsArchiveProductResponses, productsCreateProductData, productsCreateProductErrors, productsCreateProductResponses, productsReadProductsData, productsReadProductsErrors, productsReadProductsResponses, productsUpdateProductData, productsUpdateProductErrors, productsUpdateProductResponses, usersCreateUserData, usersCreateUserErrors, usersCreateUserResponses, usersDeleteUserData, usersDeleteUserErrors, usersDeleteUserMeData, usersDeleteUserMeResponses, usersDeleteUserResponses, usersReadUserByIdData, usersReadUserByIdErrors, usersReadUserByIdResponses, usersReadUserMeData, usersReadUserMeResponses, usersReadUsersData, usersReadUsersErrors, usersReadUsersResponses, usersRegisterUserData, usersRegisterUserErrors, usersRegisterUserResponses, usersUpdatePasswordMeData, usersUpdatePasswordMeErrors, usersUpdatePasswordMeResponses, usersUpdateUserData, usersUpdateUserErrors, usersUpdateUserMeData, usersUpdateUserMeErrors, usersUpdateUserMeResponses, usersUpdateUserResponses, utilsHealthCheckData, utilsHealthCheckResponses, utilsTestEmailData, utilsTestEmailErrors, utilsTestEmailResponses, voiceProfileActivateVersionData, voiceProfileActivateVersionErrors, voiceProfileActivateVersionResponses, voiceProfileCreateVersionData, voiceProfileCreateVersionErrors, voiceProfileCreateVersionResponses, voiceProfileReadActiveProfileData, voiceProfileReadActiveProfileErrors, voiceProfileReadActiveProfileResponses, voiceProfileReadVersionsData, voiceProfileReadVersionsErrors, voiceProfileReadVersionsResponses } from './types.gen';
+import type { brandsAddMemberData, brandsAddMemberErrors, brandsAddMemberResponses, brandsCreateBrandData, brandsCreateBrandErrors, brandsCreateBrandResponses, brandsReadBrandsData, brandsReadBrandsResponses, brandsReadMembersData, brandsReadMembersErrors, brandsReadMembersResponses, brandsRemoveMemberData, brandsRemoveMemberErrors, brandsRemoveMemberResponses, brandsUpdateBrandData, brandsUpdateBrandErrors, brandsUpdateBrandResponses, brandsUpdateMemberData, brandsUpdateMemberErrors, brandsUpdateMemberResponses, knowledgeDeactivateDocumentData, knowledgeDeactivateDocumentErrors, knowledgeDeactivateDocumentResponses, knowledgeIngestDocumentData, knowledgeIngestDocumentErrors, knowledgeIngestDocumentResponses, knowledgeIngestNewVersionData, knowledgeIngestNewVersionErrors, knowledgeIngestNewVersionResponses, knowledgeReadChunksData, knowledgeReadChunksErrors, knowledgeReadChunksResponses, knowledgeReadDocumentData, knowledgeReadDocumentErrors, knowledgeReadDocumentResponses, knowledgeReadDocumentsData, knowledgeReadDocumentsErrors, knowledgeReadDocumentsResponses, knowledgeReindexDocumentData, knowledgeReindexDocumentErrors, knowledgeReindexDocumentResponses, knowledgeReviewDocumentData, knowledgeReviewDocumentErrors, knowledgeReviewDocumentResponses, knowledgeSubmitDocumentData, knowledgeSubmitDocumentErrors, knowledgeSubmitDocumentResponses, loginLoginAccessTokenData, loginLoginAccessTokenErrors, loginLoginAccessTokenResponses, loginRecoverPasswordData, loginRecoverPasswordErrors, loginRecoverPasswordHtmlContentData, loginRecoverPasswordHtmlContentErrors, loginRecoverPasswordHtmlContentResponses, loginRecoverPasswordResponses, loginResetPasswordData, loginResetPasswordErrors, loginResetPasswordResponses, loginTestTokenData, loginTestTokenResponses, privateCreateUserData, privateCreateUserErrors, privateCreateUserResponses, productsArchiveProductData, productsArchiveProductErrors, productsArchiveProductResponses, productsCreateProductData, productsCreateProductErrors, productsCreateProductResponses, productsReadProductsData, productsReadProductsErrors, productsReadProductsResponses, productsUpdateProductData, productsUpdateProductErrors, productsUpdateProductResponses, tasksCreateStylePresetData, tasksCreateStylePresetErrors, tasksCreateStylePresetResponses, tasksCreateTaskData, tasksCreateTaskErrors, tasksCreateTaskResponses, tasksReadScenariosData, tasksReadScenariosResponses, tasksReadStylePresetsData, tasksReadStylePresetsErrors, tasksReadStylePresetsResponses, tasksReadTaskData, tasksReadTaskErrors, tasksReadTaskResponses, tasksReadTasksData, tasksReadTasksErrors, tasksReadTasksResponses, tasksReadTaskVersionsData, tasksReadTaskVersionsErrors, tasksReadTaskVersionsResponses, tasksReadVersionData, tasksReadVersionErrors, tasksReadVersionResponses, usersCreateUserData, usersCreateUserErrors, usersCreateUserResponses, usersDeleteUserData, usersDeleteUserErrors, usersDeleteUserMeData, usersDeleteUserMeResponses, usersDeleteUserResponses, usersReadUserByIdData, usersReadUserByIdErrors, usersReadUserByIdResponses, usersReadUserMeData, usersReadUserMeResponses, usersReadUsersData, usersReadUsersErrors, usersReadUsersResponses, usersRegisterUserData, usersRegisterUserErrors, usersRegisterUserResponses, usersUpdatePasswordMeData, usersUpdatePasswordMeErrors, usersUpdatePasswordMeResponses, usersUpdateUserData, usersUpdateUserErrors, usersUpdateUserMeData, usersUpdateUserMeErrors, usersUpdateUserMeResponses, usersUpdateUserResponses, utilsHealthCheckData, utilsHealthCheckResponses, utilsTestEmailData, utilsTestEmailErrors, utilsTestEmailResponses, voiceProfileActivateVersionData, voiceProfileActivateVersionErrors, voiceProfileActivateVersionResponses, voiceProfileCreateVersionData, voiceProfileCreateVersionErrors, voiceProfileCreateVersionResponses, voiceProfileReadActiveProfileData, voiceProfileReadActiveProfileErrors, voiceProfileReadActiveProfileResponses, voiceProfileReadVersionsData, voiceProfileReadVersionsErrors, voiceProfileReadVersionsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -445,6 +445,116 @@ export class ProductsService {
             responseType: 'json',
             security: [{ scheme: 'bearer', type: 'http' }],
             url: '/api/v1/products/{product_id}/archive',
+            ...options
+        });
+    }
+}
+
+export class TasksService {
+    /**
+     * Read Scenarios
+     *
+     * Global templates and those of the user's brands.
+     */
+    public static readScenarios<ThrowOnError extends boolean = true>(options?: Options<tasksReadScenariosData, ThrowOnError>) {
+        return (options?.client ?? client).get<tasksReadScenariosResponses, unknown, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/scenarios',
+            ...options
+        });
+    }
+    
+    /**
+     * Read Style Presets
+     */
+    public static readStylePresets<ThrowOnError extends boolean = true>(options: Options<tasksReadStylePresetsData, ThrowOnError>) {
+        return (options.client ?? client).get<tasksReadStylePresetsResponses, tasksReadStylePresetsErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/style-presets',
+            ...options
+        });
+    }
+    
+    /**
+     * Create Style Preset
+     */
+    public static createStylePreset<ThrowOnError extends boolean = true>(options: Options<tasksCreateStylePresetData, ThrowOnError>) {
+        return (options.client ?? client).post<tasksCreateStylePresetResponses, tasksCreateStylePresetErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/style-presets',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Read Tasks
+     */
+    public static readTasks<ThrowOnError extends boolean = true>(options: Options<tasksReadTasksData, ThrowOnError>) {
+        return (options.client ?? client).get<tasksReadTasksResponses, tasksReadTasksErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/tasks',
+            ...options
+        });
+    }
+    
+    /**
+     * Create Task
+     *
+     * The brand comes from the body here, so membership is checked explicitly before anything else.
+     */
+    public static createTask<ThrowOnError extends boolean = true>(options: Options<tasksCreateTaskData, ThrowOnError>) {
+        return (options.client ?? client).post<tasksCreateTaskResponses, tasksCreateTaskErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/tasks',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Read Task
+     */
+    public static readTask<ThrowOnError extends boolean = true>(options: Options<tasksReadTaskData, ThrowOnError>) {
+        return (options.client ?? client).get<tasksReadTaskResponses, tasksReadTaskErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/tasks/{task_id}',
+            ...options
+        });
+    }
+    
+    /**
+     * Read Task Versions
+     */
+    public static readTaskVersions<ThrowOnError extends boolean = true>(options: Options<tasksReadTaskVersionsData, ThrowOnError>) {
+        return (options.client ?? client).get<tasksReadTaskVersionsResponses, tasksReadTaskVersionsErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/tasks/{task_id}/versions',
+            ...options
+        });
+    }
+    
+    /**
+     * Read Version
+     */
+    public static readVersion<ThrowOnError extends boolean = true>(options: Options<tasksReadVersionData, ThrowOnError>) {
+        return (options.client ?? client).get<tasksReadVersionResponses, tasksReadVersionErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/generation-versions/{version_id}',
             ...options
         });
     }
