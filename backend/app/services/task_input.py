@@ -37,6 +37,17 @@ class DbTaskInputRepository:
     def create_snapshot(
         self, *, brand_id: uuid.UUID, task_id: uuid.UUID, filename: str, text: str
     ) -> TaskInputSnapshot:
+        snapshot = self.add_snapshot(
+            brand_id=brand_id, task_id=task_id, filename=filename, text=text
+        )
+        self._session.commit()
+        return snapshot
+
+    def add_snapshot(
+        self, *, brand_id: uuid.UUID, task_id: uuid.UUID, filename: str, text: str
+    ) -> TaskInputSnapshot:
+        """Like ``create_snapshot`` but leaves the commit to the caller, so several snapshots and the
+        task that owns them can be stored in one transaction."""
         pieces = chunk_text(text)
         if not pieces:
             raise ParseError("The task material has no text")
@@ -60,7 +71,7 @@ class DbTaskInputRepository:
             )
             for i, piece in enumerate(pieces)
         )
-        self._session.commit()
+        self._session.flush()
         self._session.refresh(row)
         return _snapshot(row)
 

@@ -198,6 +198,15 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 ### `GET /tasks?brand_id=&status=&page=&sort=-created_at`
 任务列表（品牌成员）；`brand_id` 必填。
 
+**实现约定（2026-10-31，场景、任务与版本的读取部分）**
+- 后端现在由 A 与 AI 助手实现（见技术文档第 7 章的分工变更）。
+- 全局场景模板由启动脚本（`initial_data`）幂等创建，共 6 个（每个场景一个起步模板，`template_version = 1`）；`GET /scenarios` 返回已启用的全局模板和用户所属品牌的模板。
+- `POST /tasks` 的 `brand_id` 在请求体里，所以先显式核验“是否为该品牌成员”（非成员 403）；商品不属于该品牌或不存在 404，已归档商品 409，场景不存在、已停用或属于其他品牌 404。任务与全部资料快照在**同一个事务**里保存，嵌入模型不可用返回 503 且什么都不留下。`brief` ≤2000 字，`required_terms` ≤20 条（去空白去重），`task_materials` ≤5 份、每份 ≤50000 字；`style` 缺省值：`length=medium`、`person=first`、`emoji_density=low`、`hashtag_count=5`。
+- `GET /tasks`：`brand_id` 必填；`status` 取流程状态枚举，`sort` 只能是 `-created_at`（默认）或 `created_at`；分页同其他列表。
+- 按资源 id 访问（`GET /tasks/{id}`、`/tasks/{id}/versions`、`/generation-versions/{id}`）：不存在与非成员一律 404。
+- 流程状态转换的规则在 `app/domain/flow.py`：`ready_to_copy` 没有后续转换（编辑总是创建新版本）；确认的前置条件由 `confirm_blockers` 给出。
+- 生成、编辑、重写、复检、确认、导出等写入接口尚未实现（后续步骤）。
+
 ### `POST /tasks/{task_id}/generate`
 返回 202 与任务状态；支持 `Idempotency-Key`。
 

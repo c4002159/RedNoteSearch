@@ -397,6 +397,117 @@ export type DocumentsPublic = {
 };
 
 /**
+ * FlowStatus
+ *
+ * Process state of a task or version. It never means "compliant" (contract section 5).
+ */
+export type FlowStatus = 'queued' | 'generating' | 'checking' | 'checks_completed' | 'needs_human_review' | 'constraint_failed' | 'edited_pending_recheck' | 'ready_to_copy';
+
+/**
+ * GenerationVersionPublic
+ */
+export type GenerationVersionPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Task Id
+     */
+    task_id: string;
+    /**
+     * Version No
+     */
+    version_no: number;
+    /**
+     * Parent Version Id
+     */
+    parent_version_id: string | null;
+    /**
+     * Origin
+     */
+    origin: string;
+    /**
+     * Flow Status
+     */
+    flow_status: string;
+    /**
+     * Title Candidates
+     */
+    title_candidates: Array<string>;
+    /**
+     * Body
+     */
+    body: string;
+    /**
+     * Hashtags
+     */
+    hashtags: Array<string>;
+    /**
+     * Cover Candidates
+     */
+    cover_candidates: Array<string>;
+    /**
+     * Constraint Checks
+     */
+    constraint_checks: {
+        [key: string]: unknown;
+    };
+    /**
+     * Retrieved Sources
+     */
+    retrieved_sources: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Template Version
+     */
+    template_version: number | null;
+    /**
+     * Prompt Version
+     */
+    prompt_version: string | null;
+    /**
+     * Voice Version
+     */
+    voice_version: number | null;
+    /**
+     * Checker Version
+     */
+    checker_version: string | null;
+    /**
+     * Model
+     */
+    model: string | null;
+    /**
+     * Selected Title Index
+     */
+    selected_title_index: number | null;
+    /**
+     * Selected Cover Index
+     */
+    selected_cover_index: number | null;
+    /**
+     * Confirmed At
+     */
+    confirmed_at: string | null;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+};
+
+/**
+ * GenerationVersionsPublic
+ */
+export type GenerationVersionsPublic = {
+    /**
+     * Items
+     */
+    items: Array<GenerationVersionPublic>;
+};
+
+/**
  * HTTPValidationError
  */
 export type HTTPValidationError = {
@@ -676,6 +787,46 @@ export type ReviewPublic = {
 };
 
 /**
+ * ScenarioPublic
+ */
+export type ScenarioPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Scene
+     */
+    scene: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Structure
+     */
+    structure: string;
+    /**
+     * Template Version
+     */
+    template_version: number;
+    /**
+     * Brand Id
+     */
+    brand_id: string | null;
+};
+
+/**
+ * ScenariosPublic
+ */
+export type ScenariosPublic = {
+    /**
+     * Items
+     */
+    items: Array<ScenarioPublic>;
+};
+
+/**
  * SellingPoint
  */
 export type SellingPoint = {
@@ -713,6 +864,210 @@ export type SellingPointPublic = {
      * Evidence Status
      */
     evidence_status: string;
+};
+
+/**
+ * StyleParams
+ */
+export type StyleParams = {
+    /**
+     * Tone
+     */
+    tone?: string | null;
+    /**
+     * Length
+     */
+    length?: 'short' | 'medium' | 'long';
+    /**
+     * Person
+     */
+    person?: 'first' | 'second' | 'third';
+    /**
+     * Emoji Density
+     */
+    emoji_density?: 'low' | 'medium' | 'high';
+    /**
+     * Hashtag Count
+     */
+    hashtag_count?: number;
+};
+
+/**
+ * StylePresetCreate
+ */
+export type StylePresetCreate = {
+    /**
+     * Name
+     */
+    name: string;
+    params?: StyleParams;
+};
+
+/**
+ * StylePresetPublic
+ */
+export type StylePresetPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Name
+     */
+    name: string;
+    params: StyleParams;
+};
+
+/**
+ * StylePresetsPublic
+ */
+export type StylePresetsPublic = {
+    /**
+     * Items
+     */
+    items: Array<StylePresetPublic>;
+};
+
+/**
+ * TaskCreate
+ */
+export type TaskCreate = {
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Product Id
+     */
+    product_id: string;
+    /**
+     * Scenario Id
+     */
+    scenario_id: string;
+    style?: StyleParams;
+    /**
+     * Brief
+     */
+    brief?: string;
+    /**
+     * Required Terms
+     */
+    required_terms?: Array<string>;
+    /**
+     * Task Materials
+     */
+    task_materials?: Array<TaskMaterial>;
+};
+
+/**
+ * TaskCreated
+ */
+export type TaskCreated = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+};
+
+/**
+ * TaskMaterial
+ */
+export type TaskMaterial = {
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Text
+     */
+    text: string;
+};
+
+/**
+ * TaskPublic
+ */
+export type TaskPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Product Id
+     */
+    product_id: string;
+    /**
+     * Scenario Id
+     */
+    scenario_id: string;
+    style: StyleParams;
+    /**
+     * Brief
+     */
+    brief: string;
+    /**
+     * Required Terms
+     */
+    required_terms: Array<string>;
+    /**
+     * Flow Status
+     */
+    flow_status: string;
+    /**
+     * Progress
+     */
+    progress: {
+        [key: string]: unknown;
+    };
+    /**
+     * Latest Version Id
+     */
+    latest_version_id: string | null;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+};
+
+/**
+ * TasksPublic
+ */
+export type TasksPublic = {
+    /**
+     * Items
+     */
+    items: Array<TaskPublic>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
 };
 
 /**
@@ -1735,6 +2090,243 @@ export type productsArchiveProductResponses = {
 };
 
 export type productsArchiveProductResponse = productsArchiveProductResponses[keyof productsArchiveProductResponses];
+
+export type tasksReadScenariosData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/scenarios';
+};
+
+export type tasksReadScenariosResponses = {
+    /**
+     * Successful Response
+     */
+    200: ScenariosPublic;
+};
+
+export type tasksReadScenariosResponse = tasksReadScenariosResponses[keyof tasksReadScenariosResponses];
+
+export type tasksReadStylePresetsData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/style-presets';
+};
+
+export type tasksReadStylePresetsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type tasksReadStylePresetsError = tasksReadStylePresetsErrors[keyof tasksReadStylePresetsErrors];
+
+export type tasksReadStylePresetsResponses = {
+    /**
+     * Successful Response
+     */
+    200: StylePresetsPublic;
+};
+
+export type tasksReadStylePresetsResponse = tasksReadStylePresetsResponses[keyof tasksReadStylePresetsResponses];
+
+export type tasksCreateStylePresetData = {
+    body: StylePresetCreate;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/style-presets';
+};
+
+export type tasksCreateStylePresetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type tasksCreateStylePresetError = tasksCreateStylePresetErrors[keyof tasksCreateStylePresetErrors];
+
+export type tasksCreateStylePresetResponses = {
+    /**
+     * Successful Response
+     */
+    201: StylePresetPublic;
+};
+
+export type tasksCreateStylePresetResponse = tasksCreateStylePresetResponses[keyof tasksCreateStylePresetResponses];
+
+export type tasksReadTasksData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+        /**
+         * Status
+         */
+        status?: FlowStatus | null;
+        /**
+         * Sort
+         */
+        sort?: string;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/tasks';
+};
+
+export type tasksReadTasksErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type tasksReadTasksError = tasksReadTasksErrors[keyof tasksReadTasksErrors];
+
+export type tasksReadTasksResponses = {
+    /**
+     * Successful Response
+     */
+    200: TasksPublic;
+};
+
+export type tasksReadTasksResponse = tasksReadTasksResponses[keyof tasksReadTasksResponses];
+
+export type tasksCreateTaskData = {
+    body: TaskCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/tasks';
+};
+
+export type tasksCreateTaskErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type tasksCreateTaskError = tasksCreateTaskErrors[keyof tasksCreateTaskErrors];
+
+export type tasksCreateTaskResponses = {
+    /**
+     * Successful Response
+     */
+    201: TaskCreated;
+};
+
+export type tasksCreateTaskResponse = tasksCreateTaskResponses[keyof tasksCreateTaskResponses];
+
+export type tasksReadTaskData = {
+    body?: never;
+    path: {
+        /**
+         * Task Id
+         */
+        task_id: string;
+    };
+    query?: never;
+    url: '/api/v1/tasks/{task_id}';
+};
+
+export type tasksReadTaskErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type tasksReadTaskError = tasksReadTaskErrors[keyof tasksReadTaskErrors];
+
+export type tasksReadTaskResponses = {
+    /**
+     * Successful Response
+     */
+    200: TaskPublic;
+};
+
+export type tasksReadTaskResponse = tasksReadTaskResponses[keyof tasksReadTaskResponses];
+
+export type tasksReadTaskVersionsData = {
+    body?: never;
+    path: {
+        /**
+         * Task Id
+         */
+        task_id: string;
+    };
+    query?: never;
+    url: '/api/v1/tasks/{task_id}/versions';
+};
+
+export type tasksReadTaskVersionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type tasksReadTaskVersionsError = tasksReadTaskVersionsErrors[keyof tasksReadTaskVersionsErrors];
+
+export type tasksReadTaskVersionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: GenerationVersionsPublic;
+};
+
+export type tasksReadTaskVersionsResponse = tasksReadTaskVersionsResponses[keyof tasksReadTaskVersionsResponses];
+
+export type tasksReadVersionData = {
+    body?: never;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/api/v1/generation-versions/{version_id}';
+};
+
+export type tasksReadVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type tasksReadVersionError = tasksReadVersionErrors[keyof tasksReadVersionErrors];
+
+export type tasksReadVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: GenerationVersionPublic;
+};
+
+export type tasksReadVersionResponse = tasksReadVersionResponses[keyof tasksReadVersionResponses];
 
 export type knowledgeReadDocumentsData = {
     body?: never;
