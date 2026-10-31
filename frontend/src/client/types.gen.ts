@@ -720,6 +720,10 @@ export type DocumentDetail = {
      */
     submitted_by: string | null;
     /**
+     * Submitted By Name
+     */
+    submitted_by_name?: string | null;
+    /**
      * Created At
      */
     created_at: string | null;
@@ -781,6 +785,10 @@ export type DocumentPublic = {
      * Submitted By
      */
     submitted_by: string | null;
+    /**
+     * Submitted By Name
+     */
+    submitted_by_name?: string | null;
     /**
      * Created At
      */
@@ -1520,6 +1528,10 @@ export type ReviewPublic = {
      * Actor Id
      */
     actor_id: string | null;
+    /**
+     * Actor Name
+     */
+    actor_name?: string | null;
     /**
      * Reason
      */
