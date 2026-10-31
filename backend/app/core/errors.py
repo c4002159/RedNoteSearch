@@ -126,7 +126,11 @@ def _not_found_handler(request: Request, exc: Exception) -> Response:
 def _conflict_handler(request: Request, exc: Exception) -> Response:
     assert isinstance(exc, ConflictError)
     return error_response(
-        request, status_code=409, code="CONFLICT", message=exc.message
+        request,
+        status_code=409,
+        code="CONFLICT",
+        message=exc.message,
+        details=exc.details,
     )
 
 

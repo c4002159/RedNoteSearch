@@ -35,6 +35,26 @@ export type AgreementPublic = {
 };
 
 /**
+ * Body_compliance-import_brand_rules
+ */
+export type Body_compliance_import_brand_rules = {
+    /**
+     * File
+     */
+    file: Blob | File;
+};
+
+/**
+ * Body_compliance-import_global_rules
+ */
+export type Body_compliance_import_global_rules = {
+    /**
+     * File
+     */
+    file: Blob | File;
+};
+
+/**
  * Body_knowledge-ingest_document
  */
 export type Body_knowledge_ingest_document = {
@@ -1561,6 +1581,42 @@ export type RuleCreate = {
      * Enabled
      */
     enabled?: boolean;
+};
+
+/**
+ * RuleImportResult
+ */
+export type RuleImportResult = {
+    /**
+     * Dry Run
+     */
+    dry_run: boolean;
+    /**
+     * Mode
+     */
+    mode: 'merge' | 'replace';
+    /**
+     * Created
+     */
+    created: number;
+    /**
+     * Updated
+     */
+    updated: number;
+    /**
+     * Unchanged
+     */
+    unchanged: number;
+    /**
+     * Disabled
+     */
+    disabled: number;
+    /**
+     * Errors
+     */
+    errors: Array<{
+        [key: string]: string;
+    }>;
 };
 
 /**
@@ -3641,6 +3697,180 @@ export type evidenceConfirmEvidenceResponses = {
 };
 
 export type evidenceConfirmEvidenceResponse = evidenceConfirmEvidenceResponses[keyof evidenceConfirmEvidenceResponses];
+
+export type complianceImportGlobalRulesData = {
+    body: Body_compliance_import_global_rules;
+    path?: never;
+    query?: {
+        /**
+         * Mode
+         */
+        mode?: 'merge' | 'replace';
+        /**
+         * Dry Run
+         */
+        dry_run?: boolean;
+    };
+    url: '/api/v1/compliance-rules/import';
+};
+
+export type complianceImportGlobalRulesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceImportGlobalRulesError = complianceImportGlobalRulesErrors[keyof complianceImportGlobalRulesErrors];
+
+export type complianceImportGlobalRulesResponses = {
+    /**
+     * Successful Response
+     */
+    200: RuleImportResult;
+};
+
+export type complianceImportGlobalRulesResponse = complianceImportGlobalRulesResponses[keyof complianceImportGlobalRulesResponses];
+
+export type complianceImportBrandRulesData = {
+    body: Body_compliance_import_brand_rules;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: {
+        /**
+         * Mode
+         */
+        mode?: 'merge' | 'replace';
+        /**
+         * Dry Run
+         */
+        dry_run?: boolean;
+    };
+    url: '/api/v1/brands/{brand_id}/compliance-rules/import';
+};
+
+export type complianceImportBrandRulesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceImportBrandRulesError = complianceImportBrandRulesErrors[keyof complianceImportBrandRulesErrors];
+
+export type complianceImportBrandRulesResponses = {
+    /**
+     * Successful Response
+     */
+    200: RuleImportResult;
+};
+
+export type complianceImportBrandRulesResponse = complianceImportBrandRulesResponses[keyof complianceImportBrandRulesResponses];
+
+export type complianceExportGlobalRulesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Format
+         */
+        format?: 'csv' | 'json';
+    };
+    url: '/api/v1/compliance-rules/export';
+};
+
+export type complianceExportGlobalRulesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceExportGlobalRulesError = complianceExportGlobalRulesErrors[keyof complianceExportGlobalRulesErrors];
+
+export type complianceExportGlobalRulesResponses = {
+    /**
+     * Download file
+     */
+    200: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+export type complianceExportGlobalRulesResponse = complianceExportGlobalRulesResponses[keyof complianceExportGlobalRulesResponses];
+
+export type complianceExportBrandRulesData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: {
+        /**
+         * Format
+         */
+        format?: 'csv' | 'json';
+    };
+    url: '/api/v1/brands/{brand_id}/compliance-rules/export';
+};
+
+export type complianceExportBrandRulesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceExportBrandRulesError = complianceExportBrandRulesErrors[keyof complianceExportBrandRulesErrors];
+
+export type complianceExportBrandRulesResponses = {
+    /**
+     * Download file
+     */
+    200: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+export type complianceExportBrandRulesResponse = complianceExportBrandRulesResponses[keyof complianceExportBrandRulesResponses];
+
+export type complianceDownloadRuleTemplateData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Format
+         */
+        format?: 'csv' | 'json';
+    };
+    url: '/api/v1/compliance-rules/import-template';
+};
+
+export type complianceDownloadRuleTemplateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceDownloadRuleTemplateError = complianceDownloadRuleTemplateErrors[keyof complianceDownloadRuleTemplateErrors];
+
+export type complianceDownloadRuleTemplateResponses = {
+    /**
+     * Download file
+     */
+    200: Array<{
+        [key: string]: unknown;
+    }>;
+};
+
+export type complianceDownloadRuleTemplateResponse = complianceDownloadRuleTemplateResponses[keyof complianceDownloadRuleTemplateResponses];
 
 export type complianceReadRulesData = {
     body?: never;
