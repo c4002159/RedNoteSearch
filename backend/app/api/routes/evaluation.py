@@ -6,6 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, 
 from sqlmodel import Session
 
 from app.api.deps import CurrentUser, SessionDep
+from app.api.routes.knowledge import EmbedderDep
 from app.core.db import engine
 from app.domain.evaluation.agreement import METHOD
 from app.domain.evaluation.rubric import RUBRIC_VERSION, rubric_payload
@@ -31,10 +32,13 @@ from app.models import (
     RunsPublic,
     RunVersions,
 )
+from app.ports.embedding import EmbeddingProvider
 from app.ports.llm import LlmClient
 from app.services import evaluation as eval_service
 from app.services import model_catalog
 from app.services.evaluation_runner import LlmForModel, execute_run
+from app.services.knowledge_search import DbKnowledgeSearch
+from app.services.llm_log import DbLlmCallRecorder
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["evaluation"])
@@ -44,7 +48,11 @@ def get_eval_llm_factory() -> LlmForModel:
     """Builds the chat model for one model id. Tests override this with a scripted fake."""
 
     def build(model_id: str) -> LlmClient:
-        return deepseek_client(model=model_id, price=model_catalog.price_for(model_id))
+        return deepseek_client(
+            model=model_id,
+            price=model_catalog.price_for(model_id),
+            recorder=DbLlmCallRecorder(lambda: Session(engine)),
+        )
 
     return build
 
@@ -75,10 +83,17 @@ def _run_public(session: Session, run: EvalRun, dataset: EvalDataset) -> RunPubl
     )
 
 
-def _execute_in_background(run_id: uuid.UUID, llm_for: LlmForModel) -> None:
+def _execute_in_background(
+    run_id: uuid.UUID, llm_for: LlmForModel, embedder: EmbeddingProvider
+) -> None:
     with Session(engine) as session:
         try:
-            execute_run(session=session, run_id=run_id, llm_for=llm_for)
+            execute_run(
+                session=session,
+                run_id=run_id,
+                llm_for=llm_for,
+                search=DbKnowledgeSearch(session, embedder),
+            )
         except (
             Exception
         ):  # the run stores its own failure; this only guards the background task
@@ -153,6 +168,7 @@ def create_run(
     current_user: CurrentUser,
     background: BackgroundTasks,
     llm_for: EvalLlmDep,
+    embedder: EmbedderDep,
     body: RunCreate,
     idempotency_key: Annotated[str | None, Header(max_length=100)] = None,
 ) -> RunPublic:
@@ -172,7 +188,7 @@ def create_run(
         idempotency_key=idempotency_key,
     )
     if is_new:
-        background.add_task(_execute_in_background, run.id, llm_for)
+        background.add_task(_execute_in_background, run.id, llm_for, embedder)
     session.refresh(run)
     return _run_public(session, run, dataset)
 

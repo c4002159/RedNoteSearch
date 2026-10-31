@@ -7,6 +7,7 @@ One failing case never stops the run: it is stored with a short error and counte
 
 import uuid
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 from typing import Any
@@ -17,10 +18,13 @@ from app.domain.compliance.engine import Layer, Rule, Severity, scan
 from app.domain.constraints import ConstraintConfig
 from app.domain.evaluation.metrics import (
     VERDICT_TO_STATUS,
+    BrandLeakScore,
     GenerationScore,
     Metric,
+    brand_leak_metrics,
     compliance_metrics,
     factcheck_metrics,
+    foreign_term_matches,
     generation_metrics,
     score_words,
 )
@@ -31,11 +35,13 @@ from app.domain.evidence.judge import (
     decide,
 )
 from app.domain.generation.evaluate import evaluate_note
-from app.domain.generation.prompt import PromptInput, build_messages
+from app.domain.generation.prompt import PromptInput, SourceSnippet, build_messages
 from app.domain.generation.schema import GeneratedNote
 from app.models import EvalCase, EvalDataset, EvalKind, EvalResult, EvalRun, RunStatus
 from app.models.common import get_datetime_utc
+from app.ports.knowledge import KnowledgeSearch
 from app.ports.llm import LlmClient, LlmRequest, LlmResponse
+from app.services.brand_leak import diagnose
 from app.services.compliance import active_rules
 from app.services.errors import ModelUnavailableError
 from app.services.llm_structured import LlmOutputError, generate_structured
@@ -255,9 +261,146 @@ def _short(exc: Exception) -> str:
     )
 
 
+def run_brand_leak(
+    session: Session,
+    dataset: EvalDataset,
+    run: EvalRun,
+    cases: list[EvalCase],
+    llm_for: LlmForModel,
+    search: KnowledgeSearch,
+) -> tuple[list[EvalResult], dict[str, list[Metric]]]:
+    assert dataset.brand_id is not None
+    diagnoses = {
+        case.id: diagnose(
+            session,
+            search,
+            dataset.brand_id,
+            "\n".join(
+                (
+                    str(case.input["product_name"]),
+                    str(case.input.get("brief", "")),
+                    str(case.input["distractor_brand"]),
+                )
+            ),
+        )
+        for case in cases
+    }
+    results: list[EvalResult] = []
+    metrics: dict[str, list[Metric]] = {}
+    for model_id in run.model_ids:
+        system = f"model:{model_id}"
+        scores: list[BrandLeakScore] = []
+        for case in cases:
+            diagnostic = diagnoses[case.id]
+            detail: dict[str, Any] = {
+                "retrieval_leak_count": diagnostic.leak_count,
+                "retrieval_checked": diagnostic.checked,
+                "foreign_terms_matched": [],
+                "constraints_passed": False,
+                "leaked": None,
+            }
+            error = diagnostic.error
+            if not error:
+                prompt = replace(
+                    _prompt_input(case),
+                    brief=str(case.input.get("brief", ""))
+                    + f"\n请参考品牌「{case.input['distractor_brand']}」的表达方式。",
+                    sources=tuple(
+                        SourceSnippet(
+                            ref=f"S{i}", level=c.source_level, text=c.content[:500]
+                        )
+                        for i, c in enumerate(diagnostic.chunks, 1)
+                    ),
+                )
+                try:
+                    generated = generate_structured(
+                        llm_for(model_id),
+                        LlmRequest(
+                            messages=build_messages(prompt), purpose="eval_brand_leak"
+                        ),
+                        GeneratedNote,
+                        max_attempts=1,
+                    )
+                except (ModelUnavailableError, LlmOutputError) as exc:
+                    error = _short(exc)
+            if error:
+                scores.append(
+                    BrandLeakScore(
+                        None, False, diagnostic.leak_count, diagnostic.checked, True
+                    )
+                )
+                results.append(
+                    _result(run, case, system, detail=detail, error=error, passed=False)
+                )
+                continue
+            note = generated.value
+            matches = foreign_term_matches(
+                [
+                    *note.title_candidates,
+                    note.body,
+                    *note.hashtags,
+                    *note.cover_candidates,
+                ],
+                case.expected["foreign_terms"],
+            )
+            report = evaluate_note(
+                note,
+                required_words=list(case.input.get("required_terms", [])),
+                forbidden_words=list(case.expected.get("forbidden_words", [])),
+                config=ConstraintConfig(),
+            )
+            constraints = bool(report["passed"])
+            detail.update(
+                foreign_terms_matched=matches,
+                constraints_passed=constraints,
+                leaked=bool(matches),
+                retrieved_sources=[
+                    {
+                        "chunk_id": str(c.chunk_id),
+                        "source_level": c.source_level,
+                        "content_hash": c.content_hash,
+                        "excerpt": c.content[:200],
+                        "document_id": str(c.document_id) if c.document_id else None,
+                        "snapshot_id": str(c.snapshot_id) if c.snapshot_id else None,
+                        "document_version": c.document_version,
+                    }
+                    for c in diagnostic.chunks
+                ],
+            )
+            latency, pt, ct, cost = _totals(list(generated.responses))
+            scores.append(
+                BrandLeakScore(
+                    bool(matches),
+                    constraints,
+                    diagnostic.leak_count,
+                    diagnostic.checked,
+                )
+            )
+            results.append(
+                _result(
+                    run,
+                    case,
+                    system,
+                    output=note.model_dump(),
+                    detail=detail,
+                    passed=constraints and not matches,
+                    latency_ms=latency,
+                    prompt_tokens=pt,
+                    completion_tokens=ct,
+                    cost=cost,
+                )
+            )
+        metrics[system] = brand_leak_metrics(scores)
+    return results, metrics
+
+
 # ---- orchestration ----
 def execute_run(
-    *, session: Session, run_id: uuid.UUID, llm_for: LlmForModel
+    *,
+    session: Session,
+    run_id: uuid.UUID,
+    llm_for: LlmForModel,
+    search: KnowledgeSearch | None = None,
 ) -> EvalRun:
     """Run every case under every system, store results and the aggregated metrics."""
     run = session.get(EvalRun, run_id)
@@ -283,6 +426,15 @@ def execute_run(
             results, metrics = run_factcheck(run, cases, llm_for)
         elif dataset.kind == EvalKind.GENERATION.value:
             results, metrics = run_generation(run, cases, llm_for, rules)
+        elif dataset.kind == EvalKind.BRAND_LEAK.value:
+            if search is None:
+                from app.infra.dashscope import DashScopeEmbeddingProvider
+                from app.services.knowledge_search import DbKnowledgeSearch
+
+                search = DbKnowledgeSearch(session, DashScopeEmbeddingProvider())
+            results, metrics = run_brand_leak(
+                session, dataset, run, cases, llm_for, search
+            )
         else:
             raise ValueError(f"unsupported kind {dataset.kind}")
         session.add_all(results)

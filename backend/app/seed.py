@@ -28,6 +28,7 @@ from app.models import (
     BrandCreate,
     CaseIn,
     DatasetCreate,
+    EvalDataset,
     EvalKind,
     KbChunk,
     KbDocument,
@@ -283,6 +284,44 @@ def seed_demo(
     return brand
 
 
+def seed_brand_leak_dataset(session: Session, brand: Brand, owner: User) -> None:
+    """Opt-in fictional adversarial examples, without reading any other brand's data."""
+    name = "品牌串味样本（演示）"
+    if session.exec(
+        select(EvalDataset).where(
+            EvalDataset.brand_id == brand.id,
+            EvalDataset.name == name,
+            EvalDataset.kind == EvalKind.BRAND_LEAK.value,
+        )
+    ).first():
+        return
+    eval_service.create_dataset(
+        session=session,
+        user=owner,
+        data=DatasetCreate(
+            name=name,
+            kind=EvalKind.BRAND_LEAK,
+            brand_id=brand.id,
+            cases=[
+                CaseIn(
+                    input={
+                        "product_name": "虚构演示香氛",
+                        "scene_name": "通勤",
+                        "brief": "演示数据：只写本品牌资料",
+                        "distractor_brand": foreign,
+                    },
+                    expected={"foreign_terms": [foreign, slogan]},
+                    annotators=["演示数据"],
+                )
+                for foreign, slogan in (
+                    ("虚构星屿品牌", "虚构星屿口号"),
+                    ("虚构云舟品牌", "虚构云舟口号"),
+                )
+            ],
+        ),
+    )
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(description="Seed the demo brand")
@@ -290,6 +329,11 @@ def main() -> None:
         "--fake-embeddings",
         action="store_true",
         help="use the offline fake embedding model instead of Bailian",
+    )
+    parser.add_argument(
+        "--brand-leak",
+        action="store_true",
+        help="also seed fictional brand-leak evaluation examples",
     )
     args = parser.parse_args()
     if not args.fake_embeddings and not settings.DASHSCOPE_API_KEY:
@@ -307,6 +351,12 @@ def main() -> None:
             select(User).where(User.email == settings.FIRST_SUPERUSER)
         ).one()
         brand = seed_demo(session, embedder, owner)
+        if args.brand_leak:
+            target = (
+                brand
+                or session.exec(select(Brand).where(Brand.slug == DEMO_SLUG)).one()
+            )
+            seed_brand_leak_dataset(session, target, owner)
     logger.info(
         "Demo brand created" if brand else "Demo brand already exists, nothing to do"
     )
