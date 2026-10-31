@@ -644,9 +644,9 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 
 - 多模型对比（B）：`POST /model-comparisons`（幂等）；`GET /model-comparisons/{id}`：并列各模型的约束通过率、人工评分、延迟、费用；失败模型单独显示。
 
-### 10.1 F13：爆款结构分析（契约审议稿，待 A/B 确认，尚未实现）
+### 10.1 F13：爆款结构分析（已定稿，已实现）
 
-仅支持用户手动贴入已获授权的文本，提取结构标签和抽象模板，不承诺传播效果；样本属于当前品牌，不进入知识库或任务检索。下列接口尚未实现。F15 不在本次交付范围。
+仅支持用户手动贴入已获授权的文本，提取结构标签和抽象模板，不承诺传播效果；样本属于当前品牌，不进入知识库或任务检索。下列接口已实现。F15 不在本次交付范围。
 
 #### 样本创建与读取
 
@@ -654,9 +654,9 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 |---|---|---|
 | `POST /brands/{brand_id}/viral-samples` | 品牌成员；JSON `{text,note?,source_url?}` | 201 `ViralSample` |
 | `GET /brands/{brand_id}/viral-samples` | 品牌成员；分页同 §1.3，sort 仅 ±created_at | 200 标准分页，items 为去掉 text 的样本元数据加 excerpt |
-| `GET /viral-samples/{sample_id}`（新增读取建议） | 样本品牌成员 | 200 `ViralSample`，供刷新恢复 |
-| `GET /viral-samples/{sample_id}/patterns`（新增读取建议） | 样本品牌成员；分页同 §1.3 | 200 标准分页，items 为已成功保存的模式，created_at DESC、id DESC |
-| `GET /viral-patterns/{pattern_id}`（新增读取建议） | 模式品牌成员 | 200 `ViralPattern`，供分析结果刷新恢复 |
+| `GET /viral-samples/{sample_id}`（已实现） | 样本品牌成员 | 200 `ViralSample`，供刷新恢复 |
+| `GET /viral-samples/{sample_id}/patterns`（已实现） | 样本品牌成员；分页同 §1.3 | 200 标准分页，items 为已成功保存的模式，created_at DESC、id DESC |
+| `GET /viral-patterns/{pattern_id}`（已实现） | 模式品牌成员 | 200 `ViralPattern`，供分析结果刷新恢复 |
 
 显式品牌路径非成员为 403；样本/模式 id 不存在或非成员为 404。平台管理员也不能跳过品牌成员检查。所有接口需 JWT。`source_url` 在前端仅显示为纯文本，不渲染成可跳转链接。
 
@@ -676,7 +676,7 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 
 #### 分析与结果
 
-`POST /viral-samples/{sample_id}/analyze`，品牌成员，JSON 请求 `{model_id}`（必须是 GET /models 已知模型，1–80 字符）。同步分析，成功 201 `ViralPattern`。最多 2 次模型调用，预期等待约 20–60 秒（非时限保证），前端请求超时建议至少 90 秒，并保留等待状态。demo 为降低后台作业与轮询复杂度采用同步 201，未采用生成接口的 202+轮询；本次不创建独立后台作业。网络超时后先读取模式列表核对是否已有结果，再决定是否重新请求，避免无意重复生成。
+`POST /viral-samples/{sample_id}/analyze`，品牌成员，JSON 请求 `{model_id}`（必须是 GET /models 已知模型，1–80 字符）。同步分析，成功 201 `ViralPattern`。最多 2 轮分析，每轮含 1 次瞬时错误重试（即最多 4 次供应商请求），预期等待约 20–90 秒（非时限保证），前端请求超时建议至少 120 秒，并保留等待状态。demo 为降低后台作业与轮询复杂度采用同步 201，未采用生成接口的 202+轮询；本次不创建独立后台作业。网络超时后先读取模式列表核对是否已有结果，再决定是否重新请求，避免无意重复生成。
 
 ```json
 {"model_id":"deepseek-flash"}
@@ -685,12 +685,12 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 `ViralPattern` 示例：
 
 ```json
-{"id":"77777777-7777-4777-8777-777777777777","sample_id":"66666666-6666-4666-8666-666666666666","brand_id":"22222222-2222-4222-8222-222222222222","title_pattern":"场景与选择问题","hook_type":"场景设问","paragraph_structure":["引入场景","展开资料","收束建议"],"tone":"克制","emoji_usage":"少量分隔段落","hashtag_usage":"使用场景类话题","abstract_template":"围绕{{scene}}提出问题，以{{supported_facts}}展开，给出{{closing}}。","model_id":"deepseek-flash","prompt_version":"viral-v1","checker_version":"viral-copy-v1","created_at":"2026-11-01T00:00:00Z"}
+{"id":"77777777-7777-4777-8777-777777777777","sample_id":"66666666-6666-4666-8666-666666666666","brand_id":"22222222-2222-4222-8222-222222222222","title_pattern":"场景与选择问题","hook_type":"场景设问","paragraph_structure":["引入场景","展开资料","收束建议"],"tone":"克制","emoji_usage":"少量分隔段落","hashtag_usage":"使用场景类话题","abstract_template":"开头从一个具体使用场景提出问题，中段结合已审核资料逐步展开，结尾给出克制的收束建议。","model_id":"deepseek-flash","prompt_version":"viral-v2","checker_version":"viral-copy-v2","created_at":"2026-11-01T00:00:00Z"}
 ```
 
-- `title_pattern`、`hook_type`、`tone`、`emoji_usage`、`hashtag_usage` 为非空描述文本，各 ≤200 码点；不是前端写死的枚举。`paragraph_structure` 有序列表 1–20 条，每条非空、≤300 码点；`abstract_template` 非空、≤5000 码点，使用 `{{scene}}`、`{{supported_facts}}`、`{{closing}}` 等占位符，不保存样本长句。模型结果只接受本节结构字段；id/品牌/版本由服务端赋值。
+- `title_pattern`、`hook_type`、`tone`、`emoji_usage`、`hashtag_usage` 为非空描述文本，各 ≤200 码点；不是前端写死的枚举。`paragraph_structure` 有序列表 1–20 条，每条非空、≤300 码点；`abstract_template` 非空、≤5000 码点，是一段通顺的中文写作指引（说明开头、中段、结尾各写什么），不含花括号、方括号、占位符、代码块，不保存样本长句；五个描述字段与段落数组同样不得含 `{ } 【 】`、代码块标记或乱码替换字符。模型结果只接受本节结构字段；id/品牌/版本由服务端赋值。
 - 输出先做结构校验，再做复制检查：样本与所有结构文本字段分别经过 Unicode NFKC、移除 Unicode 空白；任一输出字段出现与样本连续 ≥12 个相同码点即拒绝。包括 abstract_template，不仅检查模板字段，避免其他字段夹带原句。短样本仍接受但该阈值不能发现 <12 字复用；此检查不代表所有改写或授权问题均已排除。
-- 模型结构或复制检查不满足时反馈一次并最多重试一轮（总计最多 2 次分析模型调用）。最终不合格返回拟新增 422 `INVALID_MODEL_OUTPUT`（不是既有任务 last_error 字段），details.reason 为 `schema_invalid` 或 `copied_text`；不保存不合格模式。模型超时/不可用返回 503 MODEL_UNAVAILABLE，不保存半成品。
+- 模型结构、复制检查或格式检查不满足时反馈一次并最多重试一轮（总计最多 2 轮分析）。最终不合格返回新增 422 `INVALID_MODEL_OUTPUT`（不是既有任务 last_error 字段），details.reason 为 `schema_invalid`、`copied_text` 或 `format_invalid`；不保存不合格模式。模型超时/不可用返回 503 MODEL_UNAVAILABLE，不保存半成品。
 - 分析过程为请求内“校验→模型分析→代码检查→提交成功结果”；不增改既有任务 flow_status。样本只读；重复成功请求会产生新的模式，不覆盖旧模式。网络超时不代表服务端失败，先读取已保存结果再决定是否重新分析。
 
 #### 转为品牌场景模板
@@ -704,7 +704,7 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 `name` 去首尾空白后 1–100 码点；`scene` 只取现有 `seeding|review|tutorial|launch|promotion|story`。不接受 brand_id 或替换模式内容。成功 201 示例（该品牌、scene、name 首次创建为版本 1；后续版本按下述规则递增）：
 
 ```json
-{"id":"88888888-8888-4888-8888-888888888888","brand_id":"22222222-2222-4222-8222-222222222222","name":"场景引导模板","scene":"seeding","structure":"围绕{{scene}}提出问题，以{{supported_facts}}展开，给出{{closing}}。","template_version":1}
+{"id":"88888888-8888-4888-8888-888888888888","brand_id":"22222222-2222-4222-8222-222222222222","name":"场景引导模板","scene":"seeding","structure":"开头从一个具体使用场景提出问题，中段结合已审核资料逐步展开，结尾给出克制的收束建议。","template_version":1}
 ```
 
 模式属于哪个品牌，模板就创建在哪个品牌，不能转成全局模板或另一品牌模板。结构来自已校验的 abstract_template，模板启用后由现有 GET /scenarios 返回给有权用户，不改变旧模板，不把样本原文带入模板。重复成功请求会产生新的模板，不覆盖旧模板；同品牌、同 scene、同 name 的 `template_version` 取现有最大值加 1，不存在时为 1。版本分配与插入必须在事务中串行化，并发同名转换也不能产生相同版本或让唯一约束冲突暴露为 500；创建与审计原子提交。
@@ -717,7 +717,7 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 | 403 `FORBIDDEN` | 显式品牌路径非成员；或同品牌 editor 调用 to-template | 由该品牌 admin 操作 |
 | 404 `NOT_FOUND` | 样本/模式不存在或非所属品牌成员 | 不泄露存在性 |
 | 422 `VALIDATION_ERROR` | 空文本/超长、非法 URL/scene/model_id/UUID/分页；details.errors | 修正输入 |
-| 422 `INVALID_MODEL_OUTPUT`（拟新增） | 分析重试后仍结构错/连续复制；details.reason | 换输入或新请求；不返回模型原始输出 |
+| 422 `INVALID_MODEL_OUTPUT`（新增） | 分析重试后仍结构错/连续复制；details.reason | 换输入或新请求；不返回模型原始输出 |
 | 503 `MODEL_UNAVAILABLE` | 模型未配置、超时或不可用 | 样本保留，无模式半成品；恢复后可重新请求 |
 | 500 `INTERNAL_ERROR` | 意外故障，仅通用错误与 request_id | 先读取已保存结果，再决定是否重新请求 |
 
@@ -732,6 +732,12 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 - 每次模型调用（含失败及重试）独立记录 llm_call_log，不在错误/审计里保存原始敏感模型输出。成功创建样本写 viral.sample_create，成功分析写 viral.analyze，转换写 viral.to_template；detail 仅资源 id、长度、模型/版本，原文与原链接不写审计。失败不写成功审计；每次成功请求均保存新结果并原子写入审计，旧模式与模板不覆盖。
 - 新增三个读取接口的理由：原占位只有创建/分析/转换，无法在页面刷新后恢复样本全文与已分析结果；读取仍沿用品牌成员隔离，不引入跨品牌访问。
 
+#### 实现补充（2026-11-01）
+
+- 迁移 a3d7e9f1b5c2 接在 f2c0e6b8d4a1 后，只创建 viral_sample 和 viral_pattern；带对应 downgrade。样本列表默认 -created_at，分页沿用通用约定。
+- 同品牌模板版本分配使用品牌父行锁串行化，以覆盖首次尚无同名模板的情况；再查同场景同名最大版本并加一，旧模板不覆盖。
+- 模型客户端对瞬时错误最多内部重试 1 次，结构、复制或格式检查失败最多补问一次，因此一次请求最多 4 次供应商请求；每次请求通过现有 DbLlmCallRecorder 独立记录，错误不含原始输出。
+
 ## 11. 合同变更流程
 
 1. 提案人先更新本文与 JSON 样例，说明兼容影响。
@@ -741,6 +747,7 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 
 ## 12. 变更记录
 
+- 2026-11-01 F13 实现：样本与模式读写、同步分析与复制检查、品牌模板递增转换、审计和调用日志；新增一条线性迁移并重新生成客户端。
 - 2026-11-01 停用接口新增可选 `reason`：资料停用和规则修改，写入审计，不改变既有字段含义
 
 - 2026-11-01 F14 实现：品牌串味评测、独立归属诊断、代码指标与虚构示例集入口。
