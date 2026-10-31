@@ -350,7 +350,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 `xhs_parts`：标题、正文、标签三者分开，界面对应“复制标题”“复制正文”“复制标签”三个按钮（ADR-005）：
 ```json
 {"title":"选定标题","body":"正文","tags":["Softcore","逐帧动画"],
- "counts":{"title_weight":12.5,"body_units":356,"tags_visible_units":18,"tags_count":2}}
+ "counts":{"title_weight":12.5,"body_units":356,"tags_visible_units":16,"tags_count":2}}
 ```
 - `tags` 不含 `#`；界面复制标签时拼成 `#Softcore #逐帧动画`（单个空格分隔）。
 - 正文换行符统一为 LF，行尾空白去除，不含 Markdown；保留 emoji。
