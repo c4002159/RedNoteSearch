@@ -87,3 +87,19 @@ class AuditLog(SQLModel, table=True):
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc, sa_type=DateTime(timezone=True)
     )
+
+
+class TaskMaterialPublic(SQLModel):
+    id: uuid.UUID
+    filename: str
+    char_count: int
+    content_hash: str
+    created_at: datetime
+    excerpt: str
+
+
+class TaskMaterialsPublic(SQLModel):
+    items: list[TaskMaterialPublic]
+    total: int
+    page: int
+    page_size: int

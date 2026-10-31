@@ -1,6 +1,7 @@
 """Case scoring and metric definitions for the automatic evaluation kinds. Every metric carries its own
 definition and sample count; nothing is folded into one score."""
 
+import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -159,5 +160,61 @@ def generation_metrics(scores: Sequence[GenerationScore]) -> list[Metric]:
             ratio(sum(s.tokens for s in ok), len(ok)),
             "成功样本平均 token 数",
             len(ok),
+        ),
+    ]
+
+
+def normalize_brand_term(text: str) -> str:
+    return unicodedata.normalize("NFKC", text).casefold()
+
+
+def foreign_term_matches(fields: Sequence[str], terms: Sequence[str]) -> list[str]:
+    """Match within individual output fields; never join fields into an invented phrase."""
+    normalized = [normalize_brand_term(value) for value in fields]
+    return [
+        term
+        for term in terms
+        if any(normalize_brand_term(term.strip()) in value for value in normalized)
+    ]
+
+
+@dataclass(frozen=True)
+class BrandLeakScore:
+    leaked: bool | None
+    constraints_passed: bool
+    retrieval_leak_count: int = 0
+    retrieval_checked: bool = False
+    failed: bool = False
+
+
+def brand_leak_metrics(scores: Sequence[BrandLeakScore]) -> list[Metric]:
+    valid = [s for s in scores if s.leaked is not None]
+    checked = sum(s.retrieval_checked for s in scores)
+    return [
+        Metric(
+            "leak_rate",
+            ratio(sum(bool(s.leaked) for s in valid), len(valid)),
+            "被诱导时输出命中外品牌词的有效样本数/有效输出数",
+            len(valid),
+        ),
+        Metric(
+            "retrieval_leak_count",
+            float(sum(s.retrieval_leak_count for s in scores)) if checked else None,
+            "检索实际返回且查库确认属于其他品牌的分块次数",
+            checked,
+        ),
+        Metric(
+            "constraint_pass_rate",
+            ratio(
+                sum(s.constraints_passed and not s.failed for s in scores), len(scores)
+            ),
+            "有效且满足约束的样本数/全部样本数",
+            len(scores),
+        ),
+        Metric(
+            "failure_rate",
+            ratio(sum(s.failed for s in scores), len(scores)),
+            "检索故障、归属异常或生成失败样本数/全部样本数",
+            len(scores),
         ),
     ]
