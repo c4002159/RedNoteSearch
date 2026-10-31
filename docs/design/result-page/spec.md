@@ -21,11 +21,11 @@
 同一个任务的两个版本，按时间顺序：
 - **v3**（图 01、02、04）：状态 `needs_human_review`，最新版本。证据 6 条：系统判定支持 2、人工确认 1、未决定 2、判定不成立 1（`evidence_summary` = 6 / 2 / 1 / 2 / 1）；风险 3 条：必须修改 1 条未处理、建议关注 1 条、必须修改 1 条已有人处理。确认按钮禁用，原因 3 条（1 条断言被判不成立；2 条断言没有人工判断；1 条“必须修改”提示没有处理）。图 01 与 02 的原因文字、数量完全一致。
 - **v4**（图 03、05）：用户编辑 v3（删掉没有依据、有风险的句子）创建，`origin = edited`，先是 `edited_pending_recheck`，重新检查后 `checks_completed`（证据 3 条：支持 2、人工确认 1，措辞完全相同的“适合办公室和地铁里”沿用 v3 的人工确认；风险 0 条），确认后 `ready_to_copy`。
-- **数字按 ADR-004 的公式用代码算过**：标题 `木质香调的秋日通勤，温柔但有存在感` 加权 17（全角逗号按 1，不是 ASCII）、`通勤香水怎么选｜我的木质调清单` 15、`秋天想要一点安静的香气 🍂` 12.5（11 个汉字 + 空格 0.5 + 一个 emoji 码点 1）。v3 正文含标签 157 / 1000；v4 正文 79 码元（去换行后的 UTF-16 码元，emoji 计 2）+ 标签可见字符 23（每个标签按“1 + 标签名 + 1”，4 个标签 5 + 6 + 6 + 6）= 102 / 1000；标签 4 / 10。按 ADR-004 第 3 条的保守估算，空格怎么计待发布页验证。
+- **数字按 ADR-004 的公式用代码算过**：标题 `木质香调的秋日通勤，温柔但有存在感` 加权 17（全角逗号按 1，不是 ASCII）、`通勤香水怎么选｜我的木质调清单` 15、`秋天想要一点安静的香气 🍂` 13.5（11 个汉字 + 空格 0.5 + emoji 🍂 计 2）。v3 正文含标签 157 / 1000；v4 正文 79 码元（去换行后的 UTF-16 码元，emoji 计 2）+ 标签可见字符 23（每个标签按“1 + 标签名 + 1”，4 个标签 5 + 6 + 6 + 6）= 102 / 1000；标签 4 / 10。按 ADR-004 第 3 条的保守估算，空格怎么计待发布页验证。
 - 规则编号 `R-DEMO-003`、`R-DEMO-011`、`B-0007`、规则出处与条款都是自编示例，不是正式规则。
 
 ## 区域与字段（接口以 `docs/API_CONTRACT.md` 第 5、6 节为准）
-- 标题候选：`title_candidates`，每条显示加权长度 / 20：**按 Unicode 码点遍历，ASCII 可打印字符（U+0020 至 U+007E）计 0.5，其余字符（含 emoji，一个码点）计 1**（ADR-004 决定第 1 条）。emoji 计 2 只用于正文的 UTF-16 码元，标题不用；选中项对应 `selected_title_index`。
+- 标题候选：`title_candidates`，每条显示加权长度 / 20：**ASCII 可打印字符（U+0020 至 U+007E）计 0.5，其余字符按 UTF-16 码元计 1（汉字和全角标点 1，emoji 2）**（ADR-004 决定第 1 条，2026-11-01 修订）；选中项对应 `selected_title_index`。
 - 正文：`body`，显示“正文 N / 1000（含标签）”（去换行后的 UTF-16 码元，标签的可见字符计入）；标签 `hashtags`，显示“已选 N / 10”；封面文案候选 `cover_candidates`，`selected_cover_index` 可选，封面文案只用于做封面图、不并入复制。
 - 证据面板：`claim_evidence` 每项的 `claim_text`、`source_title`、`quote`、`source_level`（`approved_kb` 显示“已审核知识库”，`task_material` 显示“任务内资料（未审核）”）、`status`、`human_confirmed`、备注；统计取 `evidence_summary`（`total`、`system_supported`、`human_confirmed`、`unconfirmed`、`rejected`）。“系统判定支持”旁边固定提示“非事实保证”。**有来源（`document_id` / `snapshot_id`、`quote`）的断言才显示来源；`evidence_missing`（没有检索到任何资料）不显示来源。**
 - 人在回路：`status` 不是 `system_supported` 的断言，每条给“成立 / 不成立”和备注（建议填写），调用 `POST /claim-evidence/{id}/confirm`（`human_confirmed` true/false、`note`）；系统的 `status` 不被改写。人工确认过的标“人工确认（非系统验证）”。
