@@ -194,12 +194,15 @@ class OpenAICompatibleClient:
 
 
 def deepseek_client(
-    *, price: Price | None = None, recorder: LlmCallRecorder | None = None
+    *,
+    price: Price | None = None,
+    recorder: LlmCallRecorder | None = None,
+    model: str | None = None,
 ) -> OpenAICompatibleClient:
     """DeepSeek with the model and key from the settings (``deepseek-flash`` by default)."""
     return OpenAICompatibleClient(
         provider="deepseek",
-        model=settings.DEEPSEEK_MODEL,
+        model=model or settings.DEEPSEEK_MODEL,
         base_url=settings.DEEPSEEK_BASE_URL,
         api_key=settings.DEEPSEEK_API_KEY,
         price=price,

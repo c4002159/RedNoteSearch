@@ -73,6 +73,11 @@ class Settings(BaseSettings):
     DEEPSEEK_API_KEY: str | None = None
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
     DEEPSEEK_MODEL: str = "deepseek-flash"
+    # Models offered for evaluation (ADR-006). Prices are configuration, per 1,000 tokens; unset = unknown.
+    DEEPSEEK_MODELS: list[str] = ["deepseek-flash", "deepseek-v4-pro"]
+    DEEPSEEK_PRICE_IN_PER_1K: float | None = None
+    DEEPSEEK_PRICE_OUT_PER_1K: float | None = None
+    LLM_PRICE_VERSION: str | None = None
     OPENAI_API_KEY: str | None = None
     LLM_TIMEOUT_SECONDS: float = 60.0
     LLM_MAX_RETRIES: int = 2

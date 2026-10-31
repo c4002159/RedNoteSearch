@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import type { brandsAddMemberData, brandsAddMemberErrors, brandsAddMemberResponses, brandsCreateBrandData, brandsCreateBrandErrors, brandsCreateBrandResponses, brandsReadBrandsData, brandsReadBrandsResponses, brandsReadMembersData, brandsReadMembersErrors, brandsReadMembersResponses, brandsRemoveMemberData, brandsRemoveMemberErrors, brandsRemoveMemberResponses, brandsUpdateBrandData, brandsUpdateBrandErrors, brandsUpdateBrandResponses, brandsUpdateMemberData, brandsUpdateMemberErrors, brandsUpdateMemberResponses, complianceCreateBrandRuleData, complianceCreateBrandRuleErrors, complianceCreateBrandRuleResponses, complianceCreateGlobalRuleData, complianceCreateGlobalRuleErrors, complianceCreateGlobalRuleResponses, complianceReadRuleData, complianceReadRuleErrors, complianceReadRuleResponses, complianceReadRulesData, complianceReadRulesErrors, complianceReadRulesResponses, complianceReadVersionComplianceData, complianceReadVersionComplianceErrors, complianceReadVersionComplianceResponses, complianceResolveCheckData, complianceResolveCheckErrors, complianceResolveCheckResponses, complianceUpdateRuleData, complianceUpdateRuleErrors, complianceUpdateRuleResponses, evidenceConfirmEvidenceData, evidenceConfirmEvidenceErrors, evidenceConfirmEvidenceResponses, evidenceReadVersionEvidenceData, evidenceReadVersionEvidenceErrors, evidenceReadVersionEvidenceResponses, knowledgeDeactivateDocumentData, knowledgeDeactivateDocumentErrors, knowledgeDeactivateDocumentResponses, knowledgeIngestDocumentData, knowledgeIngestDocumentErrors, knowledgeIngestDocumentResponses, knowledgeIngestNewVersionData, knowledgeIngestNewVersionErrors, knowledgeIngestNewVersionResponses, knowledgeReadChunksData, knowledgeReadChunksErrors, knowledgeReadChunksResponses, knowledgeReadDocumentData, knowledgeReadDocumentErrors, knowledgeReadDocumentResponses, knowledgeReadDocumentsData, knowledgeReadDocumentsErrors, knowledgeReadDocumentsResponses, knowledgeReindexDocumentData, knowledgeReindexDocumentErrors, knowledgeReindexDocumentResponses, knowledgeReviewDocumentData, knowledgeReviewDocumentErrors, knowledgeReviewDocumentResponses, knowledgeSubmitDocumentData, knowledgeSubmitDocumentErrors, knowledgeSubmitDocumentResponses, loginLoginAccessTokenData, loginLoginAccessTokenErrors, loginLoginAccessTokenResponses, loginRecoverPasswordData, loginRecoverPasswordErrors, loginRecoverPasswordHtmlContentData, loginRecoverPasswordHtmlContentErrors, loginRecoverPasswordHtmlContentResponses, loginRecoverPasswordResponses, loginResetPasswordData, loginResetPasswordErrors, loginResetPasswordResponses, loginTestTokenData, loginTestTokenResponses, privateCreateUserData, privateCreateUserErrors, privateCreateUserResponses, productsArchiveProductData, productsArchiveProductErrors, productsArchiveProductResponses, productsCreateProductData, productsCreateProductErrors, productsCreateProductResponses, productsReadProductsData, productsReadProductsErrors, productsReadProductsResponses, productsUpdateProductData, productsUpdateProductErrors, productsUpdateProductResponses, tasksCreateStylePresetData, tasksCreateStylePresetErrors, tasksCreateStylePresetResponses, tasksCreateTaskData, tasksCreateTaskErrors, tasksCreateTaskResponses, tasksGenerateTaskData, tasksGenerateTaskErrors, tasksGenerateTaskResponses, tasksReadScenariosData, tasksReadScenariosResponses, tasksReadStylePresetsData, tasksReadStylePresetsErrors, tasksReadStylePresetsResponses, tasksReadTaskData, tasksReadTaskErrors, tasksReadTaskResponses, tasksReadTasksData, tasksReadTasksErrors, tasksReadTasksResponses, tasksReadTaskVersionsData, tasksReadTaskVersionsErrors, tasksReadTaskVersionsResponses, tasksReadVersionData, tasksReadVersionErrors, tasksReadVersionResponses, usersCreateUserData, usersCreateUserErrors, usersCreateUserResponses, usersDeleteUserData, usersDeleteUserErrors, usersDeleteUserMeData, usersDeleteUserMeResponses, usersDeleteUserResponses, usersReadUserByIdData, usersReadUserByIdErrors, usersReadUserByIdResponses, usersReadUserMeData, usersReadUserMeResponses, usersReadUsersData, usersReadUsersErrors, usersReadUsersResponses, usersRegisterUserData, usersRegisterUserErrors, usersRegisterUserResponses, usersUpdatePasswordMeData, usersUpdatePasswordMeErrors, usersUpdatePasswordMeResponses, usersUpdateUserData, usersUpdateUserErrors, usersUpdateUserMeData, usersUpdateUserMeErrors, usersUpdateUserMeResponses, usersUpdateUserResponses, utilsHealthCheckData, utilsHealthCheckResponses, utilsTestEmailData, utilsTestEmailErrors, utilsTestEmailResponses, versionsConfirmVersionData, versionsConfirmVersionErrors, versionsConfirmVersionResponses, versionsEditVersionData, versionsEditVersionErrors, versionsEditVersionResponses, versionsExportVersionData, versionsExportVersionErrors, versionsExportVersionResponses, versionsRecheckVersionData, versionsRecheckVersionErrors, versionsRecheckVersionResponses, versionsRewritePartData, versionsRewritePartErrors, versionsRewritePartResponses, voiceProfileActivateVersionData, voiceProfileActivateVersionErrors, voiceProfileActivateVersionResponses, voiceProfileCreateVersionData, voiceProfileCreateVersionErrors, voiceProfileCreateVersionResponses, voiceProfileReadActiveProfileData, voiceProfileReadActiveProfileErrors, voiceProfileReadActiveProfileResponses, voiceProfileReadVersionsData, voiceProfileReadVersionsErrors, voiceProfileReadVersionsResponses } from './types.gen';
+import type { brandsAddMemberData, brandsAddMemberErrors, brandsAddMemberResponses, brandsCreateBrandData, brandsCreateBrandErrors, brandsCreateBrandResponses, brandsReadBrandsData, brandsReadBrandsResponses, brandsReadMembersData, brandsReadMembersErrors, brandsReadMembersResponses, brandsRemoveMemberData, brandsRemoveMemberErrors, brandsRemoveMemberResponses, brandsUpdateBrandData, brandsUpdateBrandErrors, brandsUpdateBrandResponses, brandsUpdateMemberData, brandsUpdateMemberErrors, brandsUpdateMemberResponses, complianceCreateBrandRuleData, complianceCreateBrandRuleErrors, complianceCreateBrandRuleResponses, complianceCreateGlobalRuleData, complianceCreateGlobalRuleErrors, complianceCreateGlobalRuleResponses, complianceReadRuleData, complianceReadRuleErrors, complianceReadRuleResponses, complianceReadRulesData, complianceReadRulesErrors, complianceReadRulesResponses, complianceReadVersionComplianceData, complianceReadVersionComplianceErrors, complianceReadVersionComplianceResponses, complianceResolveCheckData, complianceResolveCheckErrors, complianceResolveCheckResponses, complianceUpdateRuleData, complianceUpdateRuleErrors, complianceUpdateRuleResponses, evaluationCreateDatasetData, evaluationCreateDatasetErrors, evaluationCreateDatasetResponses, evaluationCreateRunData, evaluationCreateRunErrors, evaluationCreateRunResponses, evaluationRateData, evaluationRateErrors, evaluationRateResponses, evaluationReadAgreementData, evaluationReadAgreementErrors, evaluationReadAgreementResponses, evaluationReadCasesData, evaluationReadCasesErrors, evaluationReadCasesResponses, evaluationReadDatasetsData, evaluationReadDatasetsErrors, evaluationReadDatasetsResponses, evaluationReadModelsData, evaluationReadModelsResponses, evaluationReadResultsData, evaluationReadResultsErrors, evaluationReadResultsResponses, evaluationReadRubricsData, evaluationReadRubricsResponses, evaluationReadRunData, evaluationReadRunErrors, evaluationReadRunResponses, evaluationReadRunsData, evaluationReadRunsErrors, evaluationReadRunsResponses, evidenceConfirmEvidenceData, evidenceConfirmEvidenceErrors, evidenceConfirmEvidenceResponses, evidenceReadVersionEvidenceData, evidenceReadVersionEvidenceErrors, evidenceReadVersionEvidenceResponses, knowledgeDeactivateDocumentData, knowledgeDeactivateDocumentErrors, knowledgeDeactivateDocumentResponses, knowledgeIngestDocumentData, knowledgeIngestDocumentErrors, knowledgeIngestDocumentResponses, knowledgeIngestNewVersionData, knowledgeIngestNewVersionErrors, knowledgeIngestNewVersionResponses, knowledgeReadChunksData, knowledgeReadChunksErrors, knowledgeReadChunksResponses, knowledgeReadDocumentData, knowledgeReadDocumentErrors, knowledgeReadDocumentResponses, knowledgeReadDocumentsData, knowledgeReadDocumentsErrors, knowledgeReadDocumentsResponses, knowledgeReindexDocumentData, knowledgeReindexDocumentErrors, knowledgeReindexDocumentResponses, knowledgeReviewDocumentData, knowledgeReviewDocumentErrors, knowledgeReviewDocumentResponses, knowledgeSubmitDocumentData, knowledgeSubmitDocumentErrors, knowledgeSubmitDocumentResponses, loginLoginAccessTokenData, loginLoginAccessTokenErrors, loginLoginAccessTokenResponses, loginRecoverPasswordData, loginRecoverPasswordErrors, loginRecoverPasswordHtmlContentData, loginRecoverPasswordHtmlContentErrors, loginRecoverPasswordHtmlContentResponses, loginRecoverPasswordResponses, loginResetPasswordData, loginResetPasswordErrors, loginResetPasswordResponses, loginTestTokenData, loginTestTokenResponses, privateCreateUserData, privateCreateUserErrors, privateCreateUserResponses, productsArchiveProductData, productsArchiveProductErrors, productsArchiveProductResponses, productsCreateProductData, productsCreateProductErrors, productsCreateProductResponses, productsReadProductsData, productsReadProductsErrors, productsReadProductsResponses, productsUpdateProductData, productsUpdateProductErrors, productsUpdateProductResponses, tasksCreateStylePresetData, tasksCreateStylePresetErrors, tasksCreateStylePresetResponses, tasksCreateTaskData, tasksCreateTaskErrors, tasksCreateTaskResponses, tasksGenerateTaskData, tasksGenerateTaskErrors, tasksGenerateTaskResponses, tasksReadScenariosData, tasksReadScenariosResponses, tasksReadStylePresetsData, tasksReadStylePresetsErrors, tasksReadStylePresetsResponses, tasksReadTaskData, tasksReadTaskErrors, tasksReadTaskResponses, tasksReadTasksData, tasksReadTasksErrors, tasksReadTasksResponses, tasksReadTaskVersionsData, tasksReadTaskVersionsErrors, tasksReadTaskVersionsResponses, tasksReadVersionData, tasksReadVersionErrors, tasksReadVersionResponses, usersCreateUserData, usersCreateUserErrors, usersCreateUserResponses, usersDeleteUserData, usersDeleteUserErrors, usersDeleteUserMeData, usersDeleteUserMeResponses, usersDeleteUserResponses, usersReadUserByIdData, usersReadUserByIdErrors, usersReadUserByIdResponses, usersReadUserMeData, usersReadUserMeResponses, usersReadUsersData, usersReadUsersErrors, usersReadUsersResponses, usersRegisterUserData, usersRegisterUserErrors, usersRegisterUserResponses, usersUpdatePasswordMeData, usersUpdatePasswordMeErrors, usersUpdatePasswordMeResponses, usersUpdateUserData, usersUpdateUserErrors, usersUpdateUserMeData, usersUpdateUserMeErrors, usersUpdateUserMeResponses, usersUpdateUserResponses, utilsHealthCheckData, utilsHealthCheckResponses, utilsTestEmailData, utilsTestEmailErrors, utilsTestEmailResponses, versionsConfirmVersionData, versionsConfirmVersionErrors, versionsConfirmVersionResponses, versionsEditVersionData, versionsEditVersionErrors, versionsEditVersionResponses, versionsExportVersionData, versionsExportVersionErrors, versionsExportVersionResponses, versionsRecheckVersionData, versionsRecheckVersionErrors, versionsRecheckVersionResponses, versionsRewritePartData, versionsRewritePartErrors, versionsRewritePartResponses, voiceProfileActivateVersionData, voiceProfileActivateVersionErrors, voiceProfileActivateVersionResponses, voiceProfileCreateVersionData, voiceProfileCreateVersionErrors, voiceProfileCreateVersionResponses, voiceProfileReadActiveProfileData, voiceProfileReadActiveProfileErrors, voiceProfileReadActiveProfileResponses, voiceProfileReadVersionsData, voiceProfileReadVersionsErrors, voiceProfileReadVersionsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -711,6 +711,163 @@ export class ComplianceService {
                 'Content-Type': 'application/json',
                 ...options.headers
             }
+        });
+    }
+}
+
+export class EvaluationService {
+    /**
+     * Read Models
+     *
+     * The models that can be called and their configured prices (``null`` when not configured).
+     */
+    public static readModels<ThrowOnError extends boolean = true>(options?: Options<evaluationReadModelsData, ThrowOnError>) {
+        return (options?.client ?? client).get<evaluationReadModelsResponses, unknown, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/models',
+            ...options
+        });
+    }
+    
+    /**
+     * Read Rubrics
+     *
+     * The human rating rubric: dimensions, scale and version. Ratings are kept per dimension.
+     */
+    public static readRubrics<ThrowOnError extends boolean = true>(options?: Options<evaluationReadRubricsData, ThrowOnError>) {
+        return (options?.client ?? client).get<evaluationReadRubricsResponses, unknown, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/evaluation/rubrics',
+            ...options
+        });
+    }
+    
+    /**
+     * Read Datasets
+     */
+    public static readDatasets<ThrowOnError extends boolean = true>(options?: Options<evaluationReadDatasetsData, ThrowOnError>) {
+        return (options?.client ?? client).get<evaluationReadDatasetsResponses, evaluationReadDatasetsErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/evaluation/datasets',
+            ...options
+        });
+    }
+    
+    /**
+     * Create Dataset
+     *
+     * Create a dataset (or the next version of one). Versions are fixed once created.
+     */
+    public static createDataset<ThrowOnError extends boolean = true>(options: Options<evaluationCreateDatasetData, ThrowOnError>) {
+        return (options.client ?? client).post<evaluationCreateDatasetResponses, evaluationCreateDatasetErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/evaluation/datasets',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Read Cases
+     */
+    public static readCases<ThrowOnError extends boolean = true>(options: Options<evaluationReadCasesData, ThrowOnError>) {
+        return (options.client ?? client).get<evaluationReadCasesResponses, evaluationReadCasesErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/evaluation/datasets/{dataset_id}/cases',
+            ...options
+        });
+    }
+    
+    /**
+     * Read Runs
+     */
+    public static readRuns<ThrowOnError extends boolean = true>(options?: Options<evaluationReadRunsData, ThrowOnError>) {
+        return (options?.client ?? client).get<evaluationReadRunsResponses, evaluationReadRunsErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/evaluation/runs',
+            ...options
+        });
+    }
+    
+    /**
+     * Create Run
+     *
+     * Start an evaluation run; poll ``GET /evaluation/runs/{id}``. A repeated ``Idempotency-Key``
+     * returns the first run instead of starting another.
+     */
+    public static createRun<ThrowOnError extends boolean = true>(options: Options<evaluationCreateRunData, ThrowOnError>) {
+        return (options.client ?? client).post<evaluationCreateRunResponses, evaluationCreateRunErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/evaluation/runs',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Read Run
+     */
+    public static readRun<ThrowOnError extends boolean = true>(options: Options<evaluationReadRunData, ThrowOnError>) {
+        return (options.client ?? client).get<evaluationReadRunResponses, evaluationReadRunErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/evaluation/runs/{run_id}',
+            ...options
+        });
+    }
+    
+    /**
+     * Read Results
+     */
+    public static readResults<ThrowOnError extends boolean = true>(options: Options<evaluationReadResultsData, ThrowOnError>) {
+        return (options.client ?? client).get<evaluationReadResultsResponses, evaluationReadResultsErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/evaluation/runs/{run_id}/results',
+            ...options
+        });
+    }
+    
+    /**
+     * Rate
+     *
+     * Save the logged-in user's scores for one result. Saving again replaces their earlier scores.
+     */
+    public static rate<ThrowOnError extends boolean = true>(options: Options<evaluationRateData, ThrowOnError>) {
+        return (options.client ?? client).post<evaluationRateResponses, evaluationRateErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/evaluation/runs/{run_id}/ratings',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Read Agreement
+     */
+    public static readAgreement<ThrowOnError extends boolean = true>(options: Options<evaluationReadAgreementData, ThrowOnError>) {
+        return (options.client ?? client).get<evaluationReadAgreementResponses, evaluationReadAgreementErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/evaluation/runs/{run_id}/agreement',
+            ...options
         });
     }
 }

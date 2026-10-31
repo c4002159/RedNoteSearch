@@ -16,6 +16,7 @@ from app.models import (
     AuditLog,
     Brand,
     BrandVoiceProfile,
+    EvalDataset,
     KbDocument,
     Product,
     TaskInput,
@@ -188,6 +189,12 @@ def test_demo_seed_is_complete_searchable_and_idempotent(
         )
     ).all()
     assert [v.version for v in active] == [1]
+
+    datasets = db.exec(
+        select(EvalDataset).where(EvalDataset.brand_id == brand.id)
+    ).all()
+    assert {d.kind for d in datasets} == {"compliance", "factcheck", "generation"}
+    assert all(d.name.endswith("（演示）") and d.case_count >= 2 for d in datasets)
 
     hits = DbKnowledgeSearch(db, embedder).search(
         brand_id=brand.id, query="佛手柑 前调"

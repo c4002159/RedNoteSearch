@@ -363,6 +363,19 @@ def list_rules(
     return list(rows), total
 
 
+def active_rules(session: Session, brand_id: uuid.UUID | None) -> list[Rule]:
+    """Enabled global rules plus, when given, those of the brand (what a real check would use)."""
+    scope: Any = col(ComplianceRule.brand_id).is_(None)
+    if brand_id is not None:
+        scope = or_(scope, ComplianceRule.brand_id == brand_id)
+    return [
+        _to_rule(r)
+        for r in session.exec(
+            select(ComplianceRule).where(col(ComplianceRule.enabled).is_(True), scope)
+        ).all()
+    ]
+
+
 # ---- checks on a version ----
 @dataclass(frozen=True)
 class ComplianceSummary:
