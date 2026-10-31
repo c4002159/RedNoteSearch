@@ -263,6 +263,7 @@ RedNoteSearch/
 约定：
 - **文件归属**：应用壳（`frontend/src/routes/_layout.tsx`、`components/Sidebar`）、设计 token（`index.css`）、`components/Common` 归 A；B 的页面放在各自的路由文件和 `components/` 下自己的目录里，需要改公共部分先提小 PR 并 @A。
 - **顺序**：A 先根据 B 导出的设计稿做应用壳和 token，B 的页面接进壳里。壳完成前，B 可以先在自己的目录里写页面，用客户端和假数据开发。
+- **现状（2026-11-01）**：B 的设计稿还在陆续交付，A 的助手已先按技术文档、契约和已合并的第一、二批设计稿把下列页面做出了**可用的第一版**，等 B 的正式设计稿到了再对照调整（B 接手这些页面时在现有文件上改，不要另起炉灶）：应用壳与 token（`_layout.tsx`、`components/Sidebar`、`index.css`）、公共组件（`components/Common` 的状态徽标、请求编号、错误条、空状态、403/404 页、字数计数、进度、带原因的确认框）、文案与枚举标签（`lib/zh.ts`）、错误解析（`lib/apiError.ts`）、字数口径（`lib/count.ts`）、当前品牌（`hooks/useBrand.tsx`）、品牌与切换页（`/brands`）、生成工作台（`/generate`，含任务资料上传）、任务与版本历史（`/tasks`、`/tasks/:taskId`、版本对比 `/tasks/:taskId/compare`）、结果页（`/tasks/:taskId/versions/:versionId`，含编辑、重写、复检、证据人工判断、风险提示处理、确认、分开复制与导出）。**还没有做**（没有设计稿）：评测相关页面、爆款结构分析、品牌串味测试页、知识库、合规规则维护（含批量导入导出）、商品与品牌档案页。导航只列已存在的页面（`components/Sidebar/nav.ts`），新页面落地时在那里加一行。
 - **设计稿是视觉参考**：字段、选项、文案以契约、文案模块和接口为准；图与契约冲突时先列出来问人（见 `docs/design/README.md`）。
 
 ## 4.4 状态标签与视觉映射

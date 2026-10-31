@@ -1,5 +1,5 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import col, select
@@ -106,9 +106,12 @@ def read_rules(
     layer: Layer | None = None,
     rule_type: RuleType | None = None,
     severity: Severity | None = None,
+    scope: Literal["global", "brand"] | None = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> RulesPublic:
+    if scope == "brand" and brand_id is None:
+        raise HTTPException(status_code=422, detail="scope=brand needs brand_id")
     if brand_id is not None:
         get_brand_access(
             brand_id, session, current_user
@@ -122,6 +125,7 @@ def read_rules(
         severity=severity.value if severity else None,
         page=page,
         page_size=page_size,
+        scope_filter=scope,
     )
     return RulesPublic(
         items=[RulePublic.model_validate(r, from_attributes=True) for r in rows],

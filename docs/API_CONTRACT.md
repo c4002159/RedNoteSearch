@@ -140,6 +140,7 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 ```json
 {"id":"doc-uuid","brand_id":"b-uuid","status":"approved","index_status":"ready","version":1,"submitted_by":"u-uuid"}
 ```
+**提交人与审核人姓名（2026-11-01 新增，只增字段）**：资料项多 `submitted_by_name`，资料详情的每条审核记录多 `actor_name`；取用户的姓名，没有姓名就取邮箱，用户已不存在时为 `null`（前端显示“未知用户”）。所有品牌成员都能读到，编辑者不需要再调成员列表（该接口仅管理员）。
 editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索。管理员直入库不是对审核流程的绕过：两条路径靠角色区分，都写审计。
 
 ### `POST /knowledge-documents/{document_id}/versions`（admin，multipart）
@@ -170,7 +171,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 **实现约定（2026-10-31）**
 - `{document_id}` 是**某个版本行的 id**（响应里的 `id`）；同一逻辑文档的各版本共享 `group_id`。`KnowledgeSearch` 返回的 `document_id` 是 `group_id`，`document_version` 是版本号（ADR-010）。
-- 支持 PDF（需有文字，不做 OCR）、DOCX、MD、TXT、CSV，单文件 ≤ 10 MB（超过 413）；解析失败、空文件、不支持的类型返回 422，不保存任何内容。
+- 支持 PDF（需有文字，不做 OCR）、DOCX、MD、TXT、CSV，单文件大小限制见 1.5（PDF、DOCX ≤ 50 MB，MD、TXT、CSV ≤ 5 MB，超限 422 `FILE_TOO_LARGE`）；解析失败、空文件、不支持的类型返回 422，不保存任何内容。
 - 分块：按段落合并，每块 ≤ 500 字，过长段落按句末切分。
 - 管理员直接入库与新版本：先解析、分块、嵌入，全部成功后才一次性写入（approved、ready、当前版本）；嵌入模型不可用返回 503，不留下半成品。审计记为 `kb_review` 的 `admin_direct_ingest`。
 - 运营提交：解析与分块在提交时完成，**嵌入在审核通过时进行**；通过时嵌入失败返回 503 且状态仍为 `pending_review`。带 `supersedes_document_id` 的提交，通过前仍使用旧的当前版本；supersedes 指向其他品牌的资料返回 404。
@@ -373,7 +374,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 ## 6. 合规规则（B）
 
-- `GET /compliance-rules?layer=&rule_type=&severity=&brand_id=&page=`：登录用户可查全局规则与所属品牌规则。
+- `GET /compliance-rules?layer=&rule_type=&severity=&brand_id=&scope=&page=&page_size=`：登录用户可查全局规则与所属品牌规则。`scope`（2026-11-01 新增，只增参数）可选 `global`（只要全局规则）或 `brand`（只要 `brand_id` 指定的品牌的规则，必须带 `brand_id`，否则 422）；不传则仍是全局加品牌。`page_size` 默认 20、最大 100。列表包含已停用规则。
 - `GET /compliance-rules/{rule_id}`：规则详情。
 - 字段：`id`、`brand_id|null`、`layer`、`rule_type`（`absolute_term | efficacy_claim | medical_term | data_claim | platform_rule | brand_forbidden`）、`pattern`、`is_regex`、`severity`、`suggestion`、`source_name`、`source_url`、`source_clause`、`region_scope`、`effective_from`、`effective_to`、`rule_version`、`enabled`。
 - 规则的创建、修改、停用属 **P2**（品牌 admin）；P0 规则由种子数据或评测目录导入，不通过 API 编辑。

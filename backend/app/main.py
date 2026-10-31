@@ -34,7 +34,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Request-ID"],
+    expose_headers=["X-Request-ID", "Content-Disposition"],
 )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)

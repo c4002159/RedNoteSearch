@@ -212,6 +212,13 @@ def test_submission_review_flow(
         f"{API}/knowledge-documents/{pending['id']}", headers=editor_headers
     ).json()
     assert [r["action"] for r in detail["reviews"]] == ["submit", "approve"]
+    # Names are shown to every member, so editors can read who submitted and who reviewed.
+    assert pending["submitted_by_name"] and detail["submitted_by_name"]
+    assert all(r["actor_name"] for r in detail["reviews"])
+    listed = client.get(
+        f"{API}/brands/{brand['id']}/knowledge-documents", headers=editor_headers
+    ).json()["items"]
+    assert all(d["submitted_by_name"] for d in listed)
 
 
 def test_rejected_documents_are_never_searchable(

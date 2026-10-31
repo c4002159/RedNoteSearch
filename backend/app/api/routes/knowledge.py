@@ -2,6 +2,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from sqlmodel import col, select
 
 from app.api.brand_deps import BrandAccess, BrandAccessDep, BrandAdminDep
 from app.api.deps import CurrentUser, SessionDep
@@ -21,6 +22,7 @@ from app.models import (
     MemberRole,
     ReviewCreate,
     ReviewPublic,
+    User,
 )
 from app.ports.embedding import EmbeddingProvider
 from app.services import knowledge as kb
@@ -82,8 +84,28 @@ def _read_upload(file: UploadFile) -> tuple[str, bytes]:
     return filename, content
 
 
-def _public(doc: KbDocument) -> DocumentPublic:
-    return DocumentPublic.model_validate(doc, from_attributes=True)
+def _user_names(
+    session: SessionDep, ids: list[uuid.UUID | None]
+) -> dict[uuid.UUID, str]:
+    wanted = {i for i in ids if i is not None}
+    if not wanted:
+        return {}
+    rows = session.exec(
+        select(User.id, User.full_name, User.email).where(col(User.id).in_(wanted))
+    ).all()
+    return {uid: name or email for uid, name, email in rows}
+
+
+def _public(
+    session: SessionDep,
+    doc: KbDocument,
+    names: dict[uuid.UUID, str] | None = None,
+) -> DocumentPublic:
+    if names is None:
+        names = _user_names(session, [doc.submitted_by])
+    out = DocumentPublic.model_validate(doc, from_attributes=True)
+    out.submitted_by_name = names.get(doc.submitted_by) if doc.submitted_by else None
+    return out
 
 
 TitleForm = Annotated[str, Form(min_length=1, max_length=200)]
@@ -114,7 +136,7 @@ def ingest_document(
         filename=filename,
         content=content,
     )
-    return _public(doc)
+    return _public(session, doc)
 
 
 @router.post(
@@ -144,7 +166,7 @@ def ingest_new_version(
         content=content,
         supersedes=doc,
     )
-    return _public(new)
+    return _public(session, new)
 
 
 @router.post(
@@ -179,7 +201,7 @@ def submit_document(
         content=content,
         supersedes=supersedes,
     )
-    return _public(doc)
+    return _public(session, doc)
 
 
 @router.get("/brands/{brand_id}/knowledge-documents", response_model=DocumentsPublic)
@@ -199,8 +221,12 @@ def read_documents(
         page=page,
         page_size=page_size,
     )
+    names = _user_names(session, [d.submitted_by for d in rows])
     return DocumentsPublic(
-        items=[_public(d) for d in rows], total=total, page=page, page_size=page_size
+        items=[_public(session, d, names) for d in rows],
+        total=total,
+        page=page,
+        page_size=page_size,
     )
 
 
@@ -210,16 +236,20 @@ def read_document(
     session: SessionDep,
 ) -> DocumentDetail:
     doc = access[0]
+    review_rows = kb.list_reviews(session=session, doc=doc)
+    actor_names = _user_names(session, [r.actor_id for r in review_rows])
+    reviews = []
+    for r in review_rows:
+        item = ReviewPublic.model_validate(r, from_attributes=True)
+        item.actor_name = actor_names.get(r.actor_id) if r.actor_id else None
+        reviews.append(item)
     return DocumentDetail(
-        **_public(doc).model_dump(),
+        **_public(session, doc).model_dump(),
         versions=[
             DocumentVersionRef.model_validate(v, from_attributes=True)
             for v in kb.list_versions(session=session, doc=doc)
         ],
-        reviews=[
-            ReviewPublic.model_validate(r, from_attributes=True)
-            for r in kb.list_reviews(session=session, doc=doc)
-        ],
+        reviews=reviews,
     )
 
 
@@ -258,9 +288,10 @@ def reindex_document(
     embedder: EmbedderDep,
 ) -> DocumentPublic:
     return _public(
+        session,
         kb.reindex_document(
             session=session, embedder=embedder, doc=doc, actor_id=access[1].user_id
-        )
+        ),
     )
 
 
@@ -282,7 +313,7 @@ def review_document(
         reason=body.reason,
         reviewer_id=access[1].user_id,
     )
-    return _public(reviewed)
+    return _public(session, reviewed)
 
 
 @router.post(
@@ -295,10 +326,11 @@ def deactivate_document(
     body: DeactivateRequest | None = None,
 ) -> DocumentPublic:
     return _public(
+        session,
         kb.deactivate_document(
             session=session,
             doc=doc,
             actor_id=access[1].user_id,
             reason=body.reason if body else None,
-        )
+        ),
     )
