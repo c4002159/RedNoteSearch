@@ -6,6 +6,7 @@ from app.api.routes import (
     login,
     private,
     products,
+    tasks,
     users,
     utils,
     voice_profile,
@@ -18,6 +19,7 @@ api_router.include_router(users.router)
 api_router.include_router(utils.router)
 api_router.include_router(brands.router)
 api_router.include_router(products.router)
+api_router.include_router(tasks.router)
 api_router.include_router(knowledge.router)
 api_router.include_router(voice_profile.router)
 
