@@ -229,7 +229,7 @@ class CasesPublic(SQLModel):
 
 class RunCreate(BaseModel):
     dataset_id: uuid.UUID
-    model_ids: list[str] = Field(default_factory=list, max_length=5)
+    model_ids: list[str] = Field(default_factory=list)
     prompt_version: str | None = Field(default=None, max_length=50)
     baselines: list[Literal["lexicon_only", "no_verification"]] = Field(
         default_factory=list
