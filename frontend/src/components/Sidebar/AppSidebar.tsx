@@ -1,5 +1,3 @@
-import { Home, Users } from "lucide-react"
-
 import { SidebarAppearance } from "@/components/Common/Appearance"
 import { Logo } from "@/components/Common/Logo"
 import {
@@ -9,29 +7,31 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar"
 import useAuth from "@/hooks/useAuth"
-import { type Item, Main } from "./Main"
-import { User } from "./User"
-
-const baseItems: Item[] = [{ icon: Home, title: "Dashboard", path: "/" }]
+import { useBrand } from "@/hooks/useBrand"
+import { Main } from "./Main"
+import { visibleGroups } from "./nav"
 
 export function AppSidebar() {
-  const { user: currentUser } = useAuth()
+  const { user } = useAuth()
+  const { current } = useBrand()
 
-  const items = currentUser?.is_superuser
-    ? [...baseItems, { icon: Users, title: "Admin", path: "/admin" }]
-    : baseItems
+  // Navigation only hides what the role cannot use; the server still decides (FC-08).
+  const groups = visibleGroups({
+    isMember: current !== null,
+    isAdmin: current?.role === "admin",
+    isPlatform: !!user?.is_superuser,
+  })
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="px-4 py-6 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
+      <SidebarHeader className="px-4 py-5 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0">
         <Logo variant="responsive" />
       </SidebarHeader>
       <SidebarContent>
-        <Main items={items} />
+        <Main groups={groups} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarAppearance />
-        <User user={currentUser} />
       </SidebarFooter>
     </Sidebar>
   )
