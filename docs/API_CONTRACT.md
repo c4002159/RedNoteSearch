@@ -355,11 +355,101 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 `GET /audit-logs?brand_id=&action=&page=`（品牌 admin）：关键操作（入库、审核、停用、越权尝试）；P0 只写不读。
 
-## 10. P1 接口（占位，开发前补细节）
+## 10. P1 接口（F13 审议稿与其他占位）
 
-- 爆款结构分析（B）：`POST /brands/{brand_id}/viral-samples`；`GET …/viral-samples`；`POST /viral-samples/{id}/analyze`；`POST /viral-patterns/{id}/to-template`。样本只属于所在品牌，不入公共知识库；输出结构标签与抽象模板，不得大段复用样本原句。
 - 多模型对比（B）：`POST /model-comparisons`（幂等）；`GET /model-comparisons/{id}`：并列各模型的约束通过率、人工评分、延迟、费用；失败模型单独显示。
 - 任务文件输入（A 解析、B 消费）：`POST /tasks` 的 `task_materials` 扩展为文件上传，只存任务快照，不建知识库索引。
+
+### 10.1 F13：爆款结构分析（契约审议稿，待 A/B 确认，尚未实现）
+
+仅支持用户手动贴入已获授权的文本，提取结构标签和抽象模板，不承诺传播效果；样本属于当前品牌，不进入知识库或任务检索。下列接口尚未实现。F15 不在本次交付范围。
+
+#### 样本创建与读取
+
+| 方法与路径 | 权限/请求 | 成功 |
+|---|---|---|
+| `POST /brands/{brand_id}/viral-samples` | 品牌成员；JSON `{text,note?,source_url?}` | 201 `ViralSample` |
+| `GET /brands/{brand_id}/viral-samples` | 品牌成员；分页同 §1.3，sort 仅 ±created_at | 200 标准分页，items 为去掉 text 的样本元数据加 excerpt |
+| `GET /viral-samples/{sample_id}`（新增读取建议） | 样本品牌成员 | 200 `ViralSample`，供刷新恢复 |
+| `GET /viral-samples/{sample_id}/patterns`（新增读取建议） | 样本品牌成员；分页同 §1.3 | 200 标准分页，items 为已成功保存的模式，created_at DESC、id DESC |
+| `GET /viral-patterns/{pattern_id}`（新增读取建议） | 模式品牌成员 | 200 `ViralPattern`，供分析结果刷新恢复 |
+
+显式品牌路径非成员为 403；样本/模式 id 不存在或非成员为 404。平台管理员也不能跳过品牌成员检查。所有接口需 JWT。
+
+创建示例：
+
+```json
+{"text":"演示样本：先提出场景，再描述香调，最后提出选择建议。","note":"自编演示样本","source_url":"https://example.com/note"}
+```
+
+`text` 必填，原始输入 1–5000 Unicode 码点；清除既有规则规定的隐藏话题后缀后去首尾空白，保存文本仍需 1–5000 码点。保留话题名，不按标题字数算法计数。`note` 可空，≤1000 码点；`source_url` 可空，≤2000 字符，仅允许合法 http/https URL，作为文本记录，服务端绝不访问、抓取或下载。UUID 格式错为 422。201 `ViralSample` 示例：
+
+```json
+{"id":"66666666-6666-4666-8666-666666666666","brand_id":"22222222-2222-4222-8222-222222222222","text":"演示样本：先提出场景，再描述香调，最后提出选择建议。","note":"自编演示样本","source_url":"https://example.com/note","created_at":"2026-11-01T00:00:00Z"}
+```
+
+列表 item 含 id/brand_id/note/source_url/created_at/char_count/excerpt（保存文本前 200 码点），不带 text；分页响应 `{items,total,page,page_size}`。样本创建无需幂等；重复请求会创建新样本。创建后只读，本稿不提供编辑/删除接口。
+
+#### 分析与结果
+
+`POST /viral-samples/{sample_id}/analyze`，品牌成员，JSON 请求 `{model_id}`（必须是 GET /models 已知模型，1–80 字符），建议客户端总是带 `Idempotency-Key`（1–100 字符）。同步分析，成功 201 `ViralPattern`；不创建独立后台作业，前端等待并可在网络恢复后重放同键或读取已保存模式。选择同步 201 是为匹配计划中同步暴露 503 的失败恢复，避免额外新增轮询作业契约。
+
+```json
+{"model_id":"deepseek-flash"}
+```
+
+`ViralPattern` 示例：
+
+```json
+{"id":"77777777-7777-4777-8777-777777777777","sample_id":"66666666-6666-4666-8666-666666666666","brand_id":"22222222-2222-4222-8222-222222222222","title_pattern":"场景与选择问题","hook_type":"场景设问","paragraph_structure":["引入场景","展开资料","收束建议"],"tone":"克制","emoji_usage":"少量分隔段落","hashtag_usage":"使用场景类话题","abstract_template":"围绕{{scene}}提出问题，以{{supported_facts}}展开，给出{{closing}}。","model_id":"deepseek-flash","prompt_version":"viral-v1","checker_version":"viral-copy-v1","created_at":"2026-11-01T00:00:00Z"}
+```
+
+- `title_pattern`、`hook_type`、`tone`、`emoji_usage`、`hashtag_usage` 为非空描述文本，各 ≤200 码点；不是前端写死的枚举。`paragraph_structure` 有序列表 1–20 条，每条非空、≤300 码点；`abstract_template` 非空、≤5000 码点，使用 `{{scene}}`、`{{supported_facts}}`、`{{closing}}` 等占位符，不保存样本长句。模型结果只接受本节结构字段；id/品牌/版本由服务端赋值。
+- 输出先做结构校验，再做复制检查：样本与所有结构文本字段分别经过 Unicode NFKC、移除 Unicode 空白；任一输出字段出现与样本连续 ≥12 个相同码点即拒绝。包括 abstract_template，不仅检查模板字段，避免其他字段夹带原句。短样本仍接受但该阈值不能发现 <12 字复用；此检查不代表所有改写或授权问题均已排除。
+- 模型结构或复制检查不满足时反馈一次并最多重试一轮（总计最多 2 次分析模型调用）。最终不合格返回拟新增 422 `INVALID_MODEL_OUTPUT`（不是既有任务 last_error 字段），details.reason 为 `schema_invalid` 或 `copied_text`；不保存不合格模式。模型超时/不可用返回 503 MODEL_UNAVAILABLE，不保存半成品。
+- 分析过程为请求内“校验→模型分析→代码检查→提交成功结果”；不增改既有任务 flow_status。样本只读；每次非幂等重放的成功分析产生新模式，旧模式不覆盖。同步超时后用户可以用同键确认原结果。
+- analyze 幂等按用户+sample_id+操作隔离，指纹为规范 JSON 请求体；成功记录保留至资源生命周期结束，相同体同键返回同一 201 模式；不同体 409 IDEMPOTENCY_CONFLICT；同键处理中 409 CONFLICT（reason=operation_in_progress）；失败释放键可重试。重放先重新授权，不重复模型调用和成功审计。
+
+#### 转为品牌场景模板
+
+`POST /viral-patterns/{pattern_id}/to-template`：**权限待 A 决定**，建议仅该品牌 admin，editor 返回 403；非成员与不存在仍为 404。以下请求、权限和示例属于此建议分支，不能在 A 确认前据此实施权限变更。
+
+```json
+{"name":"场景引导模板","scene":"seeding"}
+```
+
+`name` 去首尾空白后 1–100 码点；`scene` 只取现有 `seeding|review|tutorial|launch|promotion|story`。不接受 brand_id 或替换模式内容。成功 201 示例：
+
+```json
+{"id":"88888888-8888-4888-8888-888888888888","brand_id":"22222222-2222-4222-8222-222222222222","name":"场景引导模板","scene":"seeding","structure":"围绕{{scene}}提出问题，以{{supported_facts}}展开，给出{{closing}}。","template_version":1}
+```
+
+模式属于哪个品牌，模板就创建在哪个品牌，不能转成全局模板或另一品牌模板。结构来自已校验的 abstract_template，模板启用后由现有 GET /scenarios 返回给有权用户，不改变旧模板；不把样本原文带入模板。本操作可带 Idempotency-Key（同 analyze 的作用域规则，资源改为 pattern_id、操作独立）；无键重复转换会创建多个独立模板，不覆盖旧模板。创建与审计原子提交。
+
+#### 错误、保留与审计
+
+| HTTP / code | 条件与 details | 恢复 |
+|---|---|---|
+| 401 `UNAUTHENTICATED` | 任意接口未登录 | 登录后重试 |
+| 403 `FORBIDDEN` | 显式品牌路径非成员；或 to-template 角色不足（待 A 定） | 不能越权 |
+| 404 `NOT_FOUND` | 样本/模式不存在或非所属品牌成员 | 不泄露存在性 |
+| 422 `VALIDATION_ERROR` | 空文本/超长、非法 URL/scene/model_id/UUID/分页；details.errors | 修正输入 |
+| 422 `INVALID_MODEL_OUTPUT`（拟新增） | 分析重试后仍结构错/连续复制；details.reason | 换输入或新请求；不返回模型原始输出 |
+| 409 `IDEMPOTENCY_CONFLICT` | 同键不同请求 | 换键 |
+| 409 `CONFLICT` | 同键仍在处理；details.reason | 等待后原键重试 |
+| 503 `MODEL_UNAVAILABLE` | 模型未配置、超时或不可用 | 样本保留，无模式半成品；原键重试 |
+| 500 `INTERNAL_ERROR` | 意外故障，仅通用错误与 request_id | 按幂等键查询/重放 |
+
+错误示例：
+
+```json
+{"error":{"code":"INVALID_MODEL_OUTPUT","message":"分析输出不符合结构要求","details":{"reason":"copied_text"},"request_id":"req-uuid"}}
+```
+
+- 没有样本/模式启停或草稿中间状态，因此本次没有需要 409 INVALID_STATE 的已定义转换；若以后增加删除/过期状态，须另补可读与操作矩阵，不能自行给已删除资源重新分析。
+- **待 A 决定：样本保留期限**，以及到期是否删除原文、保留哪些元数据和关联模式、已转模板如何继续引用。当前契约不定期限、不增加自动清理任务；该问题需在实现前解决。另待 A 确认 to-template 权限是否采用本稿品牌 admin 建议。
+- 每次模型调用（含失败及重试）独立记录 llm_call_log，不在错误/审计里保存原始敏感模型输出。成功创建样本写 viral.sample_create，成功分析写 viral.analyze，转换写 viral.to_template；detail 仅资源 id、长度、模型/版本，原文与原链接不写审计。失败不写成功审计；成功结果与审计原子提交，快照、旧模式不覆盖。
+- 新增三个读取接口的理由：原占位只有创建/分析/转换，无法在页面刷新后恢复样本全文与已分析结果；读取仍沿用品牌成员隔离，不引入跨品牌访问。
 
 ## 11. 合同变更流程
 
@@ -369,6 +459,8 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 4. 每个新增或修改的端点补成功、验证错误、未授权、越权测试。
 
 ## 12. 变更记录
+
+- 2026-11-01 F13 契约审议稿：新增接口/字段、权限、幂等、错误与失败恢复；待 A/B 确认，尚未实现。用例 TC-146 至 TC-157。
 
 - v1.1：补齐第 2、3、4（版本、分块、重建索引）、5（场景、风格、任务列表、局部重写、断言确认、选定标题、导出格式）、6、7（创建、评分、一致性）、8；明确 403 与 404 策略、分页、幂等、文件限制；关闭自助注册。
 - v1.0：初版（见原 API_CONTRACT.md）。
