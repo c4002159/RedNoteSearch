@@ -32,3 +32,8 @@ export function tagsVisibleUnits(tags: string[]): number {
 export function formatWeight(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }
+
+// F13 limits are Unicode code points, unlike the publishing title/body budgets above.
+export function codePointCount(text: string): number {
+  return Array.from(text).length
+}

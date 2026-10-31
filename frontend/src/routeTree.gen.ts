@@ -21,6 +21,9 @@ import { Route as LayoutGenerateRouteImport } from './routes/_layout/generate'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
 import { Route as LayoutComplianceRulesRouteImport } from './routes/_layout/compliance/rules'
 import { Route as LayoutTasksIndexRouteImport } from './routes/_layout/tasks/index'
+import { Route as LayoutViralPatternsIdRouteImport } from './routes/_layout/viral-patterns/$id'
+import { Route as LayoutViralSamplesIndexRouteImport } from './routes/_layout/viral-samples/index'
+import { Route as LayoutViralSamplesIdRouteImport } from './routes/_layout/viral-samples/$id'
 import { Route as LayoutTasksTaskIdIndexRouteImport } from './routes/_layout/tasks/$taskId/index'
 import { Route as LayoutTasksTaskIdCompareRouteImport } from './routes/_layout/tasks/$taskId/compare'
 import { Route as LayoutTasksTaskIdVersionsVersionIdRouteImport } from './routes/_layout/tasks/$taskId/versions/$versionId'
@@ -84,6 +87,21 @@ const LayoutTasksIndexRoute = LayoutTasksIndexRouteImport.update({
   path: '/tasks/',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutViralPatternsIdRoute = LayoutViralPatternsIdRouteImport.update({
+  id: '/viral-patterns/$id',
+  path: '/viral-patterns/$id',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutViralSamplesIndexRoute = LayoutViralSamplesIndexRouteImport.update({
+  id: '/viral-samples/',
+  path: '/viral-samples/',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutViralSamplesIdRoute = LayoutViralSamplesIdRouteImport.update({
+  id: '/viral-samples/$id',
+  path: '/viral-samples/$id',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutTasksTaskIdIndexRoute = LayoutTasksTaskIdIndexRouteImport.update({
   id: '/tasks/$taskId/',
   path: '/tasks/$taskId/',
@@ -113,7 +131,10 @@ export interface FileRoutesByFullPath {
   '/generate': typeof LayoutGenerateRoute
   '/settings': typeof LayoutSettingsRoute
   '/compliance/rules': typeof LayoutComplianceRulesRoute
+  '/viral-patterns/$id': typeof LayoutViralPatternsIdRoute
+  '/viral-samples/$id': typeof LayoutViralSamplesIdRoute
   '/tasks/': typeof LayoutTasksIndexRoute
+  '/viral-samples/': typeof LayoutViralSamplesIndexRoute
   '/tasks/$taskId/compare': typeof LayoutTasksTaskIdCompareRoute
   '/tasks/$taskId/': typeof LayoutTasksTaskIdIndexRoute
   '/tasks/$taskId/versions/$versionId': typeof LayoutTasksTaskIdVersionsVersionIdRoute
@@ -129,7 +150,10 @@ export interface FileRoutesByTo {
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
   '/compliance/rules': typeof LayoutComplianceRulesRoute
+  '/viral-patterns/$id': typeof LayoutViralPatternsIdRoute
+  '/viral-samples/$id': typeof LayoutViralSamplesIdRoute
   '/tasks': typeof LayoutTasksIndexRoute
+  '/viral-samples': typeof LayoutViralSamplesIndexRoute
   '/tasks/$taskId/compare': typeof LayoutTasksTaskIdCompareRoute
   '/tasks/$taskId': typeof LayoutTasksTaskIdIndexRoute
   '/tasks/$taskId/versions/$versionId': typeof LayoutTasksTaskIdVersionsVersionIdRoute
@@ -147,7 +171,10 @@ export interface FileRoutesById {
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/': typeof LayoutIndexRoute
   '/_layout/compliance/rules': typeof LayoutComplianceRulesRoute
+  '/_layout/viral-patterns/$id': typeof LayoutViralPatternsIdRoute
+  '/_layout/viral-samples/$id': typeof LayoutViralSamplesIdRoute
   '/_layout/tasks/': typeof LayoutTasksIndexRoute
+  '/_layout/viral-samples/': typeof LayoutViralSamplesIndexRoute
   '/_layout/tasks/$taskId/compare': typeof LayoutTasksTaskIdCompareRoute
   '/_layout/tasks/$taskId/': typeof LayoutTasksTaskIdIndexRoute
   '/_layout/tasks/$taskId/versions/$versionId': typeof LayoutTasksTaskIdVersionsVersionIdRoute
@@ -165,7 +192,10 @@ export interface FileRouteTypes {
     | '/generate'
     | '/settings'
     | '/compliance/rules'
+    | '/viral-patterns/$id'
+    | '/viral-samples/$id'
     | '/tasks/'
+    | '/viral-samples/'
     | '/tasks/$taskId/compare'
     | '/tasks/$taskId/'
     | '/tasks/$taskId/versions/$versionId'
@@ -181,7 +211,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/'
     | '/compliance/rules'
+    | '/viral-patterns/$id'
+    | '/viral-samples/$id'
     | '/tasks'
+    | '/viral-samples'
     | '/tasks/$taskId/compare'
     | '/tasks/$taskId'
     | '/tasks/$taskId/versions/$versionId'
@@ -198,7 +231,10 @@ export interface FileRouteTypes {
     | '/_layout/settings'
     | '/_layout/'
     | '/_layout/compliance/rules'
+    | '/_layout/viral-patterns/$id'
+    | '/_layout/viral-samples/$id'
     | '/_layout/tasks/'
+    | '/_layout/viral-samples/'
     | '/_layout/tasks/$taskId/compare'
     | '/_layout/tasks/$taskId/'
     | '/_layout/tasks/$taskId/versions/$versionId'
@@ -298,6 +334,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutTasksIndexRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/viral-patterns/$id': {
+      id: '/_layout/viral-patterns/$id'
+      path: '/viral-patterns/$id'
+      fullPath: '/viral-patterns/$id'
+      preLoaderRoute: typeof LayoutViralPatternsIdRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/viral-samples/': {
+      id: '/_layout/viral-samples/'
+      path: '/viral-samples'
+      fullPath: '/viral-samples/'
+      preLoaderRoute: typeof LayoutViralSamplesIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/viral-samples/$id': {
+      id: '/_layout/viral-samples/$id'
+      path: '/viral-samples/$id'
+      fullPath: '/viral-samples/$id'
+      preLoaderRoute: typeof LayoutViralSamplesIdRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/tasks/$taskId/': {
       id: '/_layout/tasks/$taskId/'
       path: '/tasks/$taskId'
@@ -329,7 +386,10 @@ interface LayoutRouteChildren {
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
   LayoutComplianceRulesRoute: typeof LayoutComplianceRulesRoute
+  LayoutViralPatternsIdRoute: typeof LayoutViralPatternsIdRoute
+  LayoutViralSamplesIdRoute: typeof LayoutViralSamplesIdRoute
   LayoutTasksIndexRoute: typeof LayoutTasksIndexRoute
+  LayoutViralSamplesIndexRoute: typeof LayoutViralSamplesIndexRoute
   LayoutTasksTaskIdCompareRoute: typeof LayoutTasksTaskIdCompareRoute
   LayoutTasksTaskIdIndexRoute: typeof LayoutTasksTaskIdIndexRoute
   LayoutTasksTaskIdVersionsVersionIdRoute: typeof LayoutTasksTaskIdVersionsVersionIdRoute
@@ -342,7 +402,10 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutIndexRoute: LayoutIndexRoute,
   LayoutComplianceRulesRoute: LayoutComplianceRulesRoute,
+  LayoutViralPatternsIdRoute: LayoutViralPatternsIdRoute,
+  LayoutViralSamplesIdRoute: LayoutViralSamplesIdRoute,
   LayoutTasksIndexRoute: LayoutTasksIndexRoute,
+  LayoutViralSamplesIndexRoute: LayoutViralSamplesIndexRoute,
   LayoutTasksTaskIdCompareRoute: LayoutTasksTaskIdCompareRoute,
   LayoutTasksTaskIdIndexRoute: LayoutTasksTaskIdIndexRoute,
   LayoutTasksTaskIdVersionsVersionIdRoute:
