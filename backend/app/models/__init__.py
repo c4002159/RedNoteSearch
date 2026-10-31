@@ -6,8 +6,7 @@ Every module that defines a table must be imported here, otherwise Alembic canno
 
 Modules:
 
-* member A: ``identity`` (users, tokens), ``catalog`` (tenant, brand, brand members; product and voice
-  profile come next), ``knowledge`` (documents, reviews, chunks)
+* member A: ``identity`` (users, tokens), ``catalog`` (tenant, brand, brand members), ``product`` (products, voice profile versions), ``knowledge`` (documents, reviews, chunks)
 * member B (to be added): ``generation``, ``compliance``, ``evaluation``
 """
 
@@ -54,8 +53,36 @@ from app.models.knowledge import (
     KbReview,
     ReviewAction,
 )
+from app.models.product import (
+    BrandVoiceProfile,
+    Product,
+    ProductCreate,
+    ProductNotes,
+    ProductPublic,
+    ProductsPublic,
+    ProductStatus,
+    ProductUpdate,
+    SellingPoint,
+    SellingPointPublic,
+    VoiceProfileCreate,
+    VoiceProfilePublic,
+    VoiceProfilesPublic,
+)
 
 __all__ = [
+    "BrandVoiceProfile",
+    "Product",
+    "ProductCreate",
+    "ProductNotes",
+    "ProductPublic",
+    "ProductsPublic",
+    "ProductStatus",
+    "ProductUpdate",
+    "SellingPoint",
+    "SellingPointPublic",
+    "VoiceProfileCreate",
+    "VoiceProfilePublic",
+    "VoiceProfilesPublic",
     "EMBEDDING_DIMENSIONS",
     "Brand",
     "BrandCategory",

@@ -114,12 +114,19 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 ```
 `selling_points` 每条须能关联已审核资料来源；无来源的卖点保存为草稿，不参与“可作证据”。
 
+**实现约定（2026-10-31）**
+- 列表：`status` 默认 `active`；`page` 从 1 起，`page_size` 默认 20、最大 100，越界返回 422；响应为 `{items,total,page,page_size}`。
+- `PATCH /products/{id}`、`POST /products/{id}/archive` 的品牌取自商品本身，调用者须是该品牌 admin；商品不存在与无权限都返回 403，不泄露存在性。PATCH 里 `null` 不会清空必填字段。
+- `selling_points[].evidence_status` 为响应附加字段：`linked`（有来源）或 `draft`（无来源）。来源必须是本品牌“已审核且为当前版本”的资料，分块必须属于该资料，否则 409；只给 `source_chunk_id` 不给资料同样 409。
+
 ### 品牌档案（版本化）
 - `GET /brands/{brand_id}/voice-profile`：当前生效档案及版本。
 - `GET /brands/{brand_id}/voice-profile/versions`：版本列表。
 - `POST /brands/{brand_id}/voice-profile/versions`（admin）：创建新版本（草稿），体含 `persona`、`tone_keywords`、`preferred_words`、`forbidden_words`、`sample_refs`。
 - `POST /brands/{brand_id}/voice-profile/versions/{version}/activate`（admin）：设为生效，旧版本保留。
 - `POST /brands/{brand_id}/voice-profile/drafts`（admin，**P1**）：基于已入库资料由模型起草，返回草稿，**须人工确认后才能创建版本**。
+
+**实现约定（2026-10-31）**：新版本创建后 `is_active=false`，激活时自动停用旧版本（每个品牌只有一个生效版本，数据库用部分唯一索引保证）；`GET /voice-profile` 在没有生效版本时返回 404；响应字段为 `brand_id, version, persona, tone_keywords, preferred_words, forbidden_words, sample_refs, is_active, created_at`。`drafts`（P1）尚未实现。B 的生成代码通过 `VoiceProfileProvider` 端口取档案，真实实现是 `app.services.voice_profiles.DbVoiceProfileProvider`。
 
 ## 4. 知识资料（A）
 
