@@ -216,6 +216,16 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 ```
 `flow_status`：`queued | generating | checking | checks_completed | needs_human_review | constraint_failed | edited_pending_recheck | ready_to_copy`。仅表示流程，不代表合规通过。
 
+**生成的实现约定（2026-10-31）**
+- `POST /tasks/{task_id}/generate` 立即返回 202 和任务当前状态（`generating`），生成在响应之后后台进行，客户端轮询 `GET /tasks/{id}`。只有 `queued` 的任务，或上一次因约束未通过而 `constraint_failed` 的任务可以（重新）生成，其他状态返回 409 `INVALID_STATE`；同一个 `Idempotency-Key`（≤100 字符）重复提交不会启动第二次生成。
+- 任务多了 `last_error`（简短、不含密钥的原因）：`model_unavailable`（模型不可用，任务回到原状态，可直接重试）、`invalid_model_output`（模型多次返回不符合格式的输出，任务为 `constraint_failed`）。
+- 一次生成最多 3 轮：第 1 轮正常生成，约束检查未通过则把问题告诉模型再生成，最多再 2 轮；每轮格式不符最多再问 1 次，因此一次生成最多 6 次模型调用。仍未通过时保存该版本并标 `constraint_failed`，检查结果里写明哪个标题、哪个字段、哪个词。
+- 约束检查对**每一个标题候选**单独判定，对正文加标签判定字数、标签数量、必含词和禁用词；禁用词包括品牌档案的禁用词和商品的“禁止宣称”。
+- 约束通过的版本状态为 `checking`，任务进度为 `evidence`：证据与合规检查是后续步骤，完成前版本不会变成 `checks_completed`，更不会是 `ready_to_copy`。
+- 版本记录 `template_version`、`prompt_version`（`gen-v1`）、`voice_version`、`checker_version`（`constraints-v1`）、`model`，以及当次检索到的资料快照 `retrieved_sources`（含来源级别、文档与版本、分块 id、哈希和 200 字摘录）。
+- 提示词只把**有来源**的卖点当作事实；无来源的卖点标为“未核实，只可参考”；任务资料标为“未审核”。
+- 每次模型调用（含失败）写入 `llm_call_log`，用独立事务，调用失败回滚时也留痕。
+
 ### `GET /tasks/{task_id}/versions`　`GET /generation-versions/{version_id}`
 版本详情字段：`title_candidates`、`body`、`hashtags`、`cover_candidates`、`final_text`、`flow_status`、`constraint_checks`、`claim_evidence`、`compliance_checks`、`retrieved_sources`、`template_version`、`prompt_version`、`voice_version`、`checker_version`、`model`、`selected_title_index`、`selected_cover_index`。
 

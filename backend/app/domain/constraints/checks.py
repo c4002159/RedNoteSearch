@@ -82,6 +82,23 @@ def _clean_words(words: list[str] | None) -> list[str]:
     return list(seen)
 
 
+def forbidden_word_issues(
+    field_name: str, text: str, words: list[str] | None
+) -> list[ConstraintIssue]:
+    """Every hit of a forbidden word in one text, with its position (case-insensitive)."""
+    lowered = text.lower()
+    return [
+        ConstraintIssue(
+            field_name,
+            ConstraintCode.FORBIDDEN_WORD,
+            f"命中禁用词：{word}",
+            {"word": word, "position": position},
+        )
+        for word in _clean_words(words)
+        for position in _find_all(lowered, word.lower())
+    ]
+
+
 def check_title(
     title: str, config: ConstraintConfig = ConstraintConfig()
 ) -> list[ConstraintIssue]:
@@ -195,13 +212,5 @@ def check_note(
             )
     for word in _clean_words(forbidden_words):
         for name, text in fields.items():
-            for position in _find_all(text.lower(), word.lower()):
-                issues.append(
-                    ConstraintIssue(
-                        name,
-                        ConstraintCode.FORBIDDEN_WORD,
-                        f"命中禁用词：{word}",
-                        {"word": word, "position": position},
-                    )
-                )
+            issues += forbidden_word_issues(name, text, [word])
     return ConstraintResult(issues=tuple(issues), counts=counts)

@@ -1043,6 +1043,10 @@ export type TaskPublic = {
      */
     latest_version_id: string | null;
     /**
+     * Last Error
+     */
+    last_error: string | null;
+    /**
      * Created At
      */
     created_at: string | null;
@@ -2327,6 +2331,42 @@ export type tasksReadVersionResponses = {
 };
 
 export type tasksReadVersionResponse = tasksReadVersionResponses[keyof tasksReadVersionResponses];
+
+export type tasksGenerateTaskData = {
+    body?: never;
+    headers?: {
+        /**
+         * Idempotency-Key
+         */
+        'idempotency-key'?: string | null;
+    };
+    path: {
+        /**
+         * Task Id
+         */
+        task_id: string;
+    };
+    query?: never;
+    url: '/api/v1/tasks/{task_id}/generate';
+};
+
+export type tasksGenerateTaskErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type tasksGenerateTaskError = tasksGenerateTaskErrors[keyof tasksGenerateTaskErrors];
+
+export type tasksGenerateTaskResponses = {
+    /**
+     * Successful Response
+     */
+    202: TaskPublic;
+};
+
+export type tasksGenerateTaskResponse = tasksGenerateTaskResponses[keyof tasksGenerateTaskResponses];
 
 export type knowledgeReadDocumentsData = {
     body?: never;

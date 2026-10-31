@@ -8,6 +8,7 @@ from app.domain.constraints.checks import (
     ConstraintResult,
     check_note,
     check_title,
+    forbidden_word_issues,
 )
 from app.domain.constraints.export import (
     HIDDEN_TOPIC_SUFFIX,
@@ -41,6 +42,7 @@ __all__ = [
     "body_units",
     "check_note",
     "check_title",
+    "forbidden_word_issues",
     "normalize_tag",
     "strip_hidden_topic_suffix",
     "tag_visible_units",

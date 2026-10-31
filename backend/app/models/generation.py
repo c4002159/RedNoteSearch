@@ -113,6 +113,8 @@ class Task(SQLModel, table=True):
     progress_stage: str | None = Field(default=None, max_length=30)
     # Not a foreign key: tasks and versions reference each other.
     latest_version_id: uuid.UUID | None = None
+    # Short, secret-free reason why the last run did not finish, e.g. ``model_unavailable``.
+    last_error: str | None = Field(default=None, max_length=60)
     idempotency_key: str | None = Field(default=None, max_length=100)
     created_by: uuid.UUID | None = Field(
         default=None, foreign_key="user.id", ondelete="SET NULL"
@@ -292,6 +294,7 @@ class TaskPublic(SQLModel):
     flow_status: str
     progress: dict[str, Any]
     latest_version_id: uuid.UUID | None
+    last_error: str | None
     created_at: datetime | None
 
 
