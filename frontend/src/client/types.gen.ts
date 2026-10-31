@@ -114,6 +114,16 @@ export type Body_login_login_access_token = {
 };
 
 /**
+ * Body_tasks-upload_task_material
+ */
+export type Body_tasks_upload_task_material = {
+    /**
+     * File
+     */
+    file: Blob | File;
+};
+
+/**
  * BrandCategory
  */
 export type BrandCategory = 'perfume' | 'skincare' | 'makeup' | 'home_fragrance' | 'other';
@@ -2047,6 +2057,58 @@ export type TaskMaterial = {
 };
 
 /**
+ * TaskMaterialPublic
+ */
+export type TaskMaterialPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Filename
+     */
+    filename: string;
+    /**
+     * Char Count
+     */
+    char_count: number;
+    /**
+     * Content Hash
+     */
+    content_hash: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Excerpt
+     */
+    excerpt: string;
+};
+
+/**
+ * TaskMaterialsPublic
+ */
+export type TaskMaterialsPublic = {
+    /**
+     * Items
+     */
+    items: Array<TaskMaterialPublic>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+};
+
+/**
  * TaskPublic
  */
 export type TaskPublic = {
@@ -3177,6 +3239,75 @@ export type productsArchiveProductResponses = {
 };
 
 export type productsArchiveProductResponse = productsArchiveProductResponses[keyof productsArchiveProductResponses];
+
+export type tasksReadTaskMaterialsData = {
+    body?: never;
+    path: {
+        /**
+         * Task Id
+         */
+        task_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/tasks/{task_id}/materials';
+};
+
+export type tasksReadTaskMaterialsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type tasksReadTaskMaterialsError = tasksReadTaskMaterialsErrors[keyof tasksReadTaskMaterialsErrors];
+
+export type tasksReadTaskMaterialsResponses = {
+    /**
+     * Successful Response
+     */
+    200: TaskMaterialsPublic;
+};
+
+export type tasksReadTaskMaterialsResponse = tasksReadTaskMaterialsResponses[keyof tasksReadTaskMaterialsResponses];
+
+export type tasksUploadTaskMaterialData = {
+    body: Body_tasks_upload_task_material;
+    path: {
+        /**
+         * Task Id
+         */
+        task_id: string;
+    };
+    query?: never;
+    url: '/api/v1/tasks/{task_id}/materials';
+};
+
+export type tasksUploadTaskMaterialErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type tasksUploadTaskMaterialError = tasksUploadTaskMaterialErrors[keyof tasksUploadTaskMaterialErrors];
+
+export type tasksUploadTaskMaterialResponses = {
+    /**
+     * Successful Response
+     */
+    201: TaskMaterialPublic;
+};
+
+export type tasksUploadTaskMaterialResponse = tasksUploadTaskMaterialResponses[keyof tasksUploadTaskMaterialResponses];
 
 export type tasksReadScenariosData = {
     body?: never;

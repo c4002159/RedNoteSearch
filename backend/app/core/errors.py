@@ -21,6 +21,8 @@ from app.services.errors import (
     FileTooLargeError,
     InvalidInputError,
     InvalidStateError,
+    MaterialLimitExceededError,
+    MaterialTooLongError,
     ModelUnavailableError,
     NotFoundError,
     ParseError,
@@ -146,6 +148,19 @@ def _invalid_input_handler(request: Request, exc: Exception) -> Response:
     )
 
 
+def _material_limit_handler(request: Request, exc: Exception) -> Response:
+    assert isinstance(exc, (MaterialTooLongError, MaterialLimitExceededError))
+    return error_response(
+        request,
+        status_code=422,
+        code="MATERIAL_TOO_LONG"
+        if isinstance(exc, MaterialTooLongError)
+        else "MATERIAL_LIMIT_EXCEEDED",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
 def _file_too_large_handler(request: Request, exc: Exception) -> Response:
     assert isinstance(exc, FileTooLargeError)
     return error_response(
@@ -214,6 +229,8 @@ def install_error_handling(app: FastAPI) -> None:
     app.add_exception_handler(ConflictError, _conflict_handler)
     app.add_exception_handler(InvalidStateError, _invalid_state_handler)
     app.add_exception_handler(InvalidInputError, _invalid_input_handler)
+    app.add_exception_handler(MaterialTooLongError, _material_limit_handler)
+    app.add_exception_handler(MaterialLimitExceededError, _material_limit_handler)
     app.add_exception_handler(FileTooLargeError, _file_too_large_handler)
     app.add_exception_handler(UnsupportedFileTypeError, _unsupported_file_type_handler)
     app.add_exception_handler(ParseError, _parse_error_handler)

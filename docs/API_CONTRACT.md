@@ -197,9 +197,9 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 约束检查（与发布页一致，ADR-004、ADR-005）：标题加权长度 `title_weight ≤ 20`（ASCII 可打印字符计 0.5，其余计 1）；正文 `body_units ≤ 1000`（去掉换行后的 UTF-16 码元数，emoji 计 2）；标签 ≤10，且标签的可见字符计入正文预算。后端判定为准，前端镜像同一规则。
 
-### F12：任务文件输入（契约审议稿，待 A/B 确认，尚未实现）
+### F12：任务文件输入（已定稿，已实现）
 
-本小节只提出新增接口；既有 `POST /tasks` JSON 与 `task_materials` 粘贴文本含义不变。后端仍未支持文件任务输入，不能据本稿显示可用入口。
+本小节新增文件上传与资料列表；既有 `POST /tasks` JSON 与 `task_materials` 粘贴文本含义不变。
 
 #### 请求、响应与权限
 
@@ -224,16 +224,17 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 `id` 为不可变任务资料快照 id；文件名取 basename、长度 1–300 个 Unicode 码点（超限 422），不保存本机路径。`char_count` 为解析所得并实际保存文本的 Unicode 码点数（含换行，emoji 计一个码点）；`excerpt` 取该文本前 200 码点，不返回全文。`content_hash` 沿用任务资料现有 SHA-256 文本哈希口径，不重定义旧哈希。响应时间与 id 规则见 §1。
 
-#### 实现约定（待实现）
+#### 实现约定（2026-11-01）
 
 - 只允许任务 `queued` 时添加；生成开始后及其他状态一律 409 `INVALID_STATE`。上传不改变任务流程状态。解析、嵌入可同步耗时数分钟，前端保留等待态；本次不引入上传作业或新的进度枚举。大文档请走知识库；即使文件字节数未超限，解析后文本超过 50000 码点也会被拒绝。
 - PDF/DOCX ≤52428800 bytes，MD/TXT/CSV ≤5242880 bytes；大小等于上限可接受。复用现有解析器，不接受图片、压缩包或 OCR；仅扩展名白名单不代表文件内容可解析。单请求多文件、缺少 `file` 或无效 UUID 为 422 `VALIDATION_ERROR`。
 - 每任务粘贴加文件合计 ≤5 份；每份解析后 1–50000 码点。空白文本或不可解析内容为 `PARSE_FAILED`。不做隐式去重；重复上传会产生第二份资料，由 5 份上限兜底。
 - 原文件不持久化；只保存解析文本、文件名、哈希及快照元数据。文本分块和向量仅供所属任务的检索，来源始终 `task_material`、未经审核；不创建知识库文档/版本或供其他任务检索的知识库索引，不影响原有任务快照规则。
+- **行锁持有时间**：上传在持任务行锁的事务里完成解析和嵌入（大文件可能几分钟），期间同一任务的 `generate` 和其他上传会等待，等待者没有额外超时，也占用一个数据库连接；这是为了让“份数上限”和“只有 queued 才能上传”在并发下成立。
 - 解析和嵌入全部成功才原子提交快照、任务内分块及 `task.material_add` 审计；失败无新增快照、分块或成功审计。审计 detail 只含文件名、字数，不含正文。实现使用任务行锁（`SELECT … FOR UPDATE`）串行化上传的“核对状态+份数+写入”与 `generate` 的状态转换，事务提交前保持串行化保证，不能绕过 5 份上限或将迟到资料加入正在生成的任务。
 - 检查顺序固定为：授权（任务不存在或非成员为 404）→任务状态（409）→份数上限（422）→文件类型/大小（422）→解析（422）→文本长度（422）→嵌入（503）；同时命中多个业务错误时返回最先一步的错误。框架层 JWT、UUID、表单与字段格式校验仍按 §1 的 401/422 规则。
 - **A 已决定：不提供删除或替换。** 上传错误后新建任务重来，任务资料快照保持只增不改。
-- 新错误码 `MATERIAL_TOO_LONG`、`MATERIAL_LIMIT_EXCEEDED` 的服务异常分别拟为 `MaterialTooLongError`、`MaterialLimitExceededError`，均继承 `InvalidInputError` 并映射为 HTTP 422；按本节各自 code/details 输出，不能落入通用 500，也不改变其他 `InvalidInputError` 的映射。本 PR 仅写契约，不添加异常实现。
+- 新错误码 `MATERIAL_TOO_LONG`、`MATERIAL_LIMIT_EXCEEDED` 的服务异常分别为 `MaterialTooLongError`、`MaterialLimitExceededError`，均继承 `InvalidInputError` 并映射为 HTTP 422；按本节各自 code/details 输出，不能落入通用 500，也不改变其他 `InvalidInputError` 的映射。两类异常使用专用处理器保留各自错误码，其他输入错误仍使用原映射。
 
 #### 错误与失败恢复
 
@@ -248,8 +249,8 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 | 422 `FILE_TOO_LARGE` | `limit_bytes` | 缩小文件 |
 | 422 `UNSUPPORTED_FILE_TYPE` | `allowed` 为扩展名列表 | 换支持类型 |
 | 422 `PARSE_FAILED` | 无可用文本、损坏/加密文档 | 换文件；无半成品 |
-| 422 `MATERIAL_TOO_LONG`（拟新增） | `char_count`、`limit_chars=50000` | 缩短文本 |
-| 422 `MATERIAL_LIMIT_EXCEEDED`（拟新增） | `material_count`、`limit_count=5` | 新建任务；不自动删已有资料 |
+| 422 `MATERIAL_TOO_LONG`（新增） | `char_count`、`limit_chars=50000` | 缩短文本 |
+| 422 `MATERIAL_LIMIT_EXCEEDED`（新增） | `material_count`、`limit_count=5` | 新建任务；不自动删已有资料 |
 | 503 `MODEL_UNAVAILABLE` | 嵌入不可用 | 原任务保持 queued，无新增资料，可重试 |
 | 500 `INTERNAL_ERROR` | 意外故障，仅返回 request_id 与通用说明 | 先通过 GET 确认结果；重复上传可能新增一份资料 |
 
@@ -259,7 +260,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 {"error":{"code":"MATERIAL_TOO_LONG","message":"任务资料文本过长","details":{"char_count":50001,"limit_chars":50000},"request_id":"req-uuid"}}
 ```
 
-新增码仅为此审议稿提出，实际服务当前尚不返回；未新增限流机制或改变既有错误码含义。
+新增错误码已实现；未新增限流机制或改变既有错误码含义。
 
 ### `GET /tasks?brand_id=&status=&page=&sort=-created_at`
 任务列表（品牌成员）；`brand_id` 必填。
@@ -723,6 +724,7 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 ## 12. 变更记录
 
 - 2026-11-01 规则批量维护契约草案：导入预览/应用、merge/replace、导出/模板、事务与行级错误；TC-158～TC-182。已补 A 的空来源、id定位、含停用重复键、模板权限、empty_file 与可空文本等同决定，等待 A 复审确认定稿，尚未实现。
+- 2026-11-01 F12 实现：上传与列表、任务行锁、原子快照及审计、专用 422 错误映射；已重新生成客户端。
 
 - 2026-11-01 F12 契约审议稿（按 A 审核修订）：不提供删除替换；去除新增幂等设计；固定检查顺序、任务行锁与 422 异常映射。用例 TC-126 至 TC-135（TC-133 已删除，不复用）。尚未实现，等待最终复审确认。
 - 2026-11-01 F14 契约审议稿（按 A 审核修订）：词表维护已决定；不改端口，查库复核分块归属；区分诱导词命中与检索泄漏；运行幂等仅沿用已有行为。TC-136 至 TC-144；TC-145 并入 TC-141。尚未实现，等待最终复审确认。
