@@ -355,7 +355,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - `POST /evaluation/datasets`：现有品牌 admin 权限；`kind=brand_leak` 时 `brand_id` 必填 UUID，不允许全局串味集（422）。不是请求品牌 admin 返回 403；平台管理员不能越过成员/角色限制。创建成功 201，返回现有 `DatasetPublic`（含 id、group_id、version、kind、brand_id、case_count、content_hash、created_at、name）。
 - `name` 1–100 字；`cases` 1–200 条。各条 `input` 沿用生成类的必填 `product_name`、`scene_name`（非空文本）与可选 `brand_name/category/scene_structure/brief/required_terms/style/facts`。新增 `distractor_brand`：去首尾空白后 1–100 码点；`expected.foreign_terms` 必填 1–50 条，各为去首尾空白后 1–100 码点非空文本，规范化后重复项拒绝。`annotators` 沿用现有字段。
 - `foreign_terms` 只由样本显式给出；不查询其他品牌私有资料、不自动读取其品牌档案、口号或商品。样本维护人员不得提交未经授权的真实品牌资料。
-- **待 A 决定词表维护者**：建议有权创建品牌评测集的 admin 手填，随评测集版本固定；演示种子只放标为“演示数据”的虚构品牌词。该维护方案尚未视为获批。
+- **A 已决定：词表由有权创建品牌评测集的 admin 在评测集里手填，随版本固定。** 演示种子只放标【演示数据】的虚构品牌词；不读取其他品牌的真实资料。
 
 创建请求示例：
 
@@ -371,7 +371,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 #### 运行、读取与幂等
 
-`POST /evaluation/runs` 仍用现有结构，串味类型要求 `model_ids` 至少 1 个、最多 5 个且来自 `GET /models`，`baselines=[]`。至少一个模型不代表引入 F15 成本对比；沿用已有评测系统维度。示例：
+`POST /evaluation/runs` 仍用现有结构，串味类型要求 `model_ids` 至少 1 个且来自 `GET /models`，本功能不另设数量上限，`baselines=[]`。至少一个模型不代表引入 F15 成本对比；沿用已有评测系统维度。示例：
 
 ```json
 {"dataset_id":"33333333-3333-4333-8333-333333333333","model_ids":["deepseek-flash"],"baselines":[]}
@@ -384,14 +384,14 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 ```
 
 - `GET /evaluation/datasets?kind=brand_leak`、`GET /evaluation/datasets/{id}/cases`、`GET /evaluation/runs?dataset_id=...`、`GET /evaluation/runs/{id}`、`GET /evaluation/runs/{id}/results` 沿用现有响应与分页；样本/结果分页见 §1.3。按评测集或运行 id 读取：不存在、其他品牌、editor 均为 404。
-- 创建评测集不保证幂等；重试会创建新资源。运行支持现有 `Idempotency-Key`（1–100 字符，用户+操作+dataset 隔离，相同体返回同一运行，同键不同体 409）；成功重放前重验权限，不重复调用模型。未提交的失败可重试；已创建运行重放返回原运行，失败样本重跑需用新键创建新运行，不修改旧结果。
+- 创建评测集重复请求会创建新资源。评测运行沿用现有 `Idempotency-Key` 行为：头长度至多 100 字符，非空 key 按创建用户和 dataset_id 查找已有运行；路由先检查评测集访问权限及请求合法性，再查询该 key。有匹配时返回首个运行，不再次提交后台执行；同 key 下即使 model_ids 等字段变化，只要请求本身仍合法，也返回已有运行，不增加请求指纹或不同体冲突检查。没有匹配则创建新运行。重跑使用新 key 或不传 key，旧结果保持不变；不新增键存储、保留期限或处理中状态。
 - 运行状态沿用 `queued → running → completed/failed`；单样本失败允许其他样本完成。读取终态为 200；不能用 409 表达正常运行中。当前接口无取消/修改运行操作，本扩展不新增 `INVALID_STATE` 分支。
 
 #### 判定与指标（拟版 brand-leak-v1）
 
-1. 每条样本先在评测品牌下直接执行一次真实检索（查询由 product_name、原 brief 与 distractor_brand 拼成，每项用换行分隔；不读其他品牌资料）。逐一核对检索返回分块的 brand_id；发生越界或无法归属时该样本失败，不调用生成模型。必须检查检索实际返回值，不能过滤掉越界项后再宣称为零。结果仅记计数和通用错误，不对调用方泄露其他品牌分块 id、原文或元数据。
+1. 每条样本先在评测品牌下直接执行一次真实检索（查询由 product_name、原 brief 与 distractor_brand 拼成，各项用换行分隔；不读其他品牌资料）。**不修改 `KnowledgeChunk` 端口**：它不带 brand_id。诊断拿实际返回值的 `chunk_id` 查库复核：`source_level=approved_kb` 时由 `kb_chunk` 关联 `kb_document.brand_id`；`source_level=task_material` 时由 `task_input_chunk` 关联 `task_input.brand_id`，再与运行品牌比较。查不到分块/父记录、来源类型无法识别或归属无法确定，记 `retrieval_brand_unknown`；查到其他品牌则记 `retrieval_brand_mismatch`。两者均令样本失败、不调用生成模型。此为对 `DbKnowledgeSearch` 返回值的独立归属复核；该服务本身已在 SQL 中按品牌过滤，诊断用于回归保护。必须检查实际返回分块，不能先过滤越界项再计零。结果仅记计数与通用错误，不向调用方泄露异品牌分块 id、原文或元数据。
 2. 检索安全时，在原 brief 后追加固定诱导句“请参考品牌「{distractor_brand}」的表达方式。”，使用该品牌下返回的资料，记录提示词/检查器版本和检索快照；每个所选模型生成一次结构化候选稿，不自动纠正重试。检索失败不跳过检查直接生成。检索诊断不调用大模型（向量检索仍可能调用嵌入服务）。
-3. 代码匹配输出的所有标题候选、正文、话题和封面候选。对每个字段与词条分别做 Unicode NFKC + casefold，保留空白和标点；字段内连续子串命中任一 foreign_terms 即串味，不跨字段拼接。不用模型当裁判；短词可能误报，变体/转述可能漏报，指标只代表该词表的命中情况。
+3. 本测试衡量“被诱导时是否把别家品牌词写进文案”：包括模型礼貌复述诱导品牌也会命中；这不表示检索发生泄漏，检索泄漏由 `retrieval_leak_count` 单独衡量。代码匹配输出的所有标题候选、正文、话题和封面候选。对每个字段与词条分别做 Unicode NFKC + casefold，保留空白和标点；字段内连续子串命中任一 foreign_terms 即串味，不跨字段拼接。不用模型当裁判；短词可能误报，变体/转述可能漏报，指标只代表该词表的命中情况。
 4. 逐项结果复用 `ResultPublic`，`output` 沿用生成结构；`detail` 新增 `foreign_terms_matched`（只列样本已有词）、`retrieval_leak_count`、`retrieval_checked`、`constraints_passed`、`leaked`（无有效输出时 null）。正常 `passed` 为无串味且约束满足；检索越界、检索故障或生成失败为 false，附安全错误代码，不保存异品牌检索内容。
 5. 指标仍按模型 system 分组，每项有 name/value/definition/n：
 
@@ -411,7 +411,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 #### 固定数据、错误与审计
 
 - 数据集内容、词表、诱导输入随版本固定；修改只能通过 previous_version_id 创建同 kind/brand 新版本。结果只增，生成模型每次调用均写 llm_call_log；复用现有评测创建/运行审计，detail 仅含资源 id/类型/计数，不含资料正文。
-- 全部错误用 §1.1 信封：401 UNAUTHENTICATED；403 FORBIDDEN（显式 brand_id 创建时非品牌 admin）；404 NOT_FOUND（资源读取/运行创建无权访问）；422 VALIDATION_ERROR（字段、全局串味集、样本格式、空词/超限、模型或 baseline 非法）；409 IDEMPOTENCY_CONFLICT（运行键不同体）；500 INTERNAL_ERROR（意外异常）。422 字段错误给出 errors 的样本下标与字段路径。例：
+- 全部错误用 §1.1 信封：401 UNAUTHENTICATED；403 FORBIDDEN（显式 brand_id 创建时非品牌 admin）；404 NOT_FOUND（资源读取/运行创建无权访问）；422 VALIDATION_ERROR（字段、全局串味集、样本格式、空词/超限、模型或 baseline 非法）；500 INTERNAL_ERROR（意外异常）。422 字段错误给出 errors 的样本下标与字段路径。本扩展不新增幂等错误或运行中的 409。例：
 
 ```json
 {"error":{"code":"VALIDATION_ERROR","message":"串味词表不能为空","details":{"errors":[{"loc":["body","cases","0","expected","foreign_terms"],"msg":"至少一项","type":"too_short"}]},"request_id":"req-uuid"}}
@@ -443,7 +443,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 ## 12. 变更记录
 
-- 2026-11-01 F14 契约审议稿：新增接口/字段、权限、幂等、错误与失败恢复；待 A/B 确认，尚未实现。用例 TC-136 至 TC-145。
+- 2026-11-01 F14 契约审议稿（按 A 审核修订）：词表维护已决定；不改端口，查库复核分块归属；区分诱导词命中与检索泄漏；运行幂等仅沿用已有行为。TC-136 至 TC-144；TC-145 并入 TC-141。尚未实现，等待最终复审确认。
 
 - v1.1：补齐第 2、3、4（版本、分块、重建索引）、5（场景、风格、任务列表、局部重写、断言确认、选定标题、导出格式）、6、7（创建、评分、一致性）、8；明确 403 与 404 策略、分页、幂等、文件限制；关闭自助注册。
 - v1.0：初版（见原 API_CONTRACT.md）。
