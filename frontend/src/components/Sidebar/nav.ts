@@ -1,5 +1,6 @@
 import {
   Building2,
+  FlaskConical,
   History,
   type LucideIcon,
   Settings,
@@ -48,6 +49,12 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "质量与评测",
     items: [
+      {
+        title: "评测",
+        path: "/evaluation",
+        icon: FlaskConical,
+        access: "admin",
+      },
       {
         title: "风险提示规则",
         path: "/compliance/rules",
