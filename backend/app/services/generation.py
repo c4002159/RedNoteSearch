@@ -65,6 +65,12 @@ def begin_generation(
 
     Raises ``InvalidStateError`` unless the task is queued or its last run failed the constraints.
     """
+    task = session.exec(
+        select(Task)
+        .where(Task.id == task.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).one()
     if idempotency_key and task.idempotency_key == idempotency_key:
         return False
     if task.flow_status not in STARTABLE:

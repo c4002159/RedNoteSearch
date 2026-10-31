@@ -1,9 +1,21 @@
 import logging
 import uuid
 from collections.abc import Callable
+from pathlib import PureWindowsPath
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+)
+from fastapi.exceptions import RequestValidationError
 from sqlmodel import Session
 
 from app.api.brand_deps import BrandAccess, BrandAccessDep, get_brand_access
@@ -31,11 +43,13 @@ from app.models import (
     TaskPublic,
     TasksPublic,
 )
+from app.models.task_input import TaskMaterialPublic, TaskMaterialsPublic
 from app.ports.embedding import EmbeddingProvider
 from app.ports.llm import LlmClient
 from app.services import evidence as evidence_service
 from app.services import generation as generation_service
 from app.services import scenarios as scenario_service
+from app.services import task_materials as material_service
 from app.services import tasks as task_service
 from app.services.knowledge_search import DbKnowledgeSearch
 from app.services.llm_log import DbLlmCallRecorder
@@ -123,6 +137,61 @@ def get_version_access(
 
 
 TaskAccessDep = Annotated[tuple[Task, BrandAccess], Depends(get_task_access)]
+
+
+async def single_material_file(
+    request: Request, file: Annotated[UploadFile, File()]
+) -> UploadFile:
+    form = await request.form()
+    filename = PureWindowsPath(file.filename or "").name
+    if len(form.multi_items()) != 1 or not 1 <= len(filename) <= 300:
+        raise RequestValidationError(
+            [
+                {
+                    "loc": ("body", "file"),
+                    "type": "value_error",
+                    "msg": "Exactly one file with a basename of 1 to 300 characters is required",
+                }
+            ]
+        )
+    file.filename = filename
+    return file
+
+
+@router.post(
+    "/tasks/{task_id}/materials", response_model=TaskMaterialPublic, status_code=201
+)
+def upload_task_material(
+    access: TaskAccessDep,
+    session: SessionDep,
+    embedder: EmbedderDep,
+    file: Annotated[UploadFile, Depends(single_material_file)],
+) -> TaskMaterialPublic:
+    return material_service.add_file(
+        session=session,
+        task=access[0],
+        user_id=access[1].user_id,
+        filename=file.filename or "",
+        stream=file.file,
+        embedder=embedder,
+    )
+
+
+@router.get("/tasks/{task_id}/materials", response_model=TaskMaterialsPublic)
+def read_task_materials(
+    access: TaskAccessDep,
+    session: SessionDep,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> TaskMaterialsPublic:
+    return material_service.list_materials(
+        session=session,
+        task=access[0],
+        page=page,
+        page_size=page_size,
+    )
+
+
 VersionAccessDep = Annotated[
     tuple[GenerationVersion, BrandAccess], Depends(get_version_access)
 ]
