@@ -69,7 +69,8 @@ def begin_generation(
         return False
     if task.flow_status not in STARTABLE:
         raise InvalidStateError(
-            f"A task in state {task.flow_status} cannot be generated"
+            f"A task in state {task.flow_status} cannot be generated",
+            {"current_state": task.flow_status},
         )
     task.flow_status = FlowStatus.GENERATING.value
     task.progress_stage = "retrieving"

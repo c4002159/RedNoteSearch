@@ -42,9 +42,7 @@ def read_version_evidence(
 ) -> ClaimEvidenceListPublic:
     rows = evidence_service.list_evidence(session=session, version_id=access[0].id)
     return ClaimEvidenceListPublic(
-        items=[
-            ClaimEvidencePublic.model_validate(r, from_attributes=True) for r in rows
-        ]
+        items=evidence_service.to_public(session=session, rows=rows)
     )
 
 
@@ -63,4 +61,4 @@ def confirm_evidence(
         note=body.note,
         user_id=brand_access.user_id,
     )
-    return ClaimEvidencePublic.model_validate(saved, from_attributes=True)
+    return evidence_service.to_public(session=session, rows=[saved])[0]

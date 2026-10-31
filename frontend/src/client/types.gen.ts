@@ -361,6 +361,10 @@ export type ClaimEvidencePublic = {
      */
     status: string;
     /**
+     * Source Title
+     */
+    source_title?: string | null;
+    /**
      * Source Level
      */
     source_level: string | null;
@@ -458,6 +462,10 @@ export type ComplianceCheckPublic = {
      * Source Clause
      */
     source_clause: string | null;
+    /**
+     * Source Url
+     */
+    source_url?: string | null;
     /**
      * Region Scope
      */
@@ -2017,6 +2025,18 @@ export type TaskPublic = {
      * Scenario Id
      */
     scenario_id: string;
+    /**
+     * Product Name
+     */
+    product_name?: string;
+    /**
+     * Scenario Name
+     */
+    scenario_name?: string;
+    /**
+     * Scene
+     */
+    scene?: string;
     style: StyleParams;
     /**
      * Brief

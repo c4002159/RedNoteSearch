@@ -289,6 +289,9 @@ class TaskPublic(SQLModel):
     brand_id: uuid.UUID
     product_id: uuid.UUID
     scenario_id: uuid.UUID
+    product_name: str = ""
+    scenario_name: str = ""
+    scene: str = ""
     style: StyleParams
     brief: str
     required_terms: list[str]

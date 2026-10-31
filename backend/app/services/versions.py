@@ -50,7 +50,10 @@ def _mirror(
 
 def _require_idle(task: Task) -> None:
     if task.flow_status == FlowStatus.GENERATING.value:
-        raise InvalidStateError("The task is still being generated")
+        raise InvalidStateError(
+            "The task is still being generated",
+            {"current_state": task.flow_status},
+        )
 
 
 def edit_version(
@@ -93,7 +96,10 @@ def begin_rewrite(*, task: Task, version: GenerationVersion) -> None:
     """A rewrite needs a version whose text exists and that is not being produced right now."""
     _require_idle(task)
     if version.flow_status == FlowStatus.GENERATING.value:
-        raise InvalidStateError("The version is still being generated")
+        raise InvalidStateError(
+            "The version is still being generated",
+            {"current_state": version.flow_status},
+        )
 
 
 def record_rewrite(
@@ -126,7 +132,8 @@ def begin_recheck(*, session: Session, task: Task, version: GenerationVersion) -
     _require_idle(task)
     if version.flow_status not in RECHECKABLE:
         raise InvalidStateError(
-            f"A version in state {version.flow_status} cannot be rechecked"
+            f"A version in state {version.flow_status} cannot be rechecked",
+            {"current_state": version.flow_status},
         )
     version.flow_status = FlowStatus.CHECKING.value
     session.add(version)
@@ -186,7 +193,10 @@ def confirm_version(
     """An operator confirms the text. Allowed only when the checks ran on this very text, the
     constraints passed and no block-level hint is still open (contract section 5)."""
     if task.latest_version_id != version.id:
-        raise InvalidStateError("Only the latest version of a task can be confirmed")
+        raise InvalidStateError(
+            "Only the latest version of a task can be confirmed",
+            {"current_state": version.flow_status, "reasons": ["not_latest_version"]},
+        )
     blockers = confirm_blockers(
         status=FlowStatus(version.flow_status),
         constraints_passed=bool(version.constraint_checks.get("passed")),
@@ -195,7 +205,10 @@ def confirm_version(
         in (FlowStatus.CHECKS_COMPLETED.value, FlowStatus.NEEDS_HUMAN_REVIEW.value),
     )
     if blockers:
-        raise InvalidStateError("；".join(blockers))
+        raise InvalidStateError(
+            "；".join(blockers),
+            {"current_state": version.flow_status, "reasons": blockers},
+        )
     if not 0 <= selected_title_index < len(version.title_candidates):
         raise InvalidInputError("selected_title_index is out of range")
     if selected_cover_index is not None and not (
@@ -227,7 +240,10 @@ def confirm_version(
 def export_version(version: GenerationVersion, fmt: str) -> dict[str, Any]:
     """The confirmed text in a pasteable shape. Only ``ready_to_copy`` versions can be exported."""
     if version.flow_status != FlowStatus.READY_TO_COPY.value:
-        raise InvalidStateError("Only a confirmed version can be exported")
+        raise InvalidStateError(
+            "Only a confirmed version can be exported",
+            {"current_state": version.flow_status},
+        )
     index = version.selected_title_index or 0
     title = version.title_candidates[index]
     if fmt == "markdown":

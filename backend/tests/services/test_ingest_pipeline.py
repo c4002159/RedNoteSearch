@@ -14,8 +14,13 @@ from app.infra.dashscope import BATCH_SIZE, DashScopeEmbeddingProvider
 from app.models import EMBEDDING_DIMENSIONS, ReviewCreate
 from app.ports.embedding import EmbeddingProvider
 from app.services.chunking import chunk_text
-from app.services.errors import ModelUnavailableError, ParseError
-from app.services.parsing import parse_document
+from app.services.errors import (
+    FileTooLargeError,
+    ModelUnavailableError,
+    ParseError,
+    UnsupportedFileTypeError,
+)
+from app.services.parsing import MB, check_size, parse_document, size_limit_for
 
 
 def _pdf_with_text(text: str) -> bytes:
@@ -200,3 +205,30 @@ def test_reject_review_requires_a_reason() -> None:
     ):
         with pytest.raises(ValidationError):
             ReviewCreate.model_validate(bad)
+
+
+def test_size_limits_follow_the_contract_per_type() -> None:
+    assert (
+        size_limit_for("手册.PDF") == 50 * MB
+    )  # the customer's ~42 MB brand manual must fit
+    assert size_limit_for("a.docx") == 50 * MB
+    assert all(size_limit_for(f"a{ext}") == 5 * MB for ext in (".md", ".txt", ".csv"))
+    check_size("a.pdf", 50 * MB)
+    check_size("a.md", 5 * MB)
+    with pytest.raises(FileTooLargeError) as large:
+        check_size("a.pdf", 50 * MB + 1)
+    assert large.value.details == {"limit_bytes": 50 * MB}
+    with pytest.raises(FileTooLargeError):
+        check_size("a.csv", 5 * MB + 1)
+
+
+def test_unsupported_types_are_a_distinct_parse_error() -> None:
+    for name in ("a.exe", "noextension", "a.pdf.zip"):
+        with pytest.raises(UnsupportedFileTypeError) as error:
+            size_limit_for(name)
+        assert ".pdf" in error.value.details["allowed"]
+    with pytest.raises(UnsupportedFileTypeError):
+        parse_document("a.exe", b"x")
+    assert issubclass(UnsupportedFileTypeError, ParseError) and issubclass(
+        FileTooLargeError, ParseError
+    )

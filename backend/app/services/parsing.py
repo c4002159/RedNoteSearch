@@ -6,10 +6,37 @@ from docx import Document
 from pypdf import PdfReader
 from pypdf.errors import PyPdfError
 
-from app.services.errors import ParseError
+from app.services.errors import FileTooLargeError, ParseError, UnsupportedFileTypeError
 
-MAX_FILE_BYTES = 10 * 1024 * 1024
-SUPPORTED_SUFFIXES = (".pdf", ".docx", ".md", ".txt", ".csv")
+# Size limits per type (contract 1.5). The customer's brand manual is about 42 MB and must be accepted.
+MB = 1024 * 1024
+MAX_BYTES_BY_SUFFIX = {
+    ".pdf": 50 * MB,
+    ".docx": 50 * MB,
+    ".md": 5 * MB,
+    ".txt": 5 * MB,
+    ".csv": 5 * MB,
+}
+SUPPORTED_SUFFIXES = tuple(MAX_BYTES_BY_SUFFIX)
+
+
+def size_limit_for(filename: str) -> int:
+    """The size limit of the file's type; ``UnsupportedFileTypeError`` when the type is not allowed."""
+    suffix = PurePath(filename).suffix.lower()
+    if suffix not in MAX_BYTES_BY_SUFFIX:
+        raise UnsupportedFileTypeError(
+            f"Unsupported file type, use one of: {', '.join(SUPPORTED_SUFFIXES)}",
+            {"allowed": list(SUPPORTED_SUFFIXES)},
+        )
+    return MAX_BYTES_BY_SUFFIX[suffix]
+
+
+def check_size(filename: str, size: int) -> None:
+    limit = size_limit_for(filename)
+    if size > limit:
+        raise FileTooLargeError(
+            f"The file is larger than {limit // MB} MB", {"limit_bytes": limit}
+        )
 
 
 def _decode(content: bytes) -> str:
@@ -67,11 +94,8 @@ def parse_document(filename: str, content: bytes) -> str:
     Raises ``ParseError`` for unsupported types, unreadable files and files without any text
     (for example scanned PDFs: OCR is not supported).
     """
+    size_limit_for(filename)
     suffix = PurePath(filename).suffix.lower()
-    if suffix not in SUPPORTED_SUFFIXES:
-        raise ParseError(
-            f"Unsupported file type, use one of: {', '.join(SUPPORTED_SUFFIXES)}"
-        )
     if not content:
         raise ParseError("The file is empty")
     if suffix == ".pdf":
