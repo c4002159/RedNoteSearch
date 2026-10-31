@@ -384,6 +384,135 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - `GET /generation-versions/{id}/compliance` 返回提示列表和 `unresolved_block`（未处理的 `block` 级提示数）；`POST /compliance-checks/{id}/resolve`（体 `{note}`）记录“有人处理过”，提示本身保留，**不表示文字合规**。
 - 这些只是风险提示，供人工复核；任何界面或文案都不得称为“合规通过”或“法务批准”。
 
+### 6.1 风险提示规则批量导入、导出与模板（契约草案，待 A/B 确认，尚未实现）
+
+本节只新增批量接口，不改变既有单条创建/修改字段的含义。用于客户维护自己的词表；所有来源由用户填写，不从模型或文件名推断来源。
+
+#### 路径、范围与权限
+
+| 方法与路径 | 权限 | 请求与成功响应 |
+|---|---|---|
+| `POST /compliance-rules/import` | 仅平台管理员；范围仅 `brand_id IS NULL` | multipart `file`；query `mode=merge|replace`、`dry_run=true|false`；200 汇总 |
+| `POST /brands/{brand_id}/compliance-rules/import` | 仅该品牌 admin | 同上；只操作路径品牌的规则，不包含全局规则 |
+| `GET /compliance-rules/export?format=csv|json` | 仅平台管理员；仅全局规则 | 200 下载文件，包含停用规则 |
+| `GET /brands/{brand_id}/compliance-rules/export?format=csv|json` | 仅该品牌 admin；仅路径品牌 | 200 下载文件，包含停用规则，不混入全局规则 |
+| `GET /compliance-rules/import-template?format=csv|json` | 平台管理员或任一品牌 admin；两个范围共用不含业务数据的通用模板；仅有品牌 editor 身份返回 403，未登录 401 | 200 模板文件，含一行明确标注的示例 |
+
+- 全部需要 JWT；未登录 401。品牌路径非成员或 editor 为 403，平台管理员也须是该品牌 admin 才可导入/导出。全局范围非平台管理员为 403。品牌是否存在沿用已有品牌授权依赖，不泄露不属于自己的规则。
+- `mode` 默认 `merge`，`dry_run` **默认 true**，format 默认 `csv`；其他值 422。导入仅一个名为 `file` 的文件，不接受客户端指定 brand_id、版本、created_by 或 is_sample；可选 id 仅用来定位本范围内已有规则，不能修改主键或授权范围。
+- 本节导出与现有 GET /compliance-rules 的列表语义不同：品牌导出严格只含该品牌。静态 import/export/import-template 路径须在 /compliance-rules/{id} 前注册。
+
+#### 文件与字段
+
+- `.csv` 或 `.json`；文件字节数最多 1048576（含 BOM），数据记录 **1–2000 条**，CSV 不含表头。
+- **A 已决定：空文件与零记录一律拒绝。** 0 字节、只有 BOM、只有空白、JSON `[]`、CSV 没有任何数据行（包括仅表头），均返回 422 `VALIDATION_ERROR`，`details.reason="empty_file"`，`message="文件里没有规则，未做任何更改"`。适用于 merge/replace 及 dry_run=true/false，不写规则、版本或审计。防止误把空文件当作“整体替换”而停用整个范围的规则；需要停用时在页面里逐条或批量停用。
+- JSON 为规则对象数组（不是带 items 的分页对象），UTF-8，可带 BOM；CSV 先 UTF-8（可带 BOM），失败后尝试 GBK，仍失败为 422 PARSE_FAILED。格式由扩展名决定，不根据正文猜测；不执行公式、正则以外代码或 URL。
+- CSV 有表头、逗号分隔，按 CSV 引号规则支持字段内逗号/引号/换行；同名表头、缺必填列、未知列、多/少列或空数据记录都返回行级错误。行号按逻辑数据记录从 1 起，不含表头，不按字段内换行计数。
+- 导出首列为 id（UUID），后接下表可编辑字段；JSON 每条也带 id。新建导入行可省略 id 或留空，已有行可填 id 精确定位。id 是定位器，不是可编辑字段。必填业务字段只有 layer、rule_type、severity、pattern。导入按完整行的创建默认值处理，不是 PATCH：省略可选字段会使用下表默认值，不从原有规则补来源。
+
+| 字段 | 取值/上限 | 省略时 |
+|---|---|---|
+| layer | `lexicon`、`efficacy_basis`；`context` 不可导入 | 必填 |
+| rule_type | `absolute_term`、`efficacy_claim`、`medical_term`、`data_claim`、`platform_rule`、`brand_forbidden` | 必填 |
+| severity | `block`、`warn` | 必填 |
+| pattern | 去首尾空白后非空，≤200 Unicode 码点；正则安全检查沿用单条接口 | 必填 |
+| is_regex | boolean | false |
+| suggestion | 文本 ≤500 | 空字符串 |
+| source_name | A 已决定：仅批量导入允许为空，文本 ≤200；省略、null 或空单元格统一存空字符串，不得自动填来源 | 空字符串 |
+| source_url | 可空文本 ≤500；不访问链接 | null |
+| source_clause | 可空文本 ≤300 | null |
+| region_scope | 可空文本 ≤50 | null |
+| effective_from | 可空 ISO 日期 YYYY-MM-DD | null |
+| effective_to | 可空 ISO 日期；不得早于 effective_from | null |
+| enabled | boolean | true |
+
+JSON 示例（文件内容）：
+
+```json
+[{"layer":"lexicon","rule_type":"absolute_term","severity":"warn","pattern":"示例，请删除","is_regex":false,"suggestion":"示例，请删除","source_name":"","source_url":null,"source_clause":null,"region_scope":null,"effective_from":null,"effective_to":null,"enabled":false}]
+```
+
+CSV 布尔值接受 true/false（不区分大小写）、1/0，空值按字段默认；其他值非法。日期空单元格表示 null。**A 已决定：可空文本列 source_url/source_clause/region_scope 的空单元格表示 null；空字符串与 null 视为等同，导入时统一为 null，判断 unchanged 时也按等同比较。** JSON 这三列接受 null、空字符串或省略，同样规范化；其他字段校验不变。CSV 内容按标准 CSV 规则原样处理，不使用额外的空值标记或反斜杠转义。source_name 空单元格仍表示空字符串，JSON 的 null、空字符串或省略均存空字符串。
+
+示例模板 CSV（示例行不是自动跳过行，使用者须先删除）：
+
+```csv
+id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,source_clause,region_scope,effective_from,effective_to,enabled
+,lexicon,absolute_term,warn,"示例，请删除",false,"示例，请删除",,,,,,,false
+```
+
+新建导入行 `is_sample=false`；来源为空也不自动标成示例，客户端不能伪造该字段。已有示例规则无字段变化时保持原样；发生编辑按单条维护约定清除示例标志，但不表示其来源已审核。空来源在列表、详情和检查命中提示的风险面板均显示“来源待补充”，未改的示例继续显示“来源待核对，不是正式依据”。显示占位符不得写回数据库或导出：规则和历史提示里的 source_name 仍保存原空字符串，前端以非空原值或“来源待补充”渲染，避免把占位文字变成来源。
+
+**A 已决定的空来源兼容约定**：原单条创建 source_name 必填规则不变；PATCH 未传 source_name 时只校验请求中的更新字段，不因存量空来源拒绝更新严重度等字段。显式传 source_name 用于更新时仍按现有非空字符串约束；不重新校验未提交的原空值。空来源导出为 source_name 的空单元格/JSON空字符串，再导入仍为空，不生成“示例规则”或其他假来源。
+
+**可选建议（非本次必做）**：列表可增加 source_missing=true|false 筛选来源待补充/已填写的规则；若实现，必须在既有授权范围内筛选，不改变当前列表包含全局与本品牌的语义。
+
+#### 匹配与应用
+
+- **A 已决定：匹配范围包含本范围的全部规则，含停用。** 未指定 id 时，用 `(layer,rule_type,pattern)` 匹配；pattern 沿用创建时去首尾空白的口径，大小写/正则字符不额外折叠。命中唯一停用规则时按文件 enabled 更新：从 false 改为 true 则恢复启用并加版本；仍为 false 且其余字段未变则 unchanged。
+- 指定 id 时，只定位本范围内该规则，允许更新其可编辑字段（含匹配键），不再按输入键任意选择另一条；该键的其他重复记录不因此被统一更新。id 不存在、不在本范围或格式非法均为422行错误（column=id），统一说明“id不存在或不属于当前范围”，不暴露其他范围内容。
+- 同一文件里重复匹配键仍为整文件422，即使指定不同id也不豁免；同一id出现多次也为422。错误标明重复行及第一次出现行。文件中的规则定位和最终键全部校验完才允许写入。
+- `merge`：不存在则创建（rule_version=1）；存在且任一可编辑字段变化才更新并 rule_version+1；无变化记 unchanged，不更新时间、版本或示例标志。source_url/source_clause/region_scope 的存量空字符串与输入 null 等同比较，不因该规范化单独产生更新；有其他字段变化而实际写入时这三列统一存 null。文件外规则不动。
+- `replace`：先按 merge 计划处理，以每行实际定位到的规则id组成覆盖集合；再把本范围内未在集合中且 enabled=true 的规则设为 false，rule_version+1。使用id指定重复键中的一条不会把其余同键记录隐式算作已覆盖，其余启用记录将计入预览的disabled数量并由二次确认决定是否停用。已停用的文件外规则不变。示例规则也仅停用，不物理删除；绝不改写历史提示中的规则快照。
+- 四个计数互斥：created 为新增，updated 为文件内已匹配且字段变化，unchanged 为文件内已匹配且无变化，disabled 为 replace 文件外从启用转为停用。文件内 enabled=false 导致的更改计 updated，不重复计 disabled。
+- **A 已决定：已有重复键整次409，不任意选取或统一更新。** 检查只针对文件实际使用、且该行未用id精确指定的键；该键在本范围有多条规则（含停用）才冲突。其他键存在重复不影响本次导入。预览和实际应用都在写入前检查；任何冲突均无规则、版本或成功审计写入。details.conflicts 逐键包含 layer/rule_type/pattern、该范围对应规则id列表 rule_ids、该键在文件里的行号 rows。客户可在文件填入目标规则id后重新预览；停用记录仍参与无id匹配，单纯停用不会让重复键消失。
+- 不新增 Idempotency-Key 或请求键存储。相同文件再次 merge 通常变为 unchanged；重复请求仍按当前数据库重新计算和执行。
+
+#### 预览、事务与并发
+
+`POST /brands/22222222-2222-4222-8222-222222222222/compliance-rules/import?mode=replace&dry_run=true`，multipart file=rules.csv。成功 200 示例：
+
+```json
+{"dry_run":true,"mode":"replace","created":2,"updated":1,"unchanged":3,"disabled":4,"errors":[]}
+```
+
+- dry_run=true 不写规则、版本、示例标志或成功审计，返回对当前数据库计算的计划；没有任何预留或承诺。dry_run=false 以同样字段返回实际完成计数，HTTP 200，不用 201。
+- 应用请求必须重新解析、授权和校验，不相信前端预览计数。只要一行非法，整文件拒绝且无规则/审计写入；不能跳过错误行应用其他行。
+- 同一范围的导入（包括没有规则的范围）使用同一个事务级咨询锁串行化；后到请求等待，不交叉写。dry_run 与实际写入都在取得该范围锁后读取规则并计算，事务结束释放。不同范围互不读取对方规则。
+- 实际规则写入、版本变化和一次 `compliance.import` 审计在同一事务提交；detail 只含范围（global 或品牌 id）、mode、created/updated/unchanged/disabled、文件名，不含规则全文。零变化的成功实际导入也记一次操作；dry_run 不记成功操作。
+- 预览到确认之间其他修改可能使计数变化，真正提交以重算结果为准；超时后可先导出核对再重试，不承诺恰好一次执行。
+
+#### 校验错误与下载
+
+全部使用 §1.1 错误信封并带 request_id：
+
+| HTTP / code | 条件与 details |
+|---|---|
+| 401 UNAUTHENTICATED | 未登录/令牌失效 |
+| 403 FORBIDDEN | 全局或品牌角色不足、品牌路径非成员 |
+| 404 NOT_FOUND | 沿用已有品牌依赖对不可用资源的处理；不暴露异品牌规则 |
+| 409 CONFLICT | 文件用到且未以id指定的键在本范围对应多条规则（含停用）；details.conflicts 给键、rule_ids、rows，预览同样报冲突 |
+| 422 FILE_TOO_LARGE | 文件超过 1048576 bytes；details.limit_bytes |
+| 422 UNSUPPORTED_FILE_TYPE | 非 .csv/.json；details.allowed |
+| 422 PARSE_FAILED | CSV 编码两次均失败、格式无法解析、非法 JSON；无原文回显 |
+| 422 VALIDATION_ERROR | 空文件或零记录：details.reason="empty_file"，message="文件里没有规则，未做任何更改"；其他枚举、正则安全、字段/日期/表头/行数、文件重复键/重复id、无效或范围外id、mode/dry_run/format 非法：details.errors |
+| 500 INTERNAL_ERROR | 意外异常，只返回通用说明与 request_id；事务回滚 |
+
+逐行错误用 `row`、`column`、`msg` 给前端展示，另保留通用 loc/type；表头或整个文件的错误 row=null。全部行校验通过才给非零计划数；无论预览还是应用，只要有错误均 422，四个计数为0，不应用合法子集。示例：
+
+```json
+{"error":{"code":"VALIDATION_ERROR","message":"规则文件校验失败","details":{"dry_run":true,"mode":"merge","created":0,"updated":0,"unchanged":0,"disabled":0,"errors":[{"row":2,"column":"pattern","loc":["body","file","rows","2","pattern"],"msg":"正则表达式不安全","type":"value_error"}]},"request_id":"req-uuid"}}
+```
+
+- 导出是整个授权范围（含停用规则），不分页；按 layer、rule_type、pattern、id 稳定排序，每条带id定位列及上表可编辑字段，不带其他范围或可伪造版本元数据。JSON 直接返回数组，三个可空文本列的空字符串/null 均导出为 null；CSV 输出 UTF-8 BOM 和固定表头，这三列的空字符串/null 均导出为空单元格。source_name 空来源仍导出空字符串/空单元格。空范围导出为 JSON [] 或仅 CSV 表头（不是可执行的导入文件，merge/replace 均以 empty_file 拒绝）。
+- Content-Type 分别为 application/json 或 text/csv; charset=utf-8，Content-Disposition 为 attachment，文件名由服务端生成，不用用户提供的名称。导出不改规则、版本或写入审计。
+- 通用模板与所选格式一致，只有固定表头/字段（示例id为空）和一条 `pattern/suggestion="示例，请删除"、enabled=false` 的示例；不内置真实来源。若用户未删除示例行，按普通输入校验，不静默略过。
+- 往返验收：已有规则导出后不修改再 merge，所有导出行为 unchanged、版本不增加；包括存量 source_url/source_clause/region_scope 为空字符串的情况，按 null 等同比较，不产生额外变更。原范围停用状态保持不变。来源为空导出为空source_name单元格，重导仍为空。数据库有重复键时导出保留每条id；同一文件仍不能带重复键，客户须先整理文件保留每键一行并用id定位目标，不能把重复键行整体原样重新导入。
+
+409 示例（没有任何写入；id列表仅来自已授权范围）：
+
+```json
+{"error":{"code":"CONFLICT","message":"文件中的规则键对应多条已有规则","details":{"dry_run":true,"mode":"merge","conflicts":[{"layer":"lexicon","rule_type":"absolute_term","pattern":"示例词","rule_ids":["11111111-1111-4111-8111-111111111111","22222222-2222-4222-8222-222222222222"],"rows":[1]}]},"request_id":"req-uuid"}}
+```
+
+#### 前端流程与确认状态
+
+先选文件 → 自动预览 → 展示四种计数和逐行错误 → 用户确认才 dry_run=false。有错误禁用确认；replace 另做二次确认并显示将停用数量，说明文件外规则停用而非删除。导入/导出/模板入口只对有权角色显示；授权仍由后端判断。
+
+**A 已决定**：批量允许空来源、单条创建不变、PATCH省略来源不校验存量空值、命中提示显示占位；已有重复键按上述范围整次409且id可消歧；停用记录参与匹配和冲突检查，enabled按文件更新。以上来自A在本会话的明确决定。
+
+**A 已决定（2026-11-01，PR #43 评论）**：模板下载允许平台管理员或任一品牌 admin；空文件与零记录按 empty_file 拒绝；CSV 空单元格表示三个可空文本列的 null，空字符串/null 等同比较，不增加自定义转义。三项均已写入本稿，等待 A 复审修订后的契约并确认定稿后才开实现 PR。本轮只修订契约，不修改 PATCH、列表或检查器代码。
+
 ## 7. 评测（B）
 
 - `GET /evaluation/datasets?kind=`：品牌 admin；`kind`：`generation | compliance | factcheck | brand_leak`。
@@ -592,6 +721,8 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 4. 每个新增或修改的端点补成功、验证错误、未授权、越权测试。
 
 ## 12. 变更记录
+
+- 2026-11-01 规则批量维护契约草案：导入预览/应用、merge/replace、导出/模板、事务与行级错误；TC-158～TC-182。已补 A 的空来源、id定位、含停用重复键、模板权限、empty_file 与可空文本等同决定，等待 A 复审确认定稿，尚未实现。
 
 - 2026-11-01 F12 契约审议稿（按 A 审核修订）：不提供删除替换；去除新增幂等设计；固定检查顺序、任务行锁与 422 异常映射。用例 TC-126 至 TC-135（TC-133 已删除，不复用）。尚未实现，等待最终复审确认。
 - 2026-11-01 F14 契约审议稿（按 A 审核修订）：词表维护已决定；不改端口，查库复核分块归属；区分诱导词命中与检索泄漏；运行幂等仅沿用已有行为。TC-136 至 TC-144；TC-145 并入 TC-141。尚未实现，等待最终复审确认。
