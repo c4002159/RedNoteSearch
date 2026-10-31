@@ -53,6 +53,9 @@ def activate_version(
     access: BrandAdminDep, session: SessionDep, version: int
 ) -> VoiceProfilePublic:
     row = voice_service.activate_version(
-        session=session, brand_id=access.brand_id, version=version
+        session=session,
+        brand_id=access.brand_id,
+        version=version,
+        actor_id=access.user_id,
     )
     return _public(row)

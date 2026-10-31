@@ -26,6 +26,10 @@
 - 新依赖 `pypdf`（BSD-3-Clause）与 `python-docx`（MIT，间接依赖 `lxml`，BSD-3-Clause），只用于解析上传的 PDF 与 DOCX，不做 OCR。
 - 嵌入在写入前完成、一次性提交；没有后台任务队列，入库请求同步等待嵌入（单文件 ≤ 10 MB，演示规模可接受）。文件原件不保存，只保存分块与校验和，所以重建索引使用已保存的分块。
 
+## 后续补充（2026-10-31，任务资料快照与审计）
+- 新表 `task_input`（快照，只增不改）、`task_input_chunk`（快照分块与向量，HNSW 余弦索引）、`audit_log`（只增不改，`action` 为自由文本的点分名称，不设 CHECK，增加事件无需迁移）；迁移 `a7d5f1c8e3b9`。
+- `task_input.task_id` 不建外键：任务表归 B。快照创建时就分块并嵌入（全有或全无），以便 `KnowledgeSearch` 返回 `task_material`。
+- 审计目前写入：资料入库、提交、审核、停用、重建索引，品牌档案生效，商品归档。品牌与成员变更、商品创建与修改尚未写审计。
+
 ## 待办
-- `task_input` 任务资料快照表与 `audit_log`；资料与商品的关联（`KnowledgeSearch` 的 `product_id` 过滤）。
-- `audit_log` 的模型与迁移（`product`、`brand_voice_profile` 已在迁移 `e5a2c9d7b3f1` 中完成）。
+- 把审计扩展到品牌与成员变更、商品创建与修改；资料与商品的关联（`KnowledgeSearch` 的 `product_id` 过滤）。

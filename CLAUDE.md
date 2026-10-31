@@ -6,10 +6,12 @@
 1. 读下面导入的 `AI_TEAM_GUIDE.md`（协作边界、文件所有权、自检）和决策索引。
 2. 读 `docs/TECHNICAL_DOC.md` 中与任务相关的章节：需求与边界（第 2 章）、架构与技术栈（第 3 章）、前端约束（第 4 章）、数据库（第 5 章）、分工与阶段（第 7 章）、Git 与 CI（第 8、9 章）、测试（第 10 章）。
 3. 接口字段以 `docs/API_CONTRACT.md` 为准；用例见 `docs/TEST_CASES.csv`；每条决策的细节在 `docs/decisions/`。
-4. 与上述文件冲突时：契约字段听 `API_CONTRACT.md`，流程与规则听 `docs/decisions/`，其余听 `docs/TECHNICAL_DOC.md`。
+4. **帮 B 工作时**：先读上面导入的 `docs/INTEGRATION_FOR_B.md`（A 已交付部分的端口、检索语义、路由与迁移约定、待确认事项），并用 `git log`、`alembic heads` 核对它是否过时；A 每次交付后会更新它。
+5. 与上述文件冲突时：契约字段听 `API_CONTRACT.md`，流程与规则听 `docs/decisions/`，其余听 `docs/TECHNICAL_DOC.md`。
 
 @AI_TEAM_GUIDE.md
 @docs/decisions/README.md
+@docs/INTEGRATION_FOR_B.md
 
 ## 当前状态（2026-10-30；会过时，以 `git log` 与 `docs/decisions/` 为准）
 - `main` 受保护：禁止直推，必选 CI 全绿才能合并，管理员也不能绕过，仅 Squash；**GitHub 不强制他人批准**（ADR-009）。改契约、迁移、认证与品牌授权、检索过滤、提示词与合规规则、CI、依赖锁时，要提醒作者在合并前于 PR 评论里 @ 对方并等到确认。
