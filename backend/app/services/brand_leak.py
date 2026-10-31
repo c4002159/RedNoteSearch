@@ -41,11 +41,12 @@ def diagnose(
             unknown = True
         elif owner != brand_id:
             leaks += 1
+    # A confirmed leak outranks an unknown owner: it is the stronger signal.
     error = (
-        "retrieval_brand_unknown"
-        if unknown
-        else "retrieval_brand_mismatch"
+        "retrieval_brand_mismatch"
         if leaks
+        else "retrieval_brand_unknown"
+        if unknown
         else None
     )
     # Never keep unsafe chunks in a result or pass them to a model.

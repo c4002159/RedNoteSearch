@@ -361,3 +361,82 @@ def test_embedding_and_model_failures_recover_in_new_runs(
     fakes[1]._script = [GOOD_NOTE]
     recovered = _run(client, h, dataset["id"], model_ids=["deepseek-flash"])
     assert _metrics(recovered, "model:deepseek-flash")["failure_rate"]["value"] == 0
+
+
+def test_confirmed_leak_outranks_unknown_owner(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    fakes: tuple[FakeEmbeddingProvider, FakeLlmClient],
+) -> None:
+    from sqlmodel import select
+
+    from app.core.config import settings as config
+    from app.models import KbChunk, User
+    from app.services.brand_leak import diagnose
+
+    h = superuser_token_headers
+    brand = _create_brand(client, h)
+    foreign = _create_brand(client, h)
+    owner = db.exec(select(User).where(User.email == config.FIRST_SUPERUSER)).one()
+    doc = kb.ingest_direct(
+        session=db,
+        embedder=fakes[0],
+        brand_id=uuid.UUID(foreign["id"]),
+        user_id=owner.id,
+        title="private",
+        doc_type="product_spec",
+        filename="p.txt",
+        content=b"private foreign material",
+    )
+    row = db.exec(select(KbChunk).where(KbChunk.document_id == doc.id)).first()
+    assert row
+    leaked = KnowledgeChunk(row.id, "approved_kb", row.content, "hash", 1)
+    unknown = KnowledgeChunk(uuid.uuid4(), "approved_kb", "x", "hash", 1)
+    for chunks in ([unknown, leaked], [leaked, unknown]):
+        diagnosis = diagnose(db, FixedSearch(chunks), uuid.UUID(brand["id"]), "q")
+        assert diagnosis.error == "retrieval_brand_mismatch"
+        assert diagnosis.leak_count == 1 and not diagnosis.chunks
+
+
+def test_validation_locations_and_model_limit_details(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    h = superuser_token_headers
+    brand = _create_brand(client, h)
+    missing = {"input": {**CASE["input"]}, "expected": CASE["expected"]}
+    del missing["input"]["product_name"]
+    r = client.post(
+        f"{API}/evaluation/datasets",
+        headers=h,
+        json={
+            "name": "t",
+            "kind": "brand_leak",
+            "brand_id": brand["id"],
+            "cases": [missing],
+        },
+    )
+    assert r.status_code == 422
+    assert r.json()["error"]["details"]["errors"][0]["loc"] == [
+        "body",
+        "cases",
+        "0",
+        "input",
+        "product_name",
+    ]
+    dataset = _dataset(
+        client,
+        h,
+        "compliance",
+        [{"input": {"text": "x"}, "expected": {"hit_words": []}}],
+    )
+    over = client.post(
+        f"{API}/evaluation/runs",
+        headers=h,
+        json={"dataset_id": dataset["id"], "model_ids": ["m"] * 6},
+    )
+    assert over.status_code == 422
+    assert over.json()["error"]["details"]["errors"][0]["loc"] == [
+        "body",
+        "model_ids",
+    ]

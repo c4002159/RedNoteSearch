@@ -6,6 +6,7 @@ rubric) and reports each metric with its definition; there is no combined score.
 
 import hashlib
 import json
+import re
 import uuid
 from collections import defaultdict
 from typing import Any
@@ -138,6 +139,12 @@ def validate_case(kind: str, case: CaseIn) -> str | None:
     return None
 
 
+def _problem_path(problem: str) -> list[str]:
+    """The ``input.x`` / ``expected.x`` field a problem message starts with."""
+    found = re.match(r"(input|expected)\.(\w+)", problem)
+    return [found.group(1), found.group(2)] if found else []
+
+
 def _content_hash(kind: str, cases: list[CaseIn]) -> str:
     canonical = json.dumps(
         {"kind": kind, "cases": [c.model_dump() for c in cases]},
@@ -174,7 +181,7 @@ def create_dataset(*, session: Session, data: DatasetCreate, user: User) -> Eval
                                 "body",
                                 "cases",
                                 str(index),
-                                *problem.split()[0].split("."),
+                                *_problem_path(problem),
                             ],
                             "msg": problem,
                             "type": "value_error",
@@ -273,7 +280,18 @@ def validate_run_request(
     *, dataset: EvalDataset, data: RunCreate, known_models: set[str]
 ) -> None:
     if dataset.kind != EvalKind.BRAND_LEAK.value and len(data.model_ids) > 5:
-        raise InvalidInputError("这类评测最多选择五个模型")
+        raise InvalidInputError(
+            "这类评测最多选择五个模型",
+            {
+                "errors": [
+                    {
+                        "loc": ["body", "model_ids"],
+                        "msg": "at most 5 items",
+                        "type": "too_long",
+                    }
+                ]
+            },
+        )
     unknown = sorted(set(data.model_ids) - known_models)
     if unknown:
         raise InvalidInputError(f"未知的模型：{', '.join(unknown)}")

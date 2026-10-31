@@ -611,7 +611,7 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 {"error":{"code":"VALIDATION_ERROR","message":"串味词表不能为空","details":{"errors":[{"loc":["body","cases","0","expected","foreign_terms"],"msg":"至少一项","type":"too_short"}]},"request_id":"req-uuid"}}
 ```
 
-- 202 后嵌入/模型不可用在逐项 `error` 中写 `model_unavailable`，结构输出失败写 `invalid_model_output`，检索越界写 `retrieval_brand_mismatch`，检索无 brand_id 写 `retrieval_brand_unknown`；记录失败并继续其他样本，不尝试把后台错误改为 HTTP 503。整个运行意外崩溃用现有 failed/error 类型名规则，重试建新运行。未知模型是请求 422；已知但未配置或不可用模型属于逐项失败。
+- 202 后嵌入/模型不可用在逐项 `error` 中写 `model_unavailable`，结构输出失败写 `invalid_model_output`，检索越界写 `retrieval_brand_mismatch`（同一次检索里既有越界又有归属未知时，以越界为准），检索无 brand_id 写 `retrieval_brand_unknown`；记录失败并继续其他样本，不尝试把后台错误改为 HTTP 503。整个运行意外崩溃用现有 failed/error 类型名规则，重试建新运行。未知模型是请求 422；已知但未配置或不可用模型属于逐项失败。
 
 #### 实现补充（2026-11-01）
 
