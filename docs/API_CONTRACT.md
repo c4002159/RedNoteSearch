@@ -197,6 +197,71 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 约束检查（与发布页一致，ADR-004、ADR-005）：标题加权长度 `title_weight ≤ 20`（ASCII 可打印字符计 0.5，其余计 1）；正文 `body_units ≤ 1000`（去掉换行后的 UTF-16 码元数，emoji 计 2）；标签 ≤10，且标签的可见字符计入正文预算。后端判定为准，前端镜像同一规则。
 
+### F12：任务文件输入（契约审议稿，待 A/B 确认，尚未实现）
+
+本小节只提出新增接口；既有 `POST /tasks` JSON 与 `task_materials` 粘贴文本含义不变。后端仍未支持文件任务输入，不能据本稿显示可用入口。
+
+#### 请求、响应与权限
+
+| 方法与路径 | 权限 | 请求 | 成功 |
+|---|---|---|---|
+| `POST /tasks/{task_id}/materials` | 任务所属品牌的成员（editor/admin） | `multipart/form-data`，且仅一个必填 `file` 部件；不接受客户端指定品牌 | 201，资料元数据 |
+| `GET /tasks/{task_id}/materials?page=1&page_size=20` | 同上；任务任何流程状态可读 | 无请求体；分页见 §1.3；固定 `created_at ASC, id ASC` | 200，粘贴与文件资料统一列表 |
+
+任务 id 为 UUID；不存在、非成员或其他品牌任务均为 404。平台管理员也必须是该任务品牌成员。未登录为 401。资料的品牌只取自已授权任务。
+
+上传示例：请求头 `Authorization: Bearer <token>`，可带 `Idempotency-Key: upload-brief-001`；multipart 部件 `file` 的文件名为 `brief.pdf`、内容为该文件的字节。201 示例（下例摘要用 64 位哈希示意，不代表真实文件）：
+
+```json
+{"id":"11111111-1111-4111-8111-111111111111","filename":"brief.pdf","char_count":12,"content_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","created_at":"2026-11-01T00:00:00Z","excerpt":"任务内产品资料节选"}
+```
+
+`GET` 示例：
+
+```json
+{"items":[{"id":"11111111-1111-4111-8111-111111111111","filename":"brief.pdf","char_count":12,"content_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","created_at":"2026-11-01T00:00:00Z","excerpt":"任务内产品资料节选"}],"total":1,"page":1,"page_size":20}
+```
+
+`id` 为不可变任务资料快照 id；文件名取 basename、长度 1–300 个 Unicode 码点（超限 422），不保存本机路径。`char_count` 为解析所得并实际保存文本的 Unicode 码点数（含换行，emoji 计一个码点）；`excerpt` 取该文本前 200 码点，不返回全文。`content_hash` 沿用任务资料现有 SHA-256 文本哈希口径，不重定义旧哈希。响应时间与 id 规则见 §1。
+
+#### 实现约定（待实现）
+
+- 只允许任务 `queued` 时添加；生成开始后及其他状态一律 409 `INVALID_STATE`。上传不改变任务流程状态。解析、嵌入可同步耗时数分钟，前端保留等待态；本次不引入上传作业或新的进度枚举。
+- PDF/DOCX ≤52428800 bytes，MD/TXT/CSV ≤5242880 bytes；大小等于上限可接受。复用现有解析器，不接受图片、压缩包或 OCR；仅扩展名白名单不代表文件内容可解析。单请求多文件、缺少 `file` 或无效 UUID 为 422 `VALIDATION_ERROR`。
+- 每任务粘贴加文件合计 ≤5 份；每份解析后 1–50000 码点。空白文本或不可解析内容为 `PARSE_FAILED`。重复内容用不同请求上传仍占一份，除非属于成功请求的幂等重放；不做隐式去重。
+- 原文件不持久化；只保存解析文本、文件名、哈希及快照元数据。文本分块和向量仅供所属任务的检索，来源始终 `task_material`、未经审核；不创建知识库文档/版本或供其他任务检索的知识库索引，不影响原有任务快照规则。
+- 解析和嵌入全部成功才原子提交快照、任务内分块及 `task.material_add` 审计；失败无新增快照、分块或成功审计。审计 detail 只含文件名、字数，不含正文。上传与生成、并发上传须在提交前重新核验状态和份数，不能绕过 5 份上限或将迟到资料加入正在生成的任务。
+- 可选 `Idempotency-Key` 长度 1–100；按用户、任务、操作隔离，指纹包含文件名及原始字节哈希。成功键保留至任务生命周期结束；重放前再次授权，相同键相同文件返回原 201 和同一快照（不重复审计，不再受 queued 限制），不同文件为 409 `IDEMPOTENCY_CONFLICT`。同键仍在处理时 409 `CONFLICT`（`details.reason=operation_in_progress`）；无已提交结果的失败不占用成功键，可以原键重试。未带键时重试可能生成第二份资料。
+- **待 A 决定：上传错误后能否删除。** 当前建议不增加删除/替换接口，错误资料通过新建任务处理；此为待审建议，不视为批准删除例外。若要求删除，须先讨论并用 ADR 说明与快照只增不改规则的关系。
+
+#### 错误与失败恢复
+
+所有错误统一采用 §1.1 信封并带 `request_id`，以下为本功能新增约定或复用项：
+
+| HTTP / code | 条件与 details | 恢复 |
+|---|---|---|
+| 401 `UNAUTHENTICATED` | 未登录/令牌失效 | 登录后重试 |
+| 404 `NOT_FOUND` | 任务不存在或用户不是成员 | 不暴露品牌或资料内容 |
+| 409 `INVALID_STATE` | 非 queued；`current_state` | 新建任务，不修改原快照 |
+| 409 `CONFLICT` | 相同幂等操作处理中；`reason` | 等待后原键重试 |
+| 409 `IDEMPOTENCY_CONFLICT` | 同键不同文件 | 用新键提交新操作 |
+| 422 `VALIDATION_ERROR` | 表单、UUID、文件名或分页非法；`errors` | 修正字段 |
+| 422 `FILE_TOO_LARGE` | `limit_bytes` | 缩小文件 |
+| 422 `UNSUPPORTED_FILE_TYPE` | `allowed` 为扩展名列表 | 换支持类型 |
+| 422 `PARSE_FAILED` | 无可用文本、损坏/加密文档 | 换文件；无半成品 |
+| 422 `MATERIAL_TOO_LONG`（拟新增） | `char_count`、`limit_chars=50000` | 缩短文本 |
+| 422 `MATERIAL_LIMIT_EXCEEDED`（拟新增） | `material_count`、`limit_count=5` | 新建任务；不自动删已有资料 |
+| 503 `MODEL_UNAVAILABLE` | 嵌入不可用 | 原任务保持 queued，无新增资料，可重试 |
+| 500 `INTERNAL_ERROR` | 意外故障，仅返回 request_id 与通用说明 | 通过 GET 确认结果或按幂等键重试 |
+
+错误示例：
+
+```json
+{"error":{"code":"MATERIAL_TOO_LONG","message":"任务资料文本过长","details":{"char_count":50001,"limit_chars":50000},"request_id":"req-uuid"}}
+```
+
+新增码仅为此审议稿提出，实际服务当前尚不返回；未新增限流机制或改变既有错误码含义。
+
 ### `GET /tasks?brand_id=&status=&page=&sort=-created_at`
 任务列表（品牌成员）；`brand_id` 必填。
 
@@ -359,7 +424,6 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 - 爆款结构分析（B）：`POST /brands/{brand_id}/viral-samples`；`GET …/viral-samples`；`POST /viral-samples/{id}/analyze`；`POST /viral-patterns/{id}/to-template`。样本只属于所在品牌，不入公共知识库；输出结构标签与抽象模板，不得大段复用样本原句。
 - 多模型对比（B）：`POST /model-comparisons`（幂等）；`GET /model-comparisons/{id}`：并列各模型的约束通过率、人工评分、延迟、费用；失败模型单独显示。
-- 任务文件输入（A 解析、B 消费）：`POST /tasks` 的 `task_materials` 扩展为文件上传，只存任务快照，不建知识库索引。
 
 ## 11. 合同变更流程
 
@@ -369,6 +433,8 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 4. 每个新增或修改的端点补成功、验证错误、未授权、越权测试。
 
 ## 12. 变更记录
+
+- 2026-11-01 F12 契约审议稿：新增接口/字段、权限、幂等、错误与失败恢复；待 A/B 确认，尚未实现。用例 TC-126 至 TC-135。
 
 - v1.1：补齐第 2、3、4（版本、分块、重建索引）、5（场景、风格、任务列表、局部重写、断言确认、选定标题、导出格式）、6、7（创建、评分、一致性）、8；明确 403 与 404 策略、分页、幂等、文件限制；关闭自助注册。
 - v1.0：初版（见原 API_CONTRACT.md）。
