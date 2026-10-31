@@ -45,13 +45,21 @@ from app.models.identity import (
 )
 from app.models.knowledge import (
     EMBEDDING_DIMENSIONS,
+    ChunkPublic,
+    ChunksPublic,
+    DocumentDetail,
+    DocumentPublic,
+    DocumentsPublic,
     DocumentStatus,
     DocumentType,
+    DocumentVersionRef,
     IndexStatus,
     KbChunk,
     KbDocument,
     KbReview,
     ReviewAction,
+    ReviewCreate,
+    ReviewPublic,
 )
 from app.models.product import (
     BrandVoiceProfile,
@@ -70,6 +78,14 @@ from app.models.product import (
 )
 
 __all__ = [
+    "ChunkPublic",
+    "ChunksPublic",
+    "DocumentDetail",
+    "DocumentPublic",
+    "DocumentsPublic",
+    "DocumentVersionRef",
+    "ReviewCreate",
+    "ReviewPublic",
     "BrandVoiceProfile",
     "Product",
     "ProductCreate",
