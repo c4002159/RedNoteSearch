@@ -531,7 +531,7 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
   - `compliance`：`input.text`；`expected.hit_words`（应当被命中的词）。
   - `factcheck`：`input.claim`、`input.sources`（1 到 5 段资料）；`expected.verdict` 为 `supported | insufficient | conflict`。
   - `generation`：`input.product_name`、`input.scene_name`，可选 `brand_name`、`category`、`scene_structure`、`brief`、`required_terms`、`style`、`facts`；`expected.forbidden_words` 可选。
-  - `brand_leak` 当前实现仍返回 422；拟扩展字段与规则见本节 F14 契约审议稿，须经确认后实现。
+  - `brand_leak` 字段与规则见本节 F14，已支持创建和运行。
 - 版本：评测集创建后内容固定；带 `previous_version_id` 创建时生成同一 `group_id` 的下一个版本（类型和品牌必须相同），旧版本保留。每个版本有 `content_hash`。
 - 运行（`POST /evaluation/runs`，202，后台执行，可带 `Idempotency-Key`）：`model_ids` 必须是 `GET /models` 里的模型（未知模型 422）；`factcheck`、`generation` 至少选一个模型，`compliance` 不用模型。`baselines` 按类型限定：`compliance` 只有 `lexicon_only`（只用词库层，不含功效依据层），`factcheck` 只有 `no_verification`（相信所有说法），`generation` 没有基线。
 - 运行详情返回：样本数、各项版本（评测集版本、提示词版本、检查器版本、评分表版本、模型、基线）、**按系统分组的指标**（每个指标带 `name`、`value`、`definition`、`n`），以及失败项（哪个样本、哪个系统、简短原因）。**没有综合分。**一个样本失败不会中断整个运行，失败计入指标：生成类的失败算“未通过约束”，核查类的失败算“判断错误”。运行崩溃时状态为 `failed`，`error` 只含异常类型名。
@@ -540,9 +540,9 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 - 评分：`GET /evaluation/rubrics` 返回评分表 `rubric-v1`（结构、调性、具体度、贴合资料，1 到 5 分，各维度分开，**不合成总分**）。`POST /evaluation/runs/{id}/ratings` 的评分者取自登录用户，四个维度都必须有分且在范围内，`rubric_version` 必须是当前版本；同一评分者对同一结果再次提交会替换之前的分数。`GET /evaluation/runs/{id}/agreement` 返回评分者人数、已评样本数，以及**每个维度**的评分者两两加权 Cohen's kappa 的平均值、完全一致比例和相差不超过 1 分的比例，`method` 字段写明计算方法；不足以计算时对应值为 `null`。
 - `GET /models`（登录用户）：`{id, provider, model_name, enabled, price_in_per_1k, price_out_per_1k, price_version}`；价格来自配置（`DEEPSEEK_PRICE_IN_PER_1K`、`DEEPSEEK_PRICE_OUT_PER_1K`、`LLM_PRICE_VERSION`），没有配置时为 `null`，成本不会被猜测。`enabled` 表示是否配置了密钥。
 
-### F14：品牌串味测试（契约审议稿，待 A/B 确认，尚未实现）
+### F14：品牌串味测试（已定稿，已实现）
 
-以下扩展 §7 现有评测接口，不新建对比模块、不包含 F15；只解除 `brand_leak` 的后续功能限制，其余评测类型保持原含义。当前服务仍对该类型返回 422。
+以下扩展 §7 现有评测接口，不新建对比模块、不包含 F15；只解除 `brand_leak` 的后续功能限制，其余评测类型保持原含义。该类型现已支持品牌评测集的创建和运行。
 
 #### 请求字段与权限
 
@@ -611,7 +611,13 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 {"error":{"code":"VALIDATION_ERROR","message":"串味词表不能为空","details":{"errors":[{"loc":["body","cases","0","expected","foreign_terms"],"msg":"至少一项","type":"too_short"}]},"request_id":"req-uuid"}}
 ```
 
-- 202 后嵌入/模型不可用在逐项 `error` 中写 `model_unavailable`，结构输出失败写 `invalid_model_output`，检索越界写 `retrieval_brand_mismatch`，检索无 brand_id 写 `retrieval_brand_unknown`；记录失败并继续其他样本，不尝试把后台错误改为 HTTP 503。整个运行意外崩溃用现有 failed/error 类型名规则，重试建新运行。未知模型是请求 422；已知但未配置或不可用模型属于逐项失败。
+- 202 后嵌入/模型不可用在逐项 `error` 中写 `model_unavailable`，结构输出失败写 `invalid_model_output`，检索越界写 `retrieval_brand_mismatch`（同一次检索里既有越界又有归属未知时，以越界为准），检索无 brand_id 写 `retrieval_brand_unknown`；记录失败并继续其他样本，不尝试把后台错误改为 HTTP 503。整个运行意外崩溃用现有 failed/error 类型名规则，重试建新运行。未知模型是请求 422；已知但未配置或不可用模型属于逐项失败。
+
+#### 实现补充（2026-11-01）
+
+- 不修改 KnowledgeChunk；诊断复核实际分块的数据库父记录。结果系统名沿用现有 `model:<model_id>` 格式；各模型复用同一检索诊断，不跨模型累加。
+- 为支持 brand_leak 的无数量上限，RunCreate 的原上限验证移到服务层并仅对其他类型保留原上限，不改变其他评测类型行为。评测模型工厂配置现有数据库调用记录器，不存原始提示词。
+- 可在 backend 下运行 `python -m app.seed --fake-embeddings --brand-leak`，为演示品牌幂等补一组仅含虚构词的串味集；不改变原默认种子的三类评测集。
 
 ## 8. 模型与成本（B）
 
@@ -723,6 +729,7 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 
 ## 12. 变更记录
 
+- 2026-11-01 F14 实现：品牌串味评测、独立归属诊断、代码指标与虚构示例集入口。
 - 2026-11-01 规则批量维护契约草案：导入预览/应用、merge/replace、导出/模板、事务与行级错误；TC-158～TC-182。已补 A 的空来源、id定位、含停用重复键、模板权限、empty_file 与可空文本等同决定，等待 A 复审确认定稿，尚未实现。
 - 2026-11-01 F12 实现：上传与列表、任务行锁、原子快照及审计、专用 422 错误映射；已重新生成客户端。
 

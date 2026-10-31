@@ -6,6 +6,7 @@ rubric) and reports each metric with its definition; there is no combined score.
 
 import hashlib
 import json
+import re
 import uuid
 from collections import defaultdict
 from typing import Any
@@ -13,7 +14,7 @@ from typing import Any
 from sqlmodel import Session, col, func, or_, select
 
 from app.domain.evaluation.agreement import DimensionAgreement, dimension_agreement
-from app.domain.evaluation.metrics import VERDICT_TO_STATUS
+from app.domain.evaluation.metrics import VERDICT_TO_STATUS, normalize_brand_term
 from app.domain.evaluation.rubric import DIMENSIONS, RUBRIC_VERSION, validate_scores
 from app.domain.evidence.judge import PROMPT_VERSION as EVIDENCE_PROMPT_VERSION
 from app.domain.generation.evaluate import CHECKER_VERSION
@@ -40,8 +41,13 @@ ALLOWED_BASELINES = {
     EvalKind.COMPLIANCE.value: {"lexicon_only"},
     EvalKind.FACTCHECK.value: {"no_verification"},
     EvalKind.GENERATION.value: set(),
+    EvalKind.BRAND_LEAK.value: set(),
 }
-NEEDS_MODEL = {EvalKind.FACTCHECK.value, EvalKind.GENERATION.value}
+NEEDS_MODEL = {
+    EvalKind.FACTCHECK.value,
+    EvalKind.GENERATION.value,
+    EvalKind.BRAND_LEAK.value,
+}
 
 
 # ---- access ----
@@ -95,7 +101,22 @@ def _strings(value: Any, *, minimum: int = 0, maximum: int = 50) -> bool:
 def validate_case(kind: str, case: CaseIn) -> str | None:
     """Why a case does not fit its dataset kind, or ``None``."""
     data, expected = case.input, case.expected
-    if kind == EvalKind.COMPLIANCE.value:
+    if kind == EvalKind.BRAND_LEAK.value:
+        problem = validate_case(EvalKind.GENERATION.value, case)
+        if problem:
+            return problem
+        distractor = data.get("distractor_brand")
+        if not isinstance(distractor, str) or not 1 <= len(distractor.strip()) <= 100:
+            return "input.distractor_brand 需要 1 到 100 字"
+        terms = expected.get("foreign_terms")
+        if not isinstance(terms, list) or not _strings(terms, minimum=1, maximum=50):
+            return "expected.foreign_terms 需要 1 到 50 个非空词"
+        if any(len(term.strip()) > 100 for term in terms):
+            return "expected.foreign_terms 每个词最多 100 字"
+        normalized = [normalize_brand_term(term.strip()) for term in terms]
+        if len(set(normalized)) != len(normalized):
+            return "expected.foreign_terms 不允许规范化后的重复词"
+    elif kind == EvalKind.COMPLIANCE.value:
         if not _text(data.get("text")):
             return "input.text 不能为空"
         if not _strings(expected.get("hit_words", []), maximum=50):
@@ -118,6 +139,12 @@ def validate_case(kind: str, case: CaseIn) -> str | None:
     return None
 
 
+def _problem_path(problem: str) -> list[str]:
+    """The ``input.x`` / ``expected.x`` field a problem message starts with."""
+    found = re.match(r"(input|expected)\.(\w+)", problem)
+    return [found.group(1), found.group(2)] if found else []
+
+
 def _content_hash(kind: str, cases: list[CaseIn]) -> str:
     canonical = json.dumps(
         {"kind": kind, "cases": [c.model_dump() for c in cases]},
@@ -129,12 +156,41 @@ def _content_hash(kind: str, cases: list[CaseIn]) -> str:
 
 # ---- datasets ----
 def create_dataset(*, session: Session, data: DatasetCreate, user: User) -> EvalDataset:
-    if data.kind is EvalKind.BRAND_LEAK:
-        raise InvalidInputError("brand_leak 评测集属于后续功能，暂不支持")
+    if data.kind is EvalKind.BRAND_LEAK and data.brand_id is None:
+        raise InvalidInputError(
+            "brand_leak 必须属于一个品牌",
+            {
+                "errors": [
+                    {
+                        "loc": ["body", "brand_id"],
+                        "msg": "brand_id is required",
+                        "type": "value_error",
+                    }
+                ]
+            },
+        )
     for index, case in enumerate(data.cases):
         problem = validate_case(data.kind.value, case)
         if problem:
-            raise InvalidInputError(f"第 {index + 1} 条样本：{problem}")
+            raise InvalidInputError(
+                f"第 {index + 1} 条样本：{problem}",
+                {
+                    "errors": [
+                        {
+                            "loc": [
+                                "body",
+                                "cases",
+                                str(index),
+                                *_problem_path(problem),
+                            ],
+                            "msg": problem,
+                            "type": "value_error",
+                        }
+                    ]
+                }
+                if data.kind is EvalKind.BRAND_LEAK
+                else None,
+            )
     group_id, version = uuid.uuid4(), 1
     if data.previous_version_id is not None:
         previous = get_visible_dataset(
@@ -223,8 +279,19 @@ def list_cases(
 def validate_run_request(
     *, dataset: EvalDataset, data: RunCreate, known_models: set[str]
 ) -> None:
-    if dataset.kind == EvalKind.BRAND_LEAK.value:
-        raise InvalidInputError("brand_leak 评测属于后续功能，暂不支持")
+    if dataset.kind != EvalKind.BRAND_LEAK.value and len(data.model_ids) > 5:
+        raise InvalidInputError(
+            "这类评测最多选择五个模型",
+            {
+                "errors": [
+                    {
+                        "loc": ["body", "model_ids"],
+                        "msg": "at most 5 items",
+                        "type": "too_long",
+                    }
+                ]
+            },
+        )
     unknown = sorted(set(data.model_ids) - known_models)
     if unknown:
         raise InvalidInputError(f"未知的模型：{', '.join(unknown)}")
@@ -258,14 +325,19 @@ def create_run(
     prompt = data.prompt_version or {
         EvalKind.GENERATION.value: GENERATION_PROMPT_VERSION,
         EvalKind.FACTCHECK.value: EVIDENCE_PROMPT_VERSION,
+        EvalKind.BRAND_LEAK.value: "brand-leak-v1",
     }.get(dataset.kind)
     run = EvalRun(
         dataset_id=dataset.id,
         model_ids=list(dict.fromkeys(data.model_ids)),
         baselines=list(dict.fromkeys(data.baselines)),
         prompt_version=prompt,
-        checker_version=CHECKER_VERSION,
-        rubric_version=RUBRIC_VERSION,
+        checker_version="brand-leak-v1"
+        if dataset.kind == EvalKind.BRAND_LEAK.value
+        else CHECKER_VERSION,
+        rubric_version=None
+        if dataset.kind == EvalKind.BRAND_LEAK.value
+        else RUBRIC_VERSION,
         idempotency_key=idempotency_key,
         sample_count=dataset.case_count,
         created_by=user.id,
