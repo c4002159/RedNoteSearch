@@ -24,7 +24,7 @@ from app.models import (
 from app.ports.embedding import EmbeddingProvider
 from app.services import knowledge as kb
 from app.services.errors import NotFoundError
-from app.services.parsing import MAX_FILE_BYTES
+from app.services.parsing import check_size, size_limit_for
 
 router = APIRouter(tags=["knowledge"])
 
@@ -71,10 +71,14 @@ DocumentAdminDep = Annotated[KbDocument, Depends(get_document_admin)]
 
 
 def _read_upload(file: UploadFile) -> tuple[str, bytes]:
-    content = file.file.read(MAX_FILE_BYTES + 1)
-    if len(content) > MAX_FILE_BYTES:
-        raise HTTPException(status_code=413, detail="The file is larger than 10 MB")
-    return file.filename or "upload", content
+    """Read an upload, refusing a type that is not allowed or a file over the limit of its type."""
+    filename = file.filename or "upload"
+    limit = size_limit_for(
+        filename
+    )  # unsupported type: refused before reading anything
+    content = file.file.read(limit + 1)
+    check_size(filename, len(content))
+    return filename, content
 
 
 def _public(doc: KbDocument) -> DocumentPublic:

@@ -147,3 +147,32 @@ def set_task_status(
         task.latest_version_id = latest_version_id
     task.updated_at = get_datetime_utc()
     session.add(task)
+
+
+def task_labels(
+    *, session: Session, tasks: list[Task]
+) -> dict[uuid.UUID, tuple[str, str, str]]:
+    """Product name, scenario name and scene of each task, for list and detail views."""
+    if not tasks:
+        return {}
+    products = {
+        p.id: p.name
+        for p in session.exec(
+            select(Product).where(col(Product.id).in_({t.product_id for t in tasks}))
+        ).all()
+    }
+    scenarios = {
+        s.id: (s.name, s.scene)
+        for s in session.exec(
+            select(ScenarioTemplate).where(
+                col(ScenarioTemplate.id).in_({t.scenario_id for t in tasks})
+            )
+        ).all()
+    }
+    return {
+        t.id: (
+            products.get(t.product_id, ""),
+            *scenarios.get(t.scenario_id, ("", "")),
+        )
+        for t in tasks
+    }

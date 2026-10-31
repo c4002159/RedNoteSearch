@@ -183,6 +183,8 @@ class ComplianceCheckPublic(SQLModel):
     suggestion: str
     source_name: str
     source_clause: str | None
+    # The rule's current link, looked up through rule_id; empty for model-found hints.
+    source_url: str | None = None
     region_scope: str | None
     basis: str | None
     resolved: bool

@@ -9,10 +9,12 @@ from fastapi.testclient import TestClient
 from app.core.errors import REQUEST_ID_HEADER, install_error_handling
 from app.services.errors import (
     ConflictError,
+    FileTooLargeError,
     InvalidStateError,
     ModelUnavailableError,
     NotFoundError,
     ParseError,
+    UnsupportedFileTypeError,
 )
 
 
@@ -51,6 +53,16 @@ def _app() -> FastAPI:
     @app.get("/parse-failed")
     def parse_failed() -> None:
         raise ParseError("No text could be extracted from the file")
+
+    @app.get("/too-large")
+    def too_large() -> None:
+        raise FileTooLargeError(
+            "The file is larger than 5 MB", {"limit_bytes": 5242880}
+        )
+
+    @app.get("/bad-type")
+    def bad_type() -> None:
+        raise UnsupportedFileTypeError("Unsupported file type", {"allowed": [".pdf"]})
 
     @app.get("/model-down")
     def model_down() -> None:
@@ -176,3 +188,17 @@ def test_service_errors_map_to_contract_codes(
     r = client.get(path)
     assert r.status_code == status
     assert _error(r.json())["code"] == code
+
+
+def test_upload_errors_carry_their_codes_and_details(client: TestClient) -> None:
+    large = client.get("/too-large")
+    assert large.status_code == 422
+    error = _error(large.json())
+    assert (error["code"], error["details"]) == (
+        "FILE_TOO_LARGE",
+        {"limit_bytes": 5242880},
+    )
+    bad = client.get("/bad-type")
+    assert bad.status_code == 422
+    assert _error(bad.json())["code"] == "UNSUPPORTED_FILE_TYPE"
+    assert _error(bad.json())["details"] == {"allowed": [".pdf"]}

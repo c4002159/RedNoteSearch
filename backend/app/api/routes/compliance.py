@@ -2,6 +2,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlmodel import col, select
 
 from app.api.brand_deps import BrandAccess, BrandAdminDep, get_brand_access
 from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
@@ -60,7 +61,21 @@ RuleReadDep = Annotated[ComplianceRule, Depends(get_rule_for_read)]
 RuleEditDep = Annotated[ComplianceRule, Depends(get_rule_for_edit)]
 
 
-def _check_public(row: ComplianceCheck) -> ComplianceCheckPublic:
+def _urls(
+    session: SessionDep, rows: list[ComplianceCheck]
+) -> dict[uuid.UUID, str | None]:
+    ids = {r.rule_id for r in rows if r.rule_id}
+    if not ids:
+        return {}
+    found = session.exec(
+        select(ComplianceRule).where(col(ComplianceRule.id).in_(ids))
+    ).all()
+    return {rule.id: rule.source_url for rule in found}
+
+
+def _check_public(
+    row: ComplianceCheck, urls: dict[uuid.UUID, str | None] | None = None
+) -> ComplianceCheckPublic:
     return ComplianceCheckPublic(
         id=row.id,
         version_id=row.version_id,
@@ -75,6 +90,7 @@ def _check_public(row: ComplianceCheck) -> ComplianceCheckPublic:
         suggestion=row.suggestion,
         source_name=row.source_name,
         source_clause=row.source_clause,
+        source_url=(urls or {}).get(row.rule_id) if row.rule_id else None,
         region_scope=row.region_scope,
         basis=row.basis,
         resolved=row.resolved,
@@ -170,7 +186,7 @@ def read_version_compliance(
 ) -> ComplianceChecksPublic:
     rows = compliance_service.list_checks(session=session, version_id=access[0].id)
     return ComplianceChecksPublic(
-        items=[_check_public(r) for r in rows],
+        items=[_check_public(r, _urls(session, rows)) for r in rows],
         unresolved_block=compliance_service.summarize(rows).unresolved_block,
     )
 
@@ -198,4 +214,4 @@ def resolve_check(
     saved = compliance_service.resolve_check(
         session=session, check=row, note=body.note, user_id=brand_access.user_id
     )
-    return _check_public(saved)
+    return _check_public(saved, _urls(session, [saved]))

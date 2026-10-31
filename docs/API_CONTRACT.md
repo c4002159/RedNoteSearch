@@ -58,9 +58,11 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 |---|---|---|
 | 文档 | `.pdf`、`.docx` | 50 MB（演示品牌手册约 42 MB，须不被拒绝） |
 | 文本与表格 | `.md`、`.csv` | 5 MB |
-| 任务内资料（粘贴文本） | — | 100 KB |
+| 任务内资料（粘贴文本） | — | 每份 ≤50000 字，最多 5 份（见 `POST /tasks`） |
 
 超限返回 `FILE_TOO_LARGE`，类型不符返回 `UNSUPPORTED_FILE_TYPE`，解析失败返回 `PARSE_FAILED`；三者都不得产生半成品索引。
+
+**实现（2026-11-01）**：上限按类型生效——`.pdf`、`.docx` 为 50 MB，`.md`、`.txt`、`.csv` 为 5 MB；类型不在白名单返回 422 `UNSUPPORTED_FILE_TYPE`（`details.allowed`），超限返回 422 `FILE_TOO_LARGE`（`details.limit_bytes`），都在读取内容之前或读取后立即拒绝，不保存任何东西。大文件的解析与嵌入是同步进行的，几十兆的 PDF 可能需要几分钟，前端上传要有长时间等待的状态。
 
 ## 2. 认证与用户（沿用模板，不另造）
 
@@ -287,6 +289,19 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - **粘贴到发布页不会变成话题**（实测）：界面要提示用户在发布页用键盘输入 `#` 加话题名再按空格，或点“# 话题”按钮；并显示“已选 N / 10”。
 - 封面文案不并入以上三项（用于制作封面图），仅出现在 `markdown` 导出中。
 - 复制失败时界面提供纯文本框手动复制。
+
+### 给前端的补充说明（2026-11-01，回应 B 的对照审阅）
+- **我在当前品牌里的角色**：`GET /brands` 的每一项带 `role`（`admin` 或 `editor`，就是当前用户在该品牌里的角色），导航按角色显示或隐藏就用它；`GET /users/me` 没有品牌角色。
+- **任务列表项** `GET /tasks`：`id, brand_id, product_id, product_name, scenario_id, scenario_name, scene, style, brief, required_terms, flow_status, progress, latest_version_id, last_error, created_at`。`flow_status` 就是最新版本的状态。任务详情和 `generate` 的返回字段相同。
+- **版本列表项** `GET /tasks/{id}/versions`：`id, task_id, version_no, parent_version_id, origin（generated | edited | rewritten）, flow_status, title_candidates, body, hashtags, cover_candidates, constraint_checks, retrieved_sources, template_version, prompt_version, voice_version, checker_version, model, selected_title_index, selected_cover_index, confirmed_at, created_at`。版本对比没有专门接口，由前端比较两个版本。
+- **证据项**多了 `source_title`：已审核资料是文档标题，任务内资料是文件名；`quote` 是引用的原文。`document_id` 是逻辑文档 id（同一资料的所有版本共享），`document_version` 是版本号。
+- **风险提示项**多了 `source_url`（规则当前的来源链接，通过 `rule_id` 取；模型语境层发现的提示没有规则，为空）；`source_name`、`source_clause`、`region_scope` 在提示里随记录保存。
+- **风格参数** `style`：`tone` 自由文本（可空）；`length` ∈ `short | medium | long`（建议显示：偏短、适中、偏长）；`person` ∈ `first | second | third`（第一、第二、第三人称）；`emoji_density` ∈ `low | medium | high`（很少、适量、较多）；`hashtag_count` 0 到 10，默认 5。
+- **`progress.stage`** 实际会出现的值：`retrieving`、`generating`、`evidence`、`compliance`、`rewriting`、`done`，没有进行中的阶段时为 `null`（`constraint_check` 保留，目前不单独出现，约束检查在 `generating` 与 `evidence` 之间瞬间完成）。
+- **被拒绝的操作**（`INVALID_STATE`，409）的 `details` 里有 `current_state`；确认被拒时还有 `reasons`（数组，每条一个原因，`message` 是它们用“；”连起来的文字；只有非最新版本时 `reasons = ["not_latest_version"]`）。前端可以用 `reasons` 逐条显示。
+- **限流**：目前没有任何接口返回 `429 RATE_LIMITED`（没有实现限流）。前端保留通用处理（读取 `Retry-After`）即可，不需要为它设计专门的页面状态。
+- **生成失败的展示**以任务的 `last_error` 为准：`model_unavailable`（模型不可用，任务回到原状态，可直接重试）、`invalid_model_output`（模型多次返回不合格的格式，任务为 `constraint_failed`）。
+- **确认**：`needs_human_review` 的最新版本也可以确认（没有未处理的 block 级提示即可），责任由确认人承担；有未得到支持的断言时，前端应在确认弹窗里显示提示，而不是禁用按钮。`selected_cover_index` 可选。`ready_to_copy` 是终态，不能再重检；非最新版本不能确认。
 
 ## 6. 合规规则（B）
 

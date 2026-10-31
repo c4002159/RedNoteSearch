@@ -435,3 +435,35 @@ def test_search_edge_cases(db: Session, embedder: FakeEmbeddingProvider) -> None
     embedder.fail = True
     with pytest.raises(ModelUnavailableError):
         search.search(brand_id=uuid.uuid4(), query="x")
+
+
+@pytest.mark.usefixtures("embedder")
+def test_uploads_are_limited_per_type_with_the_contract_error_codes(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+) -> None:
+    brand = _create_brand(client, superuser_token_headers)
+    url = f"{API}/brands/{brand['id']}/knowledge-documents"
+    data = {"title": "x", "doc_type": "brand_story"}
+
+    too_big = client.post(
+        url,
+        headers=superuser_token_headers,
+        data=data,
+        files={"file": ("big.md", b"a" * (5 * 1024 * 1024 + 1), "text/markdown")},
+    )
+    assert too_big.status_code == 422
+    assert too_big.json()["error"]["code"] == "FILE_TOO_LARGE"
+    assert too_big.json()["error"]["details"] == {"limit_bytes": 5 * 1024 * 1024}
+
+    wrong_type = client.post(
+        url,
+        headers=superuser_token_headers,
+        data=data,
+        files={"file": ("tool.exe", b"MZ", "application/octet-stream")},
+    )
+    assert wrong_type.status_code == 422
+    assert wrong_type.json()["error"]["code"] == "UNSUPPORTED_FILE_TYPE"
+    assert (
+        client.get(url, headers=superuser_token_headers).json()["total"] == 0
+    )  # nothing half-stored

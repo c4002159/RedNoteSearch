@@ -70,6 +70,8 @@ class ClaimEvidencePublic(SQLModel):
     version_id: uuid.UUID
     claim_text: str
     status: str
+    # Title of the document (or file name of the task material) the judgement points at.
+    source_title: str | None = None
     source_level: str | None
     document_id: uuid.UUID | None
     document_version: int | None

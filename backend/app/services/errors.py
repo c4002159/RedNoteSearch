@@ -1,9 +1,13 @@
+from typing import Any
+
+
 class ServiceError(Exception):
     """Base class for errors raised by the service layer (mapped to HTTP responses in app.main)."""
 
-    def __init__(self, message: str) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         super().__init__(message)
         self.message = message
+        self.details = details or {}
 
 
 class NotFoundError(ServiceError):
@@ -20,6 +24,14 @@ class InvalidStateError(ServiceError):
 
 class ParseError(ServiceError):
     """An uploaded file could not be read or contains no usable text."""
+
+
+class UnsupportedFileTypeError(ParseError):
+    """The file's extension is not on the allow-list."""
+
+
+class FileTooLargeError(ParseError):
+    """The file is larger than the limit for its type (``details['limit_bytes']``)."""
 
 
 class ModelUnavailableError(ServiceError):

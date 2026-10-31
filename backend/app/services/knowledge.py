@@ -233,7 +233,10 @@ def review_document(
 ) -> KbDocument:
     """Approve or reject a pending document. Approval embeds the chunks and makes the version current."""
     if doc.status != DocumentStatus.PENDING_REVIEW.value:
-        raise InvalidStateError("Only documents pending review can be reviewed")
+        raise InvalidStateError(
+            "Only documents pending review can be reviewed",
+            {"current_state": doc.status},
+        )
     if action == "approve":
         _embed_chunks(session, doc, embedder)  # raises before any state change
         doc.status = DocumentStatus.APPROVED.value
@@ -253,7 +256,9 @@ def deactivate_document(
 ) -> KbDocument:
     """Stop the document from being retrieved by new tasks. Nothing is deleted."""
     if doc.status != DocumentStatus.APPROVED.value:
-        raise InvalidStateError("Only approved documents can be deactivated")
+        raise InvalidStateError(
+            "Only approved documents can be deactivated", {"current_state": doc.status}
+        )
     doc.status = DocumentStatus.DEACTIVATED.value
     doc.is_current = False
     session.add(doc)
@@ -272,7 +277,9 @@ def reindex_document(
 ) -> KbDocument:
     """Re-embed the stored chunks of an approved document. A model failure marks the index failed."""
     if doc.status != DocumentStatus.APPROVED.value:
-        raise InvalidStateError("Only approved documents can be reindexed")
+        raise InvalidStateError(
+            "Only approved documents can be reindexed", {"current_state": doc.status}
+        )
     try:
         _embed_chunks(session, doc, embedder)
     except Exception:

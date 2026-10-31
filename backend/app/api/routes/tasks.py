@@ -14,7 +14,6 @@ from app.domain.flow import FlowStatus
 from app.infra.openai_compat import deepseek_client
 from app.models import (
     BrandMember,
-    ClaimEvidencePublic,
     GenerationVersion,
     GenerationVersionPublic,
     GenerationVersionsPublic,
@@ -128,12 +127,15 @@ VersionAccessDep = Annotated[
 ]
 
 
-def _task_public(task: Task) -> TaskPublic:
+def _task_public(task: Task, labels: tuple[str, str, str] = ("", "", "")) -> TaskPublic:
     return TaskPublic(
         id=task.id,
         brand_id=task.brand_id,
         product_id=task.product_id,
         scenario_id=task.scenario_id,
+        product_name=labels[0],
+        scenario_name=labels[1],
+        scene=labels[2],
         style=StyleParams.model_validate(task.style),
         brief=task.brief,
         required_terms=task.required_terms,
@@ -234,8 +236,9 @@ def read_tasks(
         page=page,
         page_size=page_size,
     )
+    names = task_service.task_labels(session=session, tasks=rows)
     return TasksPublic(
-        items=[_task_public(t) for t in rows],
+        items=[_task_public(t, names[t.id]) for t in rows],
         total=total,
         page=page,
         page_size=page_size,
@@ -243,8 +246,10 @@ def read_tasks(
 
 
 @router.get("/tasks/{task_id}", response_model=TaskPublic)
-def read_task(access: TaskAccessDep) -> TaskPublic:
-    return _task_public(access[0])
+def read_task(access: TaskAccessDep, session: SessionDep) -> TaskPublic:
+    task = access[0]
+    names = task_service.task_labels(session=session, tasks=[task])
+    return _task_public(task, names[task.id])
 
 
 @router.get("/tasks/{task_id}/versions", response_model=GenerationVersionsPublic)
@@ -265,12 +270,10 @@ def read_version(
     access: VersionAccessDep, session: SessionDep
 ) -> GenerationVersionPublic:
     version = GenerationVersionPublic.model_validate(access[0], from_attributes=True)
-    version.claim_evidence = [
-        ClaimEvidencePublic.model_validate(r, from_attributes=True)
-        for r in evidence_service.list_evidence(
-            session=session, version_id=access[0].id
-        )
-    ]
+    version.claim_evidence = evidence_service.to_public(
+        session=session,
+        rows=evidence_service.list_evidence(session=session, version_id=access[0].id),
+    )
     return version
 
 
@@ -300,4 +303,5 @@ def generate_task(
             embedder,
         )
     session.refresh(task)
-    return _task_public(task)
+    names = task_service.task_labels(session=session, tasks=[task])
+    return _task_public(task, names[task.id])

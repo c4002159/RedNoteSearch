@@ -19,7 +19,13 @@ from app.domain.evidence.judge import (
     build_judge_messages,
     decide,
 )
-from app.models import ClaimEvidence, GenerationVersion
+from app.models import (
+    ClaimEvidence,
+    ClaimEvidencePublic,
+    GenerationVersion,
+    KbDocument,
+    TaskInput,
+)
 from app.models.common import get_datetime_utc
 from app.ports.knowledge import KnowledgeChunk, KnowledgeSearch
 from app.ports.llm import LlmClient, LlmRequest
@@ -217,3 +223,33 @@ def confirm_evidence(
     session.commit()
     session.refresh(evidence)
     return evidence
+
+
+def to_public(
+    *, session: Session, rows: list[ClaimEvidence]
+) -> list[ClaimEvidencePublic]:
+    """Evidence with the title of its source: the document's title for reviewed material, the file name
+    for task material."""
+    doc_ids = {r.document_id for r in rows if r.document_id}
+    snapshot_ids = {r.snapshot_id for r in rows if r.snapshot_id}
+    titles: dict[tuple[uuid.UUID, int], str] = {}
+    if doc_ids:
+        for doc in session.exec(
+            select(KbDocument).where(col(KbDocument.group_id).in_(doc_ids))
+        ).all():
+            titles[(doc.group_id, doc.version)] = doc.title
+    names: dict[uuid.UUID, str] = {}
+    if snapshot_ids:
+        for snap in session.exec(
+            select(TaskInput).where(col(TaskInput.id).in_(snapshot_ids))
+        ).all():
+            names[snap.id] = snap.filename
+    result = []
+    for row in rows:
+        item = ClaimEvidencePublic.model_validate(row, from_attributes=True)
+        if row.snapshot_id:
+            item.source_title = names.get(row.snapshot_id)
+        elif row.document_id and row.document_version is not None:
+            item.source_title = titles.get((row.document_id, row.document_version))
+        result.append(item)
+    return result

@@ -18,11 +18,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.services.errors import (
     ConflictError,
+    FileTooLargeError,
     InvalidInputError,
     InvalidStateError,
     ModelUnavailableError,
     NotFoundError,
     ParseError,
+    UnsupportedFileTypeError,
 )
 
 logger = logging.getLogger(__name__)
@@ -129,7 +131,11 @@ def _conflict_handler(request: Request, exc: Exception) -> Response:
 def _invalid_state_handler(request: Request, exc: Exception) -> Response:
     assert isinstance(exc, InvalidStateError)
     return error_response(
-        request, status_code=409, code="INVALID_STATE", message=exc.message
+        request,
+        status_code=409,
+        code="INVALID_STATE",
+        message=exc.message,
+        details=exc.details,
     )
 
 
@@ -137,6 +143,28 @@ def _invalid_input_handler(request: Request, exc: Exception) -> Response:
     assert isinstance(exc, InvalidInputError)
     return error_response(
         request, status_code=422, code="VALIDATION_ERROR", message=exc.message
+    )
+
+
+def _file_too_large_handler(request: Request, exc: Exception) -> Response:
+    assert isinstance(exc, FileTooLargeError)
+    return error_response(
+        request,
+        status_code=422,
+        code="FILE_TOO_LARGE",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
+def _unsupported_file_type_handler(request: Request, exc: Exception) -> Response:
+    assert isinstance(exc, UnsupportedFileTypeError)
+    return error_response(
+        request,
+        status_code=422,
+        code="UNSUPPORTED_FILE_TYPE",
+        message=exc.message,
+        details=exc.details,
     )
 
 
@@ -186,6 +214,8 @@ def install_error_handling(app: FastAPI) -> None:
     app.add_exception_handler(ConflictError, _conflict_handler)
     app.add_exception_handler(InvalidStateError, _invalid_state_handler)
     app.add_exception_handler(InvalidInputError, _invalid_input_handler)
+    app.add_exception_handler(FileTooLargeError, _file_too_large_handler)
+    app.add_exception_handler(UnsupportedFileTypeError, _unsupported_file_type_handler)
     app.add_exception_handler(ParseError, _parse_error_handler)
     app.add_exception_handler(ModelUnavailableError, _model_unavailable_handler)
     app.add_exception_handler(Exception, _unhandled_exception_handler)
