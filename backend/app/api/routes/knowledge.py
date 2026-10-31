@@ -10,6 +10,7 @@ from app.models import (
     BrandMember,
     ChunkPublic,
     ChunksPublic,
+    DeactivateRequest,
     DocumentDetail,
     DocumentPublic,
     DocumentsPublic,
@@ -291,7 +292,13 @@ def deactivate_document(
     doc: DocumentAdminDep,
     session: SessionDep,
     access: Annotated[tuple[KbDocument, BrandAccess], Depends(get_document_access)],
+    body: DeactivateRequest | None = None,
 ) -> DocumentPublic:
     return _public(
-        kb.deactivate_document(session=session, doc=doc, actor_id=access[1].user_id)
+        kb.deactivate_document(
+            session=session,
+            doc=doc,
+            actor_id=access[1].user_id,
+            reason=body.reason if body else None,
+        )
     )

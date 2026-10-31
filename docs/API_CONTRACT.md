@@ -166,6 +166,8 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 ### `POST /knowledge-documents/{document_id}/deactivate`（admin）
 停用；新任务不得检索，历史 `generation_version` 保留原引用快照。不物理删除。
 
+请求体可选 `{"reason": string}`（≤500 字符，不填也可以）：写入该次停用的审核记录 `kb_review.reason` 和审计详情。界面可以要求必填，这只是前端的校验。
+
 **实现约定（2026-10-31）**
 - `{document_id}` 是**某个版本行的 id**（响应里的 `id`）；同一逻辑文档的各版本共享 `group_id`。`KnowledgeSearch` 返回的 `document_id` 是 `group_id`，`document_version` 是版本号（ADR-010）。
 - 支持 PDF（需有文字，不做 OCR）、DOCX、MD、TXT、CSV，单文件 ≤ 10 MB（超过 413）；解析失败、空文件、不支持的类型返回 422，不保存任何内容。
@@ -377,7 +379,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - 规则的创建、修改、停用属 **P2**（品牌 admin）；P0 规则由种子数据或评测目录导入，不通过 API 编辑。
 
 **合规规则与风险提示的实现约定（2026-10-31）**
-- 本节取代上面“规则的创建、修改、停用属 P2”的说法：规则现在可由人在前端维护。`POST /compliance-rules` 创建**全局**规则（仅平台管理员）；`POST /brands/{brand_id}/compliance-rules` 创建**品牌**规则（仅该品牌 admin）；`PATCH /compliance-rules/{id}` 修改或停用（`enabled=false`），全局规则由平台管理员改，品牌规则由该品牌 admin 改；每次修改 `rule_version` 加 1，并写审计。读取：全局规则所有登录用户可见，品牌规则只对该品牌成员可见（否则 404）；带 `brand_id` 查询需是该品牌成员（否则 403）。
+- 本节取代上面“规则的创建、修改、停用属 P2”的说法：规则现在可由人在前端维护。`POST /compliance-rules` 创建**全局**规则（仅平台管理员）；`POST /brands/{brand_id}/compliance-rules` 创建**品牌**规则（仅该品牌 admin）；`PATCH /compliance-rules/{id}` 修改或停用（`enabled=false`），请求体可带可选 `reason`（≤500 字符，只写进审计详情，不是规则的字段，也不会出现在响应里），全局规则由平台管理员改，品牌规则由该品牌 admin 改；每次修改 `rule_version` 加 1，并写审计。读取：全局规则所有登录用户可见，品牌规则只对该品牌成员可见（否则 404）；带 `brand_id` 查询需是该品牌成员（否则 403）。
 - 规则内容 `pattern`（≤200 字）可以是普通文字或正则；正则会被校验，嵌套重复等可能让检查卡住的写法和无效表达式返回 422。`layer = context` 由模型判断，不能用规则内容配置。
 - 随项目提供的起步规则标为 `is_sample = true`，来源写“示例规则（来源待人工核对，不是正式依据）”；人工修改后不再是示例。**它们不是法律依据，使用前须按真实来源核对。**
 - 三层：`lexicon`（命中即提示）；`efficacy_basis`（功效、医疗、数据类说法：该句有 `system_supported` 或已人工确认的断言支持时，`basis = found` 并从 `block` 降为 `warn`，否则 `basis = none` 保持原严重度）；`context`（模型读全文找没有违禁词的隐含说法，模型指出的句子必须真的出现在文中，否则丢弃）。
@@ -738,6 +740,8 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 4. 每个新增或修改的端点补成功、验证错误、未授权、越权测试。
 
 ## 12. 变更记录
+
+- 2026-11-01 停用接口新增可选 `reason`：资料停用和规则修改，写入审计，不改变既有字段含义
 
 - 2026-11-01 F14 实现：品牌串味评测、独立归属诊断、代码指标与虚构示例集入口。
 - 2026-11-01 规则批量维护契约草案：导入预览/应用、merge/replace、导出/模板、事务与行级错误；TC-158～TC-182。已补 A 的空来源、id定位、含停用重复键、模板权限、empty_file 与可空文本等同决定，等待 A 复审确认定稿，尚未实现。

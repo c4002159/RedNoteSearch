@@ -140,6 +140,8 @@ class RuleUpdate(SQLModel):
     effective_from: date | None = None
     effective_to: date | None = None
     enabled: bool | None = None
+    # Audit note for a switch-off; never stored on the rule itself.
+    reason: str | None = Field(default=None, max_length=500)
 
 
 class RulePublic(SQLModel):

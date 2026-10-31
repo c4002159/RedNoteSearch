@@ -213,3 +213,5 @@ TC-179,P1,零字节与空白文件拒绝,P1,0字节或仅空白的CSV与JSON；�
 TC-180,P1,仅BOM文件拒绝,P1,只有UTF8 BOM的CSV与JSON；范围有启用规则,merge和replace分别以dry_run=true及false导入,均422 VALIDATION_ERROR且details.reason=empty_file；message为文件里没有规则，未做任何更改；无规则版本或审计写入,单元/集成已实现（规则导入PR待复审）
 TC-181,P1,CSV仅表头拒绝,P1,合法CSV表头无数据行；包含空范围导出文件,merge和replace分别以dry_run=true及false导入,均422 VALIDATION_ERROR且details.reason=empty_file；message为文件里没有规则，未做任何更改；无规则版本或审计写入,单元/集成已实现（规则导入PR待复审）
 TC-182,P1,JSON空数组拒绝,P1,JSON空数组；包含空范围导出文件,merge和replace分别以dry_run=true及false导入,均422 VALIDATION_ERROR且details.reason=empty_file；message为文件里没有规则，未做任何更改；无规则版本或审计写入,单元/集成已实现（规则导入PR待复审）
+TC-183,P1,停用资料带原因,P1,品牌admin；已审核资料,POST deactivate带reason=资料已过期；超过500字；不带请求体,带原因的写入kb_review与审计；超长422；不带请求体仍200且审计无reason,API
+TC-184,P1,停用规则带原因,P1,品牌admin；品牌规则,PATCH enabled=false并带reason；reason超500字,reason只写进审计详情，响应无reason字段，fields不含reason；超长422,API

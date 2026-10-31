@@ -632,6 +632,16 @@ export type DatasetsPublic = {
 };
 
 /**
+ * DeactivateRequest
+ */
+export type DeactivateRequest = {
+    /**
+     * Reason
+     */
+    reason?: string | null;
+};
+
+/**
  * DimensionAgreementPublic
  */
 export type DimensionAgreementPublic = {
@@ -1745,6 +1755,10 @@ export type RuleUpdate = {
      * Enabled
      */
     enabled?: boolean | null;
+    /**
+     * Reason
+     */
+    reason?: string | null;
 };
 
 /**
@@ -4849,7 +4863,10 @@ export type knowledgeReviewDocumentResponses = {
 export type knowledgeReviewDocumentResponse = knowledgeReviewDocumentResponses[keyof knowledgeReviewDocumentResponses];
 
 export type knowledgeDeactivateDocumentData = {
-    body?: never;
+    /**
+     * Body
+     */
+    body?: DeactivateRequest | null;
     path: {
         /**
          * Document Id
