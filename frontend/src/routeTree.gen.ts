@@ -19,6 +19,7 @@ import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutBrandsRouteImport } from './routes/_layout/brands'
 import { Route as LayoutGenerateRouteImport } from './routes/_layout/generate'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
+import { Route as LayoutComplianceRulesRouteImport } from './routes/_layout/compliance/rules'
 import { Route as LayoutTasksIndexRouteImport } from './routes/_layout/tasks/index'
 import { Route as LayoutTasksTaskIdIndexRouteImport } from './routes/_layout/tasks/$taskId/index'
 import { Route as LayoutTasksTaskIdCompareRouteImport } from './routes/_layout/tasks/$taskId/compare'
@@ -73,6 +74,11 @@ const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutComplianceRulesRoute = LayoutComplianceRulesRouteImport.update({
+  id: '/compliance/rules',
+  path: '/compliance/rules',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutTasksIndexRoute = LayoutTasksIndexRouteImport.update({
   id: '/tasks/',
   path: '/tasks/',
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/brands': typeof LayoutBrandsRoute
   '/generate': typeof LayoutGenerateRoute
   '/settings': typeof LayoutSettingsRoute
+  '/compliance/rules': typeof LayoutComplianceRulesRoute
   '/tasks/': typeof LayoutTasksIndexRoute
   '/tasks/$taskId/compare': typeof LayoutTasksTaskIdCompareRoute
   '/tasks/$taskId/': typeof LayoutTasksTaskIdIndexRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/generate': typeof LayoutGenerateRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
+  '/compliance/rules': typeof LayoutComplianceRulesRoute
   '/tasks': typeof LayoutTasksIndexRoute
   '/tasks/$taskId/compare': typeof LayoutTasksTaskIdCompareRoute
   '/tasks/$taskId': typeof LayoutTasksTaskIdIndexRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/_layout/generate': typeof LayoutGenerateRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/': typeof LayoutIndexRoute
+  '/_layout/compliance/rules': typeof LayoutComplianceRulesRoute
   '/_layout/tasks/': typeof LayoutTasksIndexRoute
   '/_layout/tasks/$taskId/compare': typeof LayoutTasksTaskIdCompareRoute
   '/_layout/tasks/$taskId/': typeof LayoutTasksTaskIdIndexRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/brands'
     | '/generate'
     | '/settings'
+    | '/compliance/rules'
     | '/tasks/'
     | '/tasks/$taskId/compare'
     | '/tasks/$taskId/'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/generate'
     | '/settings'
     | '/'
+    | '/compliance/rules'
     | '/tasks'
     | '/tasks/$taskId/compare'
     | '/tasks/$taskId'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/_layout/generate'
     | '/_layout/settings'
     | '/_layout/'
+    | '/_layout/compliance/rules'
     | '/_layout/tasks/'
     | '/_layout/tasks/$taskId/compare'
     | '/_layout/tasks/$taskId/'
@@ -272,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutSettingsRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/compliance/rules': {
+      id: '/_layout/compliance/rules'
+      path: '/compliance/rules'
+      fullPath: '/compliance/rules'
+      preLoaderRoute: typeof LayoutComplianceRulesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/tasks/': {
       id: '/_layout/tasks/'
       path: '/tasks'
@@ -309,6 +328,7 @@ interface LayoutRouteChildren {
   LayoutGenerateRoute: typeof LayoutGenerateRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
+  LayoutComplianceRulesRoute: typeof LayoutComplianceRulesRoute
   LayoutTasksIndexRoute: typeof LayoutTasksIndexRoute
   LayoutTasksTaskIdCompareRoute: typeof LayoutTasksTaskIdCompareRoute
   LayoutTasksTaskIdIndexRoute: typeof LayoutTasksTaskIdIndexRoute
@@ -321,6 +341,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutGenerateRoute: LayoutGenerateRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutIndexRoute: LayoutIndexRoute,
+  LayoutComplianceRulesRoute: LayoutComplianceRulesRoute,
   LayoutTasksIndexRoute: LayoutTasksIndexRoute,
   LayoutTasksTaskIdCompareRoute: LayoutTasksTaskIdCompareRoute,
   LayoutTasksTaskIdIndexRoute: LayoutTasksTaskIdIndexRoute,
