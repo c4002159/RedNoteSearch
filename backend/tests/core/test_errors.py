@@ -7,7 +7,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
 from app.core.errors import REQUEST_ID_HEADER, install_error_handling
-from app.services.errors import ConflictError, NotFoundError
+from app.services.errors import (
+    ConflictError,
+    InvalidStateError,
+    ModelUnavailableError,
+    NotFoundError,
+    ParseError,
+)
 
 
 def _app() -> FastAPI:
@@ -37,6 +43,18 @@ def _app() -> FastAPI:
     @app.get("/conflict")
     def conflict() -> None:
         raise ConflictError("A brand must keep at least one admin")
+
+    @app.get("/invalid-state")
+    def invalid_state() -> None:
+        raise InvalidStateError("Only documents pending review can be reviewed")
+
+    @app.get("/parse-failed")
+    def parse_failed() -> None:
+        raise ParseError("No text could be extracted from the file")
+
+    @app.get("/model-down")
+    def model_down() -> None:
+        raise ModelUnavailableError("Embedding model request failed")
 
     @app.get("/number")
     def number(value: int) -> dict[str, int]:
@@ -142,3 +160,19 @@ def test_an_unsafe_client_request_id_is_replaced(client: TestClient) -> None:
         r = client.get("/forbidden", headers={REQUEST_ID_HEADER: bad})
         assert r.headers[REQUEST_ID_HEADER] != bad
         assert r.json()["error"]["request_id"] == r.headers[REQUEST_ID_HEADER]
+
+
+@pytest.mark.parametrize(
+    ("path", "status", "code"),
+    [
+        ("/invalid-state", 409, "INVALID_STATE"),
+        ("/parse-failed", 422, "PARSE_FAILED"),
+        ("/model-down", 503, "MODEL_UNAVAILABLE"),
+    ],
+)
+def test_service_errors_map_to_contract_codes(
+    client: TestClient, path: str, status: int, code: str
+) -> None:
+    r = client.get(path)
+    assert r.status_code == status
+    assert _error(r.json())["code"] == code

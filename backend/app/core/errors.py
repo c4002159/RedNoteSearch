@@ -16,7 +16,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.services.errors import ConflictError, NotFoundError
+from app.services.errors import (
+    ConflictError,
+    InvalidStateError,
+    ModelUnavailableError,
+    NotFoundError,
+    ParseError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +125,27 @@ def _conflict_handler(request: Request, exc: Exception) -> Response:
     )
 
 
+def _invalid_state_handler(request: Request, exc: Exception) -> Response:
+    assert isinstance(exc, InvalidStateError)
+    return error_response(
+        request, status_code=409, code="INVALID_STATE", message=exc.message
+    )
+
+
+def _parse_error_handler(request: Request, exc: Exception) -> Response:
+    assert isinstance(exc, ParseError)
+    return error_response(
+        request, status_code=422, code="PARSE_FAILED", message=exc.message
+    )
+
+
+def _model_unavailable_handler(request: Request, exc: Exception) -> Response:
+    assert isinstance(exc, ModelUnavailableError)
+    return error_response(
+        request, status_code=503, code="MODEL_UNAVAILABLE", message=exc.message
+    )
+
+
 def _unhandled_exception_handler(request: Request, exc: Exception) -> Response:
     request_id = get_request_id(request)
     logger.error(
@@ -149,4 +176,7 @@ def install_error_handling(app: FastAPI) -> None:
     app.add_exception_handler(RequestValidationError, _validation_exception_handler)
     app.add_exception_handler(NotFoundError, _not_found_handler)
     app.add_exception_handler(ConflictError, _conflict_handler)
+    app.add_exception_handler(InvalidStateError, _invalid_state_handler)
+    app.add_exception_handler(ParseError, _parse_error_handler)
+    app.add_exception_handler(ModelUnavailableError, _model_unavailable_handler)
     app.add_exception_handler(Exception, _unhandled_exception_handler)
