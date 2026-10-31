@@ -43,6 +43,7 @@ from app.ports.voice import VoiceProfile, VoiceProfileProvider
 from app.services.audit import record_audit
 from app.services.errors import InvalidStateError, ModelUnavailableError, NotFoundError
 from app.services.llm_structured import LlmOutputError, generate_structured
+from app.services.pipeline import PipelineDeps, run_pipeline
 
 MAX_ROUNDS = 3  # one first try and two corrections after a failed constraint check
 STRUCTURED_ATTEMPTS = 2
@@ -293,5 +294,53 @@ def run_generation(
         detail={"version_no": next_no, "constraints_passed": passed},
     )
     session.commit()
+    session.refresh(version)
+    if not passed:
+        return version
+    return _check_version(session=session, task=task, version=version, deps=deps)
+
+
+def _check_version(
+    *,
+    session: Session,
+    task: Task,
+    version: GenerationVersion,
+    deps: GenerationDeps,
+) -> GenerationVersion:
+    """Evidence, compliance hints and the bounded automatic rewrite. A model outage here keeps the version
+    (it stays in ``checking``) and is recorded on the task, so a recheck can finish the job."""
+    try:
+        version, _ = run_pipeline(
+            session=session,
+            task=task,
+            version=version,
+            deps=PipelineDeps(llm=deps.llm, search=deps.search, voices=deps.voices),
+        )
+    except (ModelUnavailableError, LlmOutputError) as exc:
+        session.rollback()
+        task = session.get(Task, task.id) or task
+        task.last_error = (
+            "model_unavailable"
+            if isinstance(exc, ModelUnavailableError)
+            else "invalid_model_output"
+        )
+        task.updated_at = get_datetime_utc()
+        session.add(task)
+        record_audit(
+            session,
+            action="task.check_interrupted",
+            entity_type="task",
+            actor_id=None,
+            brand_id=task.brand_id,
+            entity_id=task.id,
+            detail={"error": task.last_error},
+        )
+        session.commit()
+        latest = (
+            session.get(GenerationVersion, task.latest_version_id)
+            if task.latest_version_id
+            else None
+        )
+        return latest or version
     session.refresh(version)
     return version

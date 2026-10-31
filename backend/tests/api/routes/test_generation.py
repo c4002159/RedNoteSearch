@@ -100,6 +100,10 @@ def _setup(
     return {"brand": brand["id"], "task": task.json()["id"], "scenario": scenario["id"]}
 
 
+def _gen_calls(llm: FakeLlmClient) -> list[Any]:
+    return [r for r in llm.requests if r.purpose == "generate"]
+
+
 def _task(client: TestClient, headers: dict[str, str], task_id: str) -> dict[str, Any]:
     return client.get(f"{API}/tasks/{task_id}", headers=headers).json()  # type: ignore[no-any-return]
 
@@ -130,9 +134,8 @@ def test_generate_stores_a_checked_version(
     )  # the 202 reports the state at acceptance
 
     task = _task(client, superuser_token_headers, ids["task"])
-    assert task["flow_status"] == "checking" and task["progress"] == {
-        "stage": "evidence"
-    }
+    assert task["flow_status"] == "checks_completed"
+    assert task["progress"] == {"stage": "done"}
     assert task["last_error"] is None and task["latest_version_id"]
 
     version = client.get(
@@ -157,7 +160,7 @@ def test_generate_stores_a_checked_version(
     )
     assert version["model"] == "fake-model"
 
-    prompt = fake_llm.requests[0].messages[1].content
+    prompt = _gen_calls(fake_llm)[0].messages[1].content
     assert "亲切克制" in prompt and "未核实的卖点" in prompt and "无来源卖点" in prompt
     assert (
         "提升魅力" in prompt and "木质香调" in prompt
@@ -181,11 +184,13 @@ def test_generation_retries_failed_constraints_a_bounded_number_of_times(
     ids = _setup(client, superuser_token_headers)
     fake_llm._script = [LONG_TITLE, GOOD]  # noqa: SLF001 - scripted answers: bad, then good
     client.post(f"{API}/tasks/{ids['task']}/generate", headers=superuser_token_headers)
-    assert len(fake_llm.requests) == 2
-    assert "上一版有这些问题" in fake_llm.requests[1].messages[1].content
-    assert "标题" in fake_llm.requests[1].messages[1].content
+    calls = _gen_calls(fake_llm)
+    assert len(calls) == 2
+    assert "上一版有这些问题" in calls[1].messages[1].content
+    assert "标题" in calls[1].messages[1].content
     assert (
-        _task(client, superuser_token_headers, ids["task"])["flow_status"] == "checking"
+        _task(client, superuser_token_headers, ids["task"])["flow_status"]
+        == "checks_completed"
     )
 
     other = _setup(client, superuser_token_headers)
@@ -195,7 +200,7 @@ def test_generation_retries_failed_constraints_a_bounded_number_of_times(
         f"{API}/tasks/{other['task']}/generate", headers=superuser_token_headers
     )
     assert (
-        len(fake_llm.requests) == 3
+        len(_gen_calls(fake_llm)) == 3
     )  # one try and two corrections, never more (TC-018)
     task = _task(client, superuser_token_headers, other["task"])
     assert task["flow_status"] == "constraint_failed"
@@ -221,7 +226,7 @@ def test_generation_retries_failed_constraints_a_bounded_number_of_times(
     ).json()["items"]
     assert [(v["version_no"], v["flow_status"]) for v in versions] == [
         (1, "constraint_failed"),
-        (2, "checking"),
+        (2, "checks_completed"),
     ]
 
 
@@ -261,7 +266,8 @@ def test_an_unreachable_model_leaves_the_task_startable(
     )
     assert ok.status_code == 202
     task = _task(client, superuser_token_headers, ids["task"])
-    assert task["flow_status"] == "checking" and task["last_error"] is None
+    assert task["flow_status"] == "checks_completed"
+    assert task["last_error"] is None
 
 
 def test_generate_validates_state_idempotency_and_access(
@@ -287,10 +293,11 @@ def test_generate_validates_state_idempotency_and_access(
 
     first = client.post(url, headers={**member_headers, "Idempotency-Key": "k-1"})
     assert first.status_code == 202
-    assert len(fake_llm.requests) == 1
+    after_first = len(fake_llm.requests)
+    assert len(_gen_calls(fake_llm)) == 1
     # The same key again does not start a second run, whatever state the task is in now.
     repeat = client.post(url, headers={**member_headers, "Idempotency-Key": "k-1"})
-    assert repeat.status_code == 202 and len(fake_llm.requests) == 1
+    assert repeat.status_code == 202 and len(fake_llm.requests) == after_first
     # Without the key, a task that is already past `queued` cannot be generated.
     again = client.post(url, headers=member_headers)
     assert again.status_code == 409
@@ -315,7 +322,7 @@ def test_task_material_reaches_the_prompt(
         task_materials=[{"filename": "a.txt", "text": f"运营补充：{phrase}"}],
     )
     client.post(f"{API}/tasks/{ids['task']}/generate", headers=superuser_token_headers)
-    prompt = fake_llm.requests[0].messages[1].content
+    prompt = _gen_calls(fake_llm)[0].messages[1].content
     assert f"（任务资料，未审核）运营补充：{phrase}" in prompt
     task = _task(client, superuser_token_headers, ids["task"])
     version = client.get(

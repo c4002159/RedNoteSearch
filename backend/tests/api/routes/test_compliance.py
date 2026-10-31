@@ -360,7 +360,7 @@ def test_checks_find_rule_hits_and_soften_efficacy_claims_that_have_support(
         SAMPLE_SOURCE,
     )
     assert (
-        (best.span_start, best.span_end) == (3, 5)
+        (best.span_start, best.span_end) == (2, 4)
         and best.suggestion
         and not best.resolved
     )
@@ -408,6 +408,7 @@ def test_checks_find_rule_hits_and_soften_efficacy_claims_that_have_support(
     }
     assert "香水" not in matched and "最好" in matched
     version.body = "今天很清爽"
+    version.title_candidates = ["早安"]
     db.add(version)
     db.commit()
     assert [
@@ -488,7 +489,7 @@ def test_endpoints_list_hints_and_record_that_a_person_dealt_with_them(
     assert listed["unresolved_block"] == 2 and len(listed["items"]) == 2
     first = listed["items"][0]
     assert (
-        first["span"] == [3, 5]
+        first["span"] == [2, 4]
         and first["resolved"] is False
         and first["source_name"] == SAMPLE_SOURCE
     )

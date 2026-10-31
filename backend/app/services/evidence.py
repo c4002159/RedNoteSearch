@@ -154,9 +154,19 @@ def check_evidence(
             )
         )
 
-    for old in session.exec(
+    previous = session.exec(
         select(ClaimEvidence).where(ClaimEvidence.version_id == version.id)
-    ).all():
+    ).all()
+    # A person's decision about a claim survives a recheck as long as the claim's wording is unchanged.
+    decisions = {e.claim_text: e for e in previous if e.human_confirmed is not None}
+    for row in rows:
+        kept = decisions.get(row.claim_text)
+        if kept is not None:
+            row.human_confirmed = kept.human_confirmed
+            row.confirm_note = kept.confirm_note
+            row.confirmed_by = kept.confirmed_by
+            row.confirmed_at = kept.confirmed_at
+    for old in previous:
         session.delete(old)
     session.flush()
     session.add_all(rows)
