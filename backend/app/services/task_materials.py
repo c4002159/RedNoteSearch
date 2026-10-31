@@ -50,6 +50,8 @@ def add_file(
 ) -> TaskMaterialPublic:
     """Caller authorizes the resource first. The task lock is shared with begin_generation."""
     try:
+        # The row lock is held through parsing and embedding (possibly minutes): generate() and other
+        # uploads of this task wait on it, which keeps the count limit and the queued check race-free.
         locked = session.exec(
             select(Task)
             .where(Task.id == task.id)
