@@ -88,7 +88,11 @@ def update_product(
 
 
 @router.post("/products/{product_id}/archive", response_model=ProductPublic)
-def archive_product(product: ProductAdminDep, session: SessionDep) -> ProductPublic:
+def archive_product(
+    product: ProductAdminDep, session: SessionDep, current_user: CurrentUser
+) -> ProductPublic:
     """Soft delete: the product stays so tasks that referenced it keep working."""
-    archived = product_service.archive_product(session=session, product=product)
+    archived = product_service.archive_product(
+        session=session, product=product, actor_id=current_user.id
+    )
     return product_service.to_public(archived)

@@ -10,7 +10,7 @@ B 的领域逻辑（约束、证据匹配、合规、评测、生成编排）**�
 |---|---|---|---|
 | `KnowledgeSearch` | `app.services.knowledge_search.DbKnowledgeSearch(session, embedder)` | `app.fakes.knowledge.FakeKnowledgeSearch` | 已实现（PR #17） |
 | `VoiceProfileProvider` | `app.services.voice_profiles.DbVoiceProfileProvider(session)` | `app.fakes.voice.FakeVoiceProfileProvider` | 已实现（PR #16） |
-| `TaskInputRepository` | `DbTaskInputRepository(session)`（随任务资料快照的 PR 交付） | `app.fakes.task_input.FakeTaskInputRepository` | 进行中 |
+| `TaskInputRepository` | `app.services.task_input.DbTaskInputRepository(session, embedder)` | `app.fakes.task_input.FakeTaskInputRepository` | 已实现（本 PR） |
 | `EmbeddingProvider` | `app.infra.dashscope.DashScopeEmbeddingProvider()` | `app.fakes.embedding.FakeEmbeddingProvider` | 已实现（PR #17） |
 
 改任何端口（签名、字段、语义）都是契约变更：先在 PR 里 @ 对方，不要为了方便单方面改。
@@ -20,7 +20,8 @@ B 的领域逻辑（约束、证据匹配、合规、评测、生成编排）**�
 - 只返回**本品牌、`approved`、当前版本、已建好索引**的分块；待审、驳回、停用、被取代的版本永不出现。
 - `KnowledgeChunk.document_id` 是**逻辑文档 id（`group_id`）**，`document_version` 是版本号；`chunk_id` 指向具体分块。证据记录请同时保存 `document_id`、`document_version`、`chunk_id`、`content_hash`，不要只存文本。
 - `score = 1 - 余弦距离`，越大越相关；它只表示检索相关，**不代表事实正确**，“系统判定支持”仍需 B 的证据匹配逻辑和人工确认。
-- `task_material` 只在传入 `task_id` 且该任务有快照时返回，且只返回该任务自己的快照。`product_id` 目前不起作用（资料尚未关联商品）。
+- `task_material` 只在传入 `task_id` 且该任务有快照时返回，且只返回该任务、该品牌自己的快照分块；与 `approved_kb` 结果按分数合并后截断到 `limit`。其 `snapshot_id` 指向快照，`document_id`/`document_version` 为空；`content_hash` 是**分块文本**的哈希（与知识库分块一致），整份快照的哈希在快照自己的 `content_hash` 上。`product_id` 目前不起作用（资料尚未关联商品）。
+- 创建任务时：用 `app.services.parsing.parse_document(filename, bytes)` 把上传文件解析成文本，再调 `DbTaskInputRepository.create_snapshot(...)`。快照创建时就分块并嵌入，**全有或全无**：模型不可用抛 `ModelUnavailableError` 且不留快照，重试即可；文本为空抛 `ParseError`。快照只增不改。`task_id` 在 `task_input` 表上**没有外键**（任务表归 B），你建任务表时可以自己在迁移里补外键。
 - 模型不可用时抛 `ModelUnavailableError`（HTTP 503）：生成流程要把它当作可恢复的显式错误状态，不要吞掉。
 
 ## 3. 商品与品牌档案
@@ -36,10 +37,15 @@ B 的领域逻辑（约束、证据匹配、合规、评测、生成编排）**�
 - **分页**：`page` ≥ 1，`page_size` 默认 20、最大 100，越界 422（`Query(ge=…, le=…)`）。
 - **客户端**：改了接口后运行 `bash scripts/generate-client.sh` 并提交 `frontend/src/client`，CI 的 `contract` 会检查；不要手改生成文件。
 
+## 4.1 审计与演示数据
+
+- 审计：`app.services.audit.record_audit(session, action=…, entity_type=…, actor_id=…, brand_id=…, entity_id=…, detail=…)` 只往调用方的事务里加一行，随业务一起提交或回滚；`action` 是点分名称（如 `generation.confirm`），不需要改迁移，`detail` 要小且不含密钥与资料全文。表 `audit_log` 只增不改。A 的资料、品牌档案生效、商品归档已经在写；B 的“确认可复制”“导出”等关键动作请同样写入。
+- 演示数据：`cd backend && uv run python -m app.seed --fake-embeddings`（有 `DASHSCOPE_API_KEY` 时去掉参数）。会创建 slug 为 `boitown-demo` 的演示品牌（你登录的初始超级用户是它的 admin）、5 份已审核资料、3 个商品（其中一个卖点有来源、其余是草稿）和生效的品牌档案。内容全是标注【演示数据】的占位文本，不是客户手册，也不要把它当真实宣称。可重复运行。
+
 ## 5. 数据库与迁移（ADR-001）
 
 - 各写各表：B 只写自己的表和迁移；可以外键引用 A 的表（`brand`、`product`、`kb_document`、`kb_chunk`、`user`），**不得改 A 的表**，也不得改被引用的主键。
-- A 的表：`tenant`、`brand`、`brand_member`、`product`、`brand_voice_profile`、`kb_document`、`kb_review`、`kb_chunk`，以及即将加入的 `task_input`、`audit_log`。
+- A 的表：`tenant`、`brand`、`brand_member`、`product`、`brand_voice_profile`、`kb_document`、`kb_review`、`kb_chunk`，以及 `task_input`、`task_input_chunk`、`audit_log`。
 - 迁移保持线性：开工前运行 `alembic heads`，你的 `down_revision` 必须是当时唯一的 head；合并前如果 `main` 又前进了，把你的 `down_revision` 改到新的 head，再确认只剩一个 head。不使用 `alembic merge`。
 - 新模型文件要在 `app/models/__init__.py` 里导入，否则 `alembic check` 失败。
 - 本机没有 Docker 时，数据库测试与迁移只能看 CI，不要声称本地跑过。
@@ -72,4 +78,4 @@ B 的领域逻辑（约束、证据匹配、合规、评测、生成编排）**�
 - 需要 A 的表加字段、加索引或加端口方法：开一个只含该变更和理由的小 PR（或 issue），由 A 实现。
 - 冲突处理见 `CLAUDE.md` 的“减少合并冲突”。
 
-最后更新：2026-10-31（PR #14–#17 之后）。
+最后更新：2026-10-31（PR #14–#17 与任务资料快照、审计、演示数据之后）。
