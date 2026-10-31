@@ -24,3 +24,7 @@ class ParseError(ServiceError):
 
 class ModelUnavailableError(ServiceError):
     """A model provider could not be reached or returned an error."""
+
+
+class InvalidInputError(ServiceError):
+    """A value the request carried is not acceptable (for example an unsafe regular expression)."""

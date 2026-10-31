@@ -216,6 +216,28 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 ```
 `flow_status`：`queued | generating | checking | checks_completed | needs_human_review | constraint_failed | edited_pending_recheck | ready_to_copy`。仅表示流程，不代表合规通过。
 
+**生成的实现约定（2026-10-31）**
+- `POST /tasks/{task_id}/generate` 立即返回 202 和任务当前状态（`generating`），生成在响应之后后台进行，客户端轮询 `GET /tasks/{id}`。只有 `queued` 的任务，或上一次因约束未通过而 `constraint_failed` 的任务可以（重新）生成，其他状态返回 409 `INVALID_STATE`；同一个 `Idempotency-Key`（≤100 字符）重复提交不会启动第二次生成。
+- 任务多了 `last_error`（简短、不含密钥的原因）：`model_unavailable`（模型不可用，任务回到原状态，可直接重试）、`invalid_model_output`（模型多次返回不符合格式的输出，任务为 `constraint_failed`）。
+- 一次生成最多 3 轮：第 1 轮正常生成，约束检查未通过则把问题告诉模型再生成，最多再 2 轮；每轮格式不符最多再问 1 次，因此一次生成最多 6 次模型调用。仍未通过时保存该版本并标 `constraint_failed`，检查结果里写明哪个标题、哪个字段、哪个词。
+- 约束检查对**每一个标题候选**单独判定，对正文加标签判定字数、标签数量、必含词和禁用词；禁用词包括品牌档案的禁用词和商品的“禁止宣称”。
+- 约束通过的版本状态为 `checking`，任务进度为 `evidence`：证据与合规检查是后续步骤，完成前版本不会变成 `checks_completed`，更不会是 `ready_to_copy`。
+- 版本记录 `template_version`、`prompt_version`（`gen-v1`）、`voice_version`、`checker_version`（`constraints-v1`）、`model`，以及当次检索到的资料快照 `retrieved_sources`（含来源级别、文档与版本、分块 id、哈希和 200 字摘录）。
+- 提示词只把**有来源**的卖点当作事实；无来源的卖点标为“未核实，只可参考”；任务资料标为“未审核”。
+- 每次模型调用（含失败）写入 `llm_call_log`，用独立事务，调用失败回滚时也留痕。
+
+**检查流程与状态（2026-10-31）**
+- 生成后自动依次做：约束检查、事实证据、合规风险提示。任一阶段的版本状态：约束不通过为 `constraint_failed`（后面的检查不再运行）；约束通过后为 `checking`；全部完成后，只要还有未得到支持且无人确认的断言，或有未处理的 `block` 级风险提示，版本为 `needs_human_review`，否则为 `checks_completed`。**这些都是流程状态，不表示合规通过，也不表示事实已被验证。**
+- 存在未处理的 `block` 级风险提示时，系统会自动改写，最多 2 轮：每轮把风险提示告诉模型，生成一个新版本（`origin = rewritten`，`parent_version_id` 指向被改写的版本，旧版本和它的提示保持不变），对新版本重新做全部检查；改写后的版本若约束不通过则为 `constraint_failed`。
+- 检查过程中模型不可用时，版本保持 `checking`，任务 `last_error = model_unavailable`，之后可以重新检查（重新检查接口在后续步骤）。
+- 重新检查会重新抽取断言；**措辞完全相同的断言会保留人工确认**，系统判定的 `status` 不被改写。
+
+**事实证据的实现约定（2026-10-31）**
+- 先由模型从标题候选、正文、标签里抽取可核查的事实性说法（最多 12 条），再对每条说法检索最多 3 段资料（本品牌已审核资料，以及本任务的任务资料），让模型判断资料是否支持。没有检索到任何资料的说法不调用模型，直接是 `evidence_missing`。
+- 模型说“有依据”时，代码还会核对：引用的资料必须是刚才检索到的，引用的原文必须真的出现在该资料里（忽略空白和大小写）；核对不过的降级为 `needs_human_review`，理由写明“无法核实”。资料与说法矛盾也是 `needs_human_review`。`system_supported` 只表示资料里有对应表述，不表示说法属实。
+- 证据项里：`source_level = task_material` 的来源只有 `snapshot_id`，没有 `document_id`，表示任务内资料，**未经审核**。
+- `GET /generation-versions/{id}/evidence` 列出证据；版本详情里也带 `claim_evidence`。`POST /claim-evidence/{id}/confirm` 记录人工确认（`human_confirmed`、`note`、确认人与时间），不改变 `status`。按资源 id 访问：不存在或非本品牌成员一律 404。
+
 ### `GET /tasks/{task_id}/versions`　`GET /generation-versions/{version_id}`
 版本详情字段：`title_candidates`、`body`、`hashtags`、`cover_candidates`、`final_text`、`flow_status`、`constraint_checks`、`claim_evidence`、`compliance_checks`、`retrieved_sources`、`template_version`、`prompt_version`、`voice_version`、`checker_version`、`model`、`selected_title_index`、`selected_cover_index`。
 
@@ -264,6 +286,15 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - `GET /compliance-rules/{rule_id}`：规则详情。
 - 字段：`id`、`brand_id|null`、`layer`、`rule_type`（`absolute_term | efficacy_claim | medical_term | data_claim | platform_rule | brand_forbidden`）、`pattern`、`is_regex`、`severity`、`suggestion`、`source_name`、`source_url`、`source_clause`、`region_scope`、`effective_from`、`effective_to`、`rule_version`、`enabled`。
 - 规则的创建、修改、停用属 **P2**（品牌 admin）；P0 规则由种子数据或评测目录导入，不通过 API 编辑。
+
+**合规规则与风险提示的实现约定（2026-10-31）**
+- 本节取代上面“规则的创建、修改、停用属 P2”的说法：规则现在可由人在前端维护。`POST /compliance-rules` 创建**全局**规则（仅平台管理员）；`POST /brands/{brand_id}/compliance-rules` 创建**品牌**规则（仅该品牌 admin）；`PATCH /compliance-rules/{id}` 修改或停用（`enabled=false`），全局规则由平台管理员改，品牌规则由该品牌 admin 改；每次修改 `rule_version` 加 1，并写审计。读取：全局规则所有登录用户可见，品牌规则只对该品牌成员可见（否则 404）；带 `brand_id` 查询需是该品牌成员（否则 403）。
+- 规则内容 `pattern`（≤200 字）可以是普通文字或正则；正则会被校验，嵌套重复等可能让检查卡住的写法和无效表达式返回 422。`layer = context` 由模型判断，不能用规则内容配置。
+- 随项目提供的起步规则标为 `is_sample = true`，来源写“示例规则（来源待人工核对，不是正式依据）”；人工修改后不再是示例。**它们不是法律依据，使用前须按真实来源核对。**
+- 三层：`lexicon`（命中即提示）；`efficacy_basis`（功效、医疗、数据类说法：该句有 `system_supported` 或已人工确认的断言支持时，`basis = found` 并从 `block` 降为 `warn`，否则 `basis = none` 保持原严重度）；`context`（模型读全文找没有违禁词的隐含说法，模型指出的句子必须真的出现在文中，否则丢弃）。
+- 每条提示保存规则 id、规则版本和规则文字的副本（规则以后被改动或删除，历史记录不变），以及字段（`title.N`、`body`、`hashtags`、`cover.N`）和位置 `span`。
+- `GET /generation-versions/{id}/compliance` 返回提示列表和 `unresolved_block`（未处理的 `block` 级提示数）；`POST /compliance-checks/{id}/resolve`（体 `{note}`）记录“有人处理过”，提示本身保留，**不表示文字合规**。
+- 这些只是风险提示，供人工复核；任何界面或文案都不得称为“合规通过”或“法务批准”。
 
 ## 7. 评测（B）
 

@@ -227,6 +227,180 @@ export type ChunksPublic = {
 };
 
 /**
+ * ClaimEvidenceListPublic
+ */
+export type ClaimEvidenceListPublic = {
+    /**
+     * Items
+     */
+    items: Array<ClaimEvidencePublic>;
+};
+
+/**
+ * ClaimEvidencePublic
+ */
+export type ClaimEvidencePublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Version Id
+     */
+    version_id: string;
+    /**
+     * Claim Text
+     */
+    claim_text: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Source Level
+     */
+    source_level: string | null;
+    /**
+     * Document Id
+     */
+    document_id: string | null;
+    /**
+     * Document Version
+     */
+    document_version: number | null;
+    /**
+     * Chunk Id
+     */
+    chunk_id: string | null;
+    /**
+     * Snapshot Id
+     */
+    snapshot_id: string | null;
+    /**
+     * Quote
+     */
+    quote: string | null;
+    /**
+     * Rationale
+     */
+    rationale: string;
+    /**
+     * Human Confirmed
+     */
+    human_confirmed: boolean | null;
+    /**
+     * Confirm Note
+     */
+    confirm_note: string | null;
+    /**
+     * Confirmed At
+     */
+    confirmed_at: string | null;
+};
+
+/**
+ * ComplianceCheckPublic
+ */
+export type ComplianceCheckPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Version Id
+     */
+    version_id: string;
+    /**
+     * Rule Id
+     */
+    rule_id: string | null;
+    /**
+     * Rule Version
+     */
+    rule_version: number | null;
+    /**
+     * Layer
+     */
+    layer: string;
+    /**
+     * Rule Type
+     */
+    rule_type: string | null;
+    /**
+     * Severity
+     */
+    severity: string;
+    /**
+     * Field
+     */
+    field: string;
+    /**
+     * Span
+     */
+    span: Array<number>;
+    /**
+     * Matched Text
+     */
+    matched_text: string;
+    /**
+     * Suggestion
+     */
+    suggestion: string;
+    /**
+     * Source Name
+     */
+    source_name: string;
+    /**
+     * Source Clause
+     */
+    source_clause: string | null;
+    /**
+     * Region Scope
+     */
+    region_scope: string | null;
+    /**
+     * Basis
+     */
+    basis: string | null;
+    /**
+     * Resolved
+     */
+    resolved: boolean;
+    /**
+     * Resolved Note
+     */
+    resolved_note: string | null;
+};
+
+/**
+ * ComplianceChecksPublic
+ */
+export type ComplianceChecksPublic = {
+    /**
+     * Items
+     */
+    items: Array<ComplianceCheckPublic>;
+    /**
+     * Unresolved Block
+     */
+    unresolved_block: number;
+};
+
+/**
+ * ConfirmEvidence
+ */
+export type ConfirmEvidence = {
+    /**
+     * Human Confirmed
+     */
+    human_confirmed: boolean;
+    /**
+     * Note
+     */
+    note?: string | null;
+};
+
+/**
  * DocumentDetail
  */
 export type DocumentDetail = {
@@ -495,6 +669,10 @@ export type GenerationVersionPublic = {
      * Created At
      */
     created_at: string | null;
+    /**
+     * Claim Evidence
+     */
+    claim_evidence?: Array<ClaimEvidencePublic>;
 };
 
 /**
@@ -516,6 +694,11 @@ export type HTTPValidationError = {
      */
     detail?: Array<ValidationError>;
 };
+
+/**
+ * Layer
+ */
+export type Layer = 'lexicon' | 'context' | 'efficacy_basis';
 
 /**
  * MemberCreate
@@ -751,6 +934,16 @@ export type ProductsPublic = {
 };
 
 /**
+ * ResolveCheck
+ */
+export type ResolveCheck = {
+    /**
+     * Note
+     */
+    note: string;
+};
+
+/**
  * ReviewCreate
  */
 export type ReviewCreate = {
@@ -784,6 +977,205 @@ export type ReviewPublic = {
      * Created At
      */
     created_at: string | null;
+};
+
+/**
+ * RuleCreate
+ */
+export type RuleCreate = {
+    layer: Layer;
+    rule_type: RuleType;
+    /**
+     * Pattern
+     */
+    pattern: string;
+    /**
+     * Is Regex
+     */
+    is_regex?: boolean;
+    severity: Severity;
+    /**
+     * Suggestion
+     */
+    suggestion?: string;
+    /**
+     * Source Name
+     */
+    source_name: string;
+    /**
+     * Source Url
+     */
+    source_url?: string | null;
+    /**
+     * Source Clause
+     */
+    source_clause?: string | null;
+    /**
+     * Region Scope
+     */
+    region_scope?: string | null;
+    /**
+     * Effective From
+     */
+    effective_from?: string | null;
+    /**
+     * Effective To
+     */
+    effective_to?: string | null;
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+};
+
+/**
+ * RulePublic
+ */
+export type RulePublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string | null;
+    /**
+     * Layer
+     */
+    layer: string;
+    /**
+     * Rule Type
+     */
+    rule_type: string;
+    /**
+     * Pattern
+     */
+    pattern: string;
+    /**
+     * Is Regex
+     */
+    is_regex: boolean;
+    /**
+     * Severity
+     */
+    severity: string;
+    /**
+     * Suggestion
+     */
+    suggestion: string;
+    /**
+     * Source Name
+     */
+    source_name: string;
+    /**
+     * Source Url
+     */
+    source_url: string | null;
+    /**
+     * Source Clause
+     */
+    source_clause: string | null;
+    /**
+     * Region Scope
+     */
+    region_scope: string | null;
+    /**
+     * Effective From
+     */
+    effective_from: string | null;
+    /**
+     * Effective To
+     */
+    effective_to: string | null;
+    /**
+     * Rule Version
+     */
+    rule_version: number;
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Is Sample
+     */
+    is_sample: boolean;
+};
+
+/**
+ * RuleType
+ */
+export type RuleType = 'absolute_term' | 'efficacy_claim' | 'medical_term' | 'data_claim' | 'platform_rule' | 'brand_forbidden';
+
+/**
+ * RuleUpdate
+ */
+export type RuleUpdate = {
+    layer?: Layer | null;
+    rule_type?: RuleType | null;
+    /**
+     * Pattern
+     */
+    pattern?: string | null;
+    /**
+     * Is Regex
+     */
+    is_regex?: boolean | null;
+    severity?: Severity | null;
+    /**
+     * Suggestion
+     */
+    suggestion?: string | null;
+    /**
+     * Source Name
+     */
+    source_name?: string | null;
+    /**
+     * Source Url
+     */
+    source_url?: string | null;
+    /**
+     * Source Clause
+     */
+    source_clause?: string | null;
+    /**
+     * Region Scope
+     */
+    region_scope?: string | null;
+    /**
+     * Effective From
+     */
+    effective_from?: string | null;
+    /**
+     * Effective To
+     */
+    effective_to?: string | null;
+    /**
+     * Enabled
+     */
+    enabled?: boolean | null;
+};
+
+/**
+ * RulesPublic
+ */
+export type RulesPublic = {
+    /**
+     * Items
+     */
+    items: Array<RulePublic>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
 };
 
 /**
@@ -865,6 +1257,11 @@ export type SellingPointPublic = {
      */
     evidence_status: string;
 };
+
+/**
+ * Severity
+ */
+export type Severity = 'block' | 'warn';
 
 /**
  * StyleParams
@@ -1042,6 +1439,10 @@ export type TaskPublic = {
      * Latest Version Id
      */
     latest_version_id: string | null;
+    /**
+     * Last Error
+     */
+    last_error: string | null;
     /**
      * Created At
      */
@@ -2327,6 +2728,327 @@ export type tasksReadVersionResponses = {
 };
 
 export type tasksReadVersionResponse = tasksReadVersionResponses[keyof tasksReadVersionResponses];
+
+export type tasksGenerateTaskData = {
+    body?: never;
+    headers?: {
+        /**
+         * Idempotency-Key
+         */
+        'idempotency-key'?: string | null;
+    };
+    path: {
+        /**
+         * Task Id
+         */
+        task_id: string;
+    };
+    query?: never;
+    url: '/api/v1/tasks/{task_id}/generate';
+};
+
+export type tasksGenerateTaskErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type tasksGenerateTaskError = tasksGenerateTaskErrors[keyof tasksGenerateTaskErrors];
+
+export type tasksGenerateTaskResponses = {
+    /**
+     * Successful Response
+     */
+    202: TaskPublic;
+};
+
+export type tasksGenerateTaskResponse = tasksGenerateTaskResponses[keyof tasksGenerateTaskResponses];
+
+export type evidenceReadVersionEvidenceData = {
+    body?: never;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/api/v1/generation-versions/{version_id}/evidence';
+};
+
+export type evidenceReadVersionEvidenceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type evidenceReadVersionEvidenceError = evidenceReadVersionEvidenceErrors[keyof evidenceReadVersionEvidenceErrors];
+
+export type evidenceReadVersionEvidenceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ClaimEvidenceListPublic;
+};
+
+export type evidenceReadVersionEvidenceResponse = evidenceReadVersionEvidenceResponses[keyof evidenceReadVersionEvidenceResponses];
+
+export type evidenceConfirmEvidenceData = {
+    body: ConfirmEvidence;
+    path: {
+        /**
+         * Evidence Id
+         */
+        evidence_id: string;
+    };
+    query?: never;
+    url: '/api/v1/claim-evidence/{evidence_id}/confirm';
+};
+
+export type evidenceConfirmEvidenceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type evidenceConfirmEvidenceError = evidenceConfirmEvidenceErrors[keyof evidenceConfirmEvidenceErrors];
+
+export type evidenceConfirmEvidenceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ClaimEvidencePublic;
+};
+
+export type evidenceConfirmEvidenceResponse = evidenceConfirmEvidenceResponses[keyof evidenceConfirmEvidenceResponses];
+
+export type complianceReadRulesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Brand Id
+         */
+        brand_id?: string | null;
+        /**
+         * Layer
+         */
+        layer?: Layer | null;
+        /**
+         * Rule Type
+         */
+        rule_type?: RuleType | null;
+        /**
+         * Severity
+         */
+        severity?: Severity | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/compliance-rules';
+};
+
+export type complianceReadRulesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceReadRulesError = complianceReadRulesErrors[keyof complianceReadRulesErrors];
+
+export type complianceReadRulesResponses = {
+    /**
+     * Successful Response
+     */
+    200: RulesPublic;
+};
+
+export type complianceReadRulesResponse = complianceReadRulesResponses[keyof complianceReadRulesResponses];
+
+export type complianceCreateGlobalRuleData = {
+    body: RuleCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/compliance-rules';
+};
+
+export type complianceCreateGlobalRuleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceCreateGlobalRuleError = complianceCreateGlobalRuleErrors[keyof complianceCreateGlobalRuleErrors];
+
+export type complianceCreateGlobalRuleResponses = {
+    /**
+     * Successful Response
+     */
+    201: RulePublic;
+};
+
+export type complianceCreateGlobalRuleResponse = complianceCreateGlobalRuleResponses[keyof complianceCreateGlobalRuleResponses];
+
+export type complianceReadRuleData = {
+    body?: never;
+    path: {
+        /**
+         * Rule Id
+         */
+        rule_id: string;
+    };
+    query?: never;
+    url: '/api/v1/compliance-rules/{rule_id}';
+};
+
+export type complianceReadRuleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceReadRuleError = complianceReadRuleErrors[keyof complianceReadRuleErrors];
+
+export type complianceReadRuleResponses = {
+    /**
+     * Successful Response
+     */
+    200: RulePublic;
+};
+
+export type complianceReadRuleResponse = complianceReadRuleResponses[keyof complianceReadRuleResponses];
+
+export type complianceUpdateRuleData = {
+    body: RuleUpdate;
+    path: {
+        /**
+         * Rule Id
+         */
+        rule_id: string;
+    };
+    query?: never;
+    url: '/api/v1/compliance-rules/{rule_id}';
+};
+
+export type complianceUpdateRuleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceUpdateRuleError = complianceUpdateRuleErrors[keyof complianceUpdateRuleErrors];
+
+export type complianceUpdateRuleResponses = {
+    /**
+     * Successful Response
+     */
+    200: RulePublic;
+};
+
+export type complianceUpdateRuleResponse = complianceUpdateRuleResponses[keyof complianceUpdateRuleResponses];
+
+export type complianceCreateBrandRuleData = {
+    body: RuleCreate;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/compliance-rules';
+};
+
+export type complianceCreateBrandRuleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceCreateBrandRuleError = complianceCreateBrandRuleErrors[keyof complianceCreateBrandRuleErrors];
+
+export type complianceCreateBrandRuleResponses = {
+    /**
+     * Successful Response
+     */
+    201: RulePublic;
+};
+
+export type complianceCreateBrandRuleResponse = complianceCreateBrandRuleResponses[keyof complianceCreateBrandRuleResponses];
+
+export type complianceReadVersionComplianceData = {
+    body?: never;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/api/v1/generation-versions/{version_id}/compliance';
+};
+
+export type complianceReadVersionComplianceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceReadVersionComplianceError = complianceReadVersionComplianceErrors[keyof complianceReadVersionComplianceErrors];
+
+export type complianceReadVersionComplianceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ComplianceChecksPublic;
+};
+
+export type complianceReadVersionComplianceResponse = complianceReadVersionComplianceResponses[keyof complianceReadVersionComplianceResponses];
+
+export type complianceResolveCheckData = {
+    body: ResolveCheck;
+    path: {
+        /**
+         * Check Id
+         */
+        check_id: string;
+    };
+    query?: never;
+    url: '/api/v1/compliance-checks/{check_id}/resolve';
+};
+
+export type complianceResolveCheckErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceResolveCheckError = complianceResolveCheckErrors[keyof complianceResolveCheckErrors];
+
+export type complianceResolveCheckResponses = {
+    /**
+     * Successful Response
+     */
+    200: ComplianceCheckPublic;
+};
+
+export type complianceResolveCheckResponse = complianceResolveCheckResponses[keyof complianceResolveCheckResponses];
 
 export type knowledgeReadDocumentsData = {
     body?: never;

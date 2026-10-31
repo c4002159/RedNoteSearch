@@ -29,6 +29,24 @@ from app.models.catalog import (
     Tenant,
 )
 from app.models.common import Message, get_datetime_utc
+from app.models.compliance import (
+    ComplianceCheck,
+    ComplianceCheckPublic,
+    ComplianceChecksPublic,
+    ComplianceRule,
+    ResolveCheck,
+    RuleCreate,
+    RulePublic,
+    RulesPublic,
+    RuleUpdate,
+)
+from app.models.evidence import (
+    ClaimEvidence,
+    ClaimEvidenceListPublic,
+    ClaimEvidencePublic,
+    ConfirmEvidence,
+    SourceLevel,
+)
 from app.models.generation import (
     FlowStatus,
     GenerationVersion,
@@ -102,6 +120,20 @@ from app.models.product import (
 from app.models.task_input import AuditLog, TaskInput, TaskInputChunk
 
 __all__ = [
+    "ComplianceCheck",
+    "ComplianceCheckPublic",
+    "ComplianceChecksPublic",
+    "ComplianceRule",
+    "ResolveCheck",
+    "RuleCreate",
+    "RulePublic",
+    "RuleUpdate",
+    "RulesPublic",
+    "ClaimEvidence",
+    "ClaimEvidenceListPublic",
+    "ClaimEvidencePublic",
+    "ConfirmEvidence",
+    "SourceLevel",
     "FlowStatus",
     "GenerationVersion",
     "GenerationVersionPublic",
