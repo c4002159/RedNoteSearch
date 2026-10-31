@@ -42,3 +42,11 @@
 - 结果：HTTP 200，可用模型 `deepseek-flash`、`deepseek-v4-pro`。密钥有效。
 - 没有发起对话请求，所以**模型的实际生成效果、价格、限流**都还没有验证；调用模型时的 `model` 名称以此处为准，不再使用 `deepseek-chat` 一类的旧名称。
 - 密钥本身不记录在任何文件里。
+
+## 适配器实现（2026-10-31）
+- 端口 `app/ports/llm.py`（`LlmClient`、`LlmRequest`、`LlmResponse`、`LlmCallRecord`、`LlmCallRecorder`）；实现 `app/infra/openai_compat.py` 的 `OpenAICompatibleClient`，DeepSeek、百炼（千问）、OpenAI 都走 OpenAI 兼容的 `/chat/completions`，目前接好 DeepSeek 默认配置（`deepseek_client()`）。没有采用 LiteLLM。
+- 重试：只重试超时、网络错误和 408、409、425、429、5xx，最多 `LLM_MAX_RETRIES`（默认 2）次，退避 1 秒、2 秒；400、401、403、404 不重试。重试仍失败抛 `ModelUnavailableError`，信息里只有简短原因（如 `http_429`），不含密钥和响应正文。
+- 每次尝试都交给 `LlmCallRecorder` 记录（供应商、模型、用途、token、耗时、费用、价格版本、错误原因、第几次尝试），失败的调用也能追溯；写入 `llm_call_log` 的数据库实现随场景与任务那一步交付。
+- 价格是配置数据（`Price`：版本、每百万 token 的输入与输出单价），代码里没有默认价格；没有配置价格时费用为空。**DeepSeek 的真实价格、限流和生成效果仍未验证。**
+- 结构化输出：`app/services/llm_structured.py` 的 `generate_structured` 把模型回答按 pydantic 模型校验，不合格就把问题告诉模型再问一次，总共不超过 `max_attempts` 次，之后抛 `LlmOutputError`。
+- CI 与测试一律用 mock（`app/fakes/llm.py`），不调用真实模型。
