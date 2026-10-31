@@ -401,6 +401,20 @@ export type ConfirmEvidence = {
 };
 
 /**
+ * ConfirmVersion
+ */
+export type ConfirmVersion = {
+    /**
+     * Selected Title Index
+     */
+    selected_title_index: number;
+    /**
+     * Selected Cover Index
+     */
+    selected_cover_index?: number | null;
+};
+
+/**
  * DocumentDetail
  */
 export type DocumentDetail = {
@@ -571,11 +585,55 @@ export type DocumentsPublic = {
 };
 
 /**
+ * ExportCounts
+ */
+export type ExportCounts = {
+    /**
+     * Title Weight
+     */
+    title_weight: number;
+    /**
+     * Body Units
+     */
+    body_units: number;
+    /**
+     * Tags Visible Units
+     */
+    tags_visible_units: number;
+    /**
+     * Tags Count
+     */
+    tags_count: number;
+};
+
+/**
  * FlowStatus
  *
  * Process state of a task or version. It never means "compliant" (contract section 5).
  */
 export type FlowStatus = 'queued' | 'generating' | 'checking' | 'checks_completed' | 'needs_human_review' | 'constraint_failed' | 'edited_pending_recheck' | 'ready_to_copy';
+
+/**
+ * GeneratedNote
+ */
+export type GeneratedNote = {
+    /**
+     * Title Candidates
+     */
+    title_candidates: Array<string>;
+    /**
+     * Body
+     */
+    body: string;
+    /**
+     * Hashtags
+     */
+    hashtags?: Array<string>;
+    /**
+     * Cover Candidates
+     */
+    cover_candidates?: Array<string>;
+};
 
 /**
  * GenerationVersionPublic
@@ -699,6 +757,20 @@ export type HTTPValidationError = {
  * Layer
  */
 export type Layer = 'lexicon' | 'context' | 'efficacy_basis';
+
+/**
+ * MarkdownExport
+ */
+export type MarkdownExport = {
+    /**
+     * Format
+     */
+    format?: 'markdown';
+    /**
+     * Content
+     */
+    content: string;
+};
 
 /**
  * MemberCreate
@@ -977,6 +1049,20 @@ export type ReviewPublic = {
      * Created At
      */
     created_at: string | null;
+};
+
+/**
+ * RewriteRequest
+ */
+export type RewriteRequest = {
+    /**
+     * Target
+     */
+    target: 'titles' | 'opening' | 'body' | 'cover';
+    /**
+     * Instruction
+     */
+    instruction?: string;
 };
 
 /**
@@ -1731,6 +1817,29 @@ export type VoiceProfilesPublic = {
      * Items
      */
     items: Array<VoiceProfilePublic>;
+};
+
+/**
+ * XhsPartsExport
+ */
+export type XhsPartsExport = {
+    /**
+     * Format
+     */
+    format?: 'xhs_parts';
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Body
+     */
+    body: string;
+    /**
+     * Tags
+     */
+    tags: Array<string>;
+    counts: ExportCounts;
 };
 
 export type loginLoginAccessTokenData = {
@@ -3049,6 +3158,163 @@ export type complianceResolveCheckResponses = {
 };
 
 export type complianceResolveCheckResponse = complianceResolveCheckResponses[keyof complianceResolveCheckResponses];
+
+export type versionsEditVersionData = {
+    body: GeneratedNote;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/api/v1/generation-versions/{version_id}/edit';
+};
+
+export type versionsEditVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type versionsEditVersionError = versionsEditVersionErrors[keyof versionsEditVersionErrors];
+
+export type versionsEditVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: GenerationVersionPublic;
+};
+
+export type versionsEditVersionResponse = versionsEditVersionResponses[keyof versionsEditVersionResponses];
+
+export type versionsRecheckVersionData = {
+    body?: never;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/api/v1/generation-versions/{version_id}/recheck';
+};
+
+export type versionsRecheckVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type versionsRecheckVersionError = versionsRecheckVersionErrors[keyof versionsRecheckVersionErrors];
+
+export type versionsRecheckVersionResponses = {
+    /**
+     * Successful Response
+     */
+    202: GenerationVersionPublic;
+};
+
+export type versionsRecheckVersionResponse = versionsRecheckVersionResponses[keyof versionsRecheckVersionResponses];
+
+export type versionsRewritePartData = {
+    body: RewriteRequest;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/api/v1/generation-versions/{version_id}/rewrite';
+};
+
+export type versionsRewritePartErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type versionsRewritePartError = versionsRewritePartErrors[keyof versionsRewritePartErrors];
+
+export type versionsRewritePartResponses = {
+    /**
+     * Successful Response
+     */
+    202: GenerationVersionPublic;
+};
+
+export type versionsRewritePartResponse = versionsRewritePartResponses[keyof versionsRewritePartResponses];
+
+export type versionsConfirmVersionData = {
+    body: ConfirmVersion;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/api/v1/generation-versions/{version_id}/confirm';
+};
+
+export type versionsConfirmVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type versionsConfirmVersionError = versionsConfirmVersionErrors[keyof versionsConfirmVersionErrors];
+
+export type versionsConfirmVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: GenerationVersionPublic;
+};
+
+export type versionsConfirmVersionResponse = versionsConfirmVersionResponses[keyof versionsConfirmVersionResponses];
+
+export type versionsExportVersionData = {
+    body?: never;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query: {
+        /**
+         * Format
+         */
+        format: 'xhs_parts' | 'markdown';
+    };
+    url: '/api/v1/generation-versions/{version_id}/export';
+};
+
+export type versionsExportVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type versionsExportVersionError = versionsExportVersionErrors[keyof versionsExportVersionErrors];
+
+export type versionsExportVersionResponses = {
+    /**
+     * Response Versions-Export Version
+     *
+     * Successful Response
+     */
+    200: XhsPartsExport | MarkdownExport;
+};
+
+export type versionsExportVersionResponse = versionsExportVersionResponses[keyof versionsExportVersionResponses];
 
 export type knowledgeReadDocumentsData = {
     body?: never;

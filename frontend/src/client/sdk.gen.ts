@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import type { brandsAddMemberData, brandsAddMemberErrors, brandsAddMemberResponses, brandsCreateBrandData, brandsCreateBrandErrors, brandsCreateBrandResponses, brandsReadBrandsData, brandsReadBrandsResponses, brandsReadMembersData, brandsReadMembersErrors, brandsReadMembersResponses, brandsRemoveMemberData, brandsRemoveMemberErrors, brandsRemoveMemberResponses, brandsUpdateBrandData, brandsUpdateBrandErrors, brandsUpdateBrandResponses, brandsUpdateMemberData, brandsUpdateMemberErrors, brandsUpdateMemberResponses, complianceCreateBrandRuleData, complianceCreateBrandRuleErrors, complianceCreateBrandRuleResponses, complianceCreateGlobalRuleData, complianceCreateGlobalRuleErrors, complianceCreateGlobalRuleResponses, complianceReadRuleData, complianceReadRuleErrors, complianceReadRuleResponses, complianceReadRulesData, complianceReadRulesErrors, complianceReadRulesResponses, complianceReadVersionComplianceData, complianceReadVersionComplianceErrors, complianceReadVersionComplianceResponses, complianceResolveCheckData, complianceResolveCheckErrors, complianceResolveCheckResponses, complianceUpdateRuleData, complianceUpdateRuleErrors, complianceUpdateRuleResponses, evidenceConfirmEvidenceData, evidenceConfirmEvidenceErrors, evidenceConfirmEvidenceResponses, evidenceReadVersionEvidenceData, evidenceReadVersionEvidenceErrors, evidenceReadVersionEvidenceResponses, knowledgeDeactivateDocumentData, knowledgeDeactivateDocumentErrors, knowledgeDeactivateDocumentResponses, knowledgeIngestDocumentData, knowledgeIngestDocumentErrors, knowledgeIngestDocumentResponses, knowledgeIngestNewVersionData, knowledgeIngestNewVersionErrors, knowledgeIngestNewVersionResponses, knowledgeReadChunksData, knowledgeReadChunksErrors, knowledgeReadChunksResponses, knowledgeReadDocumentData, knowledgeReadDocumentErrors, knowledgeReadDocumentResponses, knowledgeReadDocumentsData, knowledgeReadDocumentsErrors, knowledgeReadDocumentsResponses, knowledgeReindexDocumentData, knowledgeReindexDocumentErrors, knowledgeReindexDocumentResponses, knowledgeReviewDocumentData, knowledgeReviewDocumentErrors, knowledgeReviewDocumentResponses, knowledgeSubmitDocumentData, knowledgeSubmitDocumentErrors, knowledgeSubmitDocumentResponses, loginLoginAccessTokenData, loginLoginAccessTokenErrors, loginLoginAccessTokenResponses, loginRecoverPasswordData, loginRecoverPasswordErrors, loginRecoverPasswordHtmlContentData, loginRecoverPasswordHtmlContentErrors, loginRecoverPasswordHtmlContentResponses, loginRecoverPasswordResponses, loginResetPasswordData, loginResetPasswordErrors, loginResetPasswordResponses, loginTestTokenData, loginTestTokenResponses, privateCreateUserData, privateCreateUserErrors, privateCreateUserResponses, productsArchiveProductData, productsArchiveProductErrors, productsArchiveProductResponses, productsCreateProductData, productsCreateProductErrors, productsCreateProductResponses, productsReadProductsData, productsReadProductsErrors, productsReadProductsResponses, productsUpdateProductData, productsUpdateProductErrors, productsUpdateProductResponses, tasksCreateStylePresetData, tasksCreateStylePresetErrors, tasksCreateStylePresetResponses, tasksCreateTaskData, tasksCreateTaskErrors, tasksCreateTaskResponses, tasksGenerateTaskData, tasksGenerateTaskErrors, tasksGenerateTaskResponses, tasksReadScenariosData, tasksReadScenariosResponses, tasksReadStylePresetsData, tasksReadStylePresetsErrors, tasksReadStylePresetsResponses, tasksReadTaskData, tasksReadTaskErrors, tasksReadTaskResponses, tasksReadTasksData, tasksReadTasksErrors, tasksReadTasksResponses, tasksReadTaskVersionsData, tasksReadTaskVersionsErrors, tasksReadTaskVersionsResponses, tasksReadVersionData, tasksReadVersionErrors, tasksReadVersionResponses, usersCreateUserData, usersCreateUserErrors, usersCreateUserResponses, usersDeleteUserData, usersDeleteUserErrors, usersDeleteUserMeData, usersDeleteUserMeResponses, usersDeleteUserResponses, usersReadUserByIdData, usersReadUserByIdErrors, usersReadUserByIdResponses, usersReadUserMeData, usersReadUserMeResponses, usersReadUsersData, usersReadUsersErrors, usersReadUsersResponses, usersRegisterUserData, usersRegisterUserErrors, usersRegisterUserResponses, usersUpdatePasswordMeData, usersUpdatePasswordMeErrors, usersUpdatePasswordMeResponses, usersUpdateUserData, usersUpdateUserErrors, usersUpdateUserMeData, usersUpdateUserMeErrors, usersUpdateUserMeResponses, usersUpdateUserResponses, utilsHealthCheckData, utilsHealthCheckResponses, utilsTestEmailData, utilsTestEmailErrors, utilsTestEmailResponses, voiceProfileActivateVersionData, voiceProfileActivateVersionErrors, voiceProfileActivateVersionResponses, voiceProfileCreateVersionData, voiceProfileCreateVersionErrors, voiceProfileCreateVersionResponses, voiceProfileReadActiveProfileData, voiceProfileReadActiveProfileErrors, voiceProfileReadActiveProfileResponses, voiceProfileReadVersionsData, voiceProfileReadVersionsErrors, voiceProfileReadVersionsResponses } from './types.gen';
+import type { brandsAddMemberData, brandsAddMemberErrors, brandsAddMemberResponses, brandsCreateBrandData, brandsCreateBrandErrors, brandsCreateBrandResponses, brandsReadBrandsData, brandsReadBrandsResponses, brandsReadMembersData, brandsReadMembersErrors, brandsReadMembersResponses, brandsRemoveMemberData, brandsRemoveMemberErrors, brandsRemoveMemberResponses, brandsUpdateBrandData, brandsUpdateBrandErrors, brandsUpdateBrandResponses, brandsUpdateMemberData, brandsUpdateMemberErrors, brandsUpdateMemberResponses, complianceCreateBrandRuleData, complianceCreateBrandRuleErrors, complianceCreateBrandRuleResponses, complianceCreateGlobalRuleData, complianceCreateGlobalRuleErrors, complianceCreateGlobalRuleResponses, complianceReadRuleData, complianceReadRuleErrors, complianceReadRuleResponses, complianceReadRulesData, complianceReadRulesErrors, complianceReadRulesResponses, complianceReadVersionComplianceData, complianceReadVersionComplianceErrors, complianceReadVersionComplianceResponses, complianceResolveCheckData, complianceResolveCheckErrors, complianceResolveCheckResponses, complianceUpdateRuleData, complianceUpdateRuleErrors, complianceUpdateRuleResponses, evidenceConfirmEvidenceData, evidenceConfirmEvidenceErrors, evidenceConfirmEvidenceResponses, evidenceReadVersionEvidenceData, evidenceReadVersionEvidenceErrors, evidenceReadVersionEvidenceResponses, knowledgeDeactivateDocumentData, knowledgeDeactivateDocumentErrors, knowledgeDeactivateDocumentResponses, knowledgeIngestDocumentData, knowledgeIngestDocumentErrors, knowledgeIngestDocumentResponses, knowledgeIngestNewVersionData, knowledgeIngestNewVersionErrors, knowledgeIngestNewVersionResponses, knowledgeReadChunksData, knowledgeReadChunksErrors, knowledgeReadChunksResponses, knowledgeReadDocumentData, knowledgeReadDocumentErrors, knowledgeReadDocumentResponses, knowledgeReadDocumentsData, knowledgeReadDocumentsErrors, knowledgeReadDocumentsResponses, knowledgeReindexDocumentData, knowledgeReindexDocumentErrors, knowledgeReindexDocumentResponses, knowledgeReviewDocumentData, knowledgeReviewDocumentErrors, knowledgeReviewDocumentResponses, knowledgeSubmitDocumentData, knowledgeSubmitDocumentErrors, knowledgeSubmitDocumentResponses, loginLoginAccessTokenData, loginLoginAccessTokenErrors, loginLoginAccessTokenResponses, loginRecoverPasswordData, loginRecoverPasswordErrors, loginRecoverPasswordHtmlContentData, loginRecoverPasswordHtmlContentErrors, loginRecoverPasswordHtmlContentResponses, loginRecoverPasswordResponses, loginResetPasswordData, loginResetPasswordErrors, loginResetPasswordResponses, loginTestTokenData, loginTestTokenResponses, privateCreateUserData, privateCreateUserErrors, privateCreateUserResponses, productsArchiveProductData, productsArchiveProductErrors, productsArchiveProductResponses, productsCreateProductData, productsCreateProductErrors, productsCreateProductResponses, productsReadProductsData, productsReadProductsErrors, productsReadProductsResponses, productsUpdateProductData, productsUpdateProductErrors, productsUpdateProductResponses, tasksCreateStylePresetData, tasksCreateStylePresetErrors, tasksCreateStylePresetResponses, tasksCreateTaskData, tasksCreateTaskErrors, tasksCreateTaskResponses, tasksGenerateTaskData, tasksGenerateTaskErrors, tasksGenerateTaskResponses, tasksReadScenariosData, tasksReadScenariosResponses, tasksReadStylePresetsData, tasksReadStylePresetsErrors, tasksReadStylePresetsResponses, tasksReadTaskData, tasksReadTaskErrors, tasksReadTaskResponses, tasksReadTasksData, tasksReadTasksErrors, tasksReadTasksResponses, tasksReadTaskVersionsData, tasksReadTaskVersionsErrors, tasksReadTaskVersionsResponses, tasksReadVersionData, tasksReadVersionErrors, tasksReadVersionResponses, usersCreateUserData, usersCreateUserErrors, usersCreateUserResponses, usersDeleteUserData, usersDeleteUserErrors, usersDeleteUserMeData, usersDeleteUserMeResponses, usersDeleteUserResponses, usersReadUserByIdData, usersReadUserByIdErrors, usersReadUserByIdResponses, usersReadUserMeData, usersReadUserMeResponses, usersReadUsersData, usersReadUsersErrors, usersReadUsersResponses, usersRegisterUserData, usersRegisterUserErrors, usersRegisterUserResponses, usersUpdatePasswordMeData, usersUpdatePasswordMeErrors, usersUpdatePasswordMeResponses, usersUpdateUserData, usersUpdateUserErrors, usersUpdateUserMeData, usersUpdateUserMeErrors, usersUpdateUserMeResponses, usersUpdateUserResponses, utilsHealthCheckData, utilsHealthCheckResponses, utilsTestEmailData, utilsTestEmailErrors, utilsTestEmailResponses, versionsConfirmVersionData, versionsConfirmVersionErrors, versionsConfirmVersionResponses, versionsEditVersionData, versionsEditVersionErrors, versionsEditVersionResponses, versionsExportVersionData, versionsExportVersionErrors, versionsExportVersionResponses, versionsRecheckVersionData, versionsRecheckVersionErrors, versionsRecheckVersionResponses, versionsRewritePartData, versionsRewritePartErrors, versionsRewritePartResponses, voiceProfileActivateVersionData, voiceProfileActivateVersionErrors, voiceProfileActivateVersionResponses, voiceProfileCreateVersionData, voiceProfileCreateVersionErrors, voiceProfileCreateVersionResponses, voiceProfileReadActiveProfileData, voiceProfileReadActiveProfileErrors, voiceProfileReadActiveProfileResponses, voiceProfileReadVersionsData, voiceProfileReadVersionsErrors, voiceProfileReadVersionsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -711,6 +711,89 @@ export class ComplianceService {
                 'Content-Type': 'application/json',
                 ...options.headers
             }
+        });
+    }
+}
+
+export class VersionsService {
+    /**
+     * Edit Version
+     *
+     * Save the operator's edited text as a new version (the old one is untouched). It must be
+     * rechecked before it can be confirmed.
+     */
+    public static editVersion<ThrowOnError extends boolean = true>(options: Options<versionsEditVersionData, ThrowOnError>) {
+        return (options.client ?? client).post<versionsEditVersionResponses, versionsEditVersionErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/generation-versions/{version_id}/edit',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Recheck Version
+     *
+     * Run the constraint, evidence and compliance checks again on this version's current text.
+     */
+    public static recheckVersion<ThrowOnError extends boolean = true>(options: Options<versionsRecheckVersionData, ThrowOnError>) {
+        return (options.client ?? client).post<versionsRecheckVersionResponses, versionsRecheckVersionErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/generation-versions/{version_id}/recheck',
+            ...options
+        });
+    }
+    
+    /**
+     * Rewrite Part
+     *
+     * Rewrite one part (titles, opening, body or cover) as a new version, then check it automatically.
+     */
+    public static rewritePart<ThrowOnError extends boolean = true>(options: Options<versionsRewritePartData, ThrowOnError>) {
+        return (options.client ?? client).post<versionsRewritePartResponses, versionsRewritePartErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/generation-versions/{version_id}/rewrite',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Confirm Version
+     *
+     * Mark the text as confirmed by an operator (``ready_to_copy``). This is not a compliance verdict.
+     */
+    public static confirmVersion<ThrowOnError extends boolean = true>(options: Options<versionsConfirmVersionData, ThrowOnError>) {
+        return (options.client ?? client).post<versionsConfirmVersionResponses, versionsConfirmVersionErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/generation-versions/{version_id}/confirm',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Export Version
+     */
+    public static exportVersion<ThrowOnError extends boolean = true>(options: Options<versionsExportVersionData, ThrowOnError>) {
+        return (options.client ?? client).get<versionsExportVersionResponses, versionsExportVersionErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/generation-versions/{version_id}/export',
+            ...options
         });
     }
 }

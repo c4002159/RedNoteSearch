@@ -172,7 +172,6 @@ def test_edit_creates_a_new_version_that_must_be_rechecked(
     ]
 
 
-@pytest.mark.usefixtures("llm")
 def test_recheck_runs_all_checks_on_the_edited_text(
     client: TestClient, superuser_token_headers: dict[str, str], llm: FakeLlmClient
 ) -> None:
@@ -219,7 +218,6 @@ def test_recheck_runs_all_checks_on_the_edited_text(
     )
 
 
-@pytest.mark.usefixtures("llm")
 def test_recheck_states_and_model_outage(
     client: TestClient, superuser_token_headers: dict[str, str], llm: FakeLlmClient
 ) -> None:
@@ -338,7 +336,6 @@ def test_confirm_requires_the_contract_conditions(
 
 
 @pytest.mark.usefixtures("llm")
-@pytest.mark.usefixtures("llm")
 def test_only_the_latest_version_can_be_confirmed(
     client: TestClient, superuser_token_headers: dict[str, str]
 ) -> None:
@@ -357,7 +354,6 @@ def test_only_the_latest_version_can_be_confirmed(
     assert old.status_code == 409 and "latest" in old.json()["error"]["message"]
 
 
-@pytest.mark.usefixtures("llm")
 def test_export_formats_and_state_limit(
     client: TestClient, superuser_token_headers: dict[str, str], llm: FakeLlmClient
 ) -> None:
@@ -400,11 +396,11 @@ def test_export_formats_and_state_limit(
     assert client.get(export, headers=h).status_code == 422
 
 
-@pytest.mark.usefixtures("llm")
 def test_rewriting_one_part_creates_a_checked_new_version(
     client: TestClient,
     db: Session,
     superuser_token_headers: dict[str, str],
+    llm: FakeLlmClient,
 ) -> None:
     h = superuser_token_headers
     ids = _generated(client, h)
@@ -454,7 +450,6 @@ def test_rewriting_one_part_creates_a_checked_new_version(
         )
 
 
-@pytest.mark.usefixtures("llm")
 def test_a_failed_rewrite_stores_nothing(
     client: TestClient, superuser_token_headers: dict[str, str], llm: FakeLlmClient
 ) -> None:
