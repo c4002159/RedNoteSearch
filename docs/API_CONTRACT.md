@@ -337,7 +337,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
   - `compliance`：`input.text`；`expected.hit_words`（应当被命中的词）。
   - `factcheck`：`input.claim`、`input.sources`（1 到 5 段资料）；`expected.verdict` 为 `supported | insufficient | conflict`。
   - `generation`：`input.product_name`、`input.scene_name`，可选 `brand_name`、`category`、`scene_structure`、`brief`、`required_terms`、`style`、`facts`；`expected.forbidden_words` 可选。
-  - `brand_leak` 属后续功能，创建评测集或运行返回 422。
+  - `brand_leak` 当前实现仍返回 422；拟扩展字段与规则见本节 F14 契约审议稿，须经确认后实现。
 - 版本：评测集创建后内容固定；带 `previous_version_id` 创建时生成同一 `group_id` 的下一个版本（类型和品牌必须相同），旧版本保留。每个版本有 `content_hash`。
 - 运行（`POST /evaluation/runs`，202，后台执行，可带 `Idempotency-Key`）：`model_ids` 必须是 `GET /models` 里的模型（未知模型 422）；`factcheck`、`generation` 至少选一个模型，`compliance` 不用模型。`baselines` 按类型限定：`compliance` 只有 `lexicon_only`（只用词库层，不含功效依据层），`factcheck` 只有 `no_verification`（相信所有说法），`generation` 没有基线。
 - 运行详情返回：样本数、各项版本（评测集版本、提示词版本、检查器版本、评分表版本、模型、基线）、**按系统分组的指标**（每个指标带 `name`、`value`、`definition`、`n`），以及失败项（哪个样本、哪个系统、简短原因）。**没有综合分。**一个样本失败不会中断整个运行，失败计入指标：生成类的失败算“未通过约束”，核查类的失败算“判断错误”。运行崩溃时状态为 `failed`，`error` 只含异常类型名。
@@ -345,6 +345,79 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - `GET /evaluation/runs/{id}/results` 列出逐项结果（输出、详情、是否通过、耗时、费用）。
 - 评分：`GET /evaluation/rubrics` 返回评分表 `rubric-v1`（结构、调性、具体度、贴合资料，1 到 5 分，各维度分开，**不合成总分**）。`POST /evaluation/runs/{id}/ratings` 的评分者取自登录用户，四个维度都必须有分且在范围内，`rubric_version` 必须是当前版本；同一评分者对同一结果再次提交会替换之前的分数。`GET /evaluation/runs/{id}/agreement` 返回评分者人数、已评样本数，以及**每个维度**的评分者两两加权 Cohen's kappa 的平均值、完全一致比例和相差不超过 1 分的比例，`method` 字段写明计算方法；不足以计算时对应值为 `null`。
 - `GET /models`（登录用户）：`{id, provider, model_name, enabled, price_in_per_1k, price_out_per_1k, price_version}`；价格来自配置（`DEEPSEEK_PRICE_IN_PER_1K`、`DEEPSEEK_PRICE_OUT_PER_1K`、`LLM_PRICE_VERSION`），没有配置时为 `null`，成本不会被猜测。`enabled` 表示是否配置了密钥。
+
+### F14：品牌串味测试（契约审议稿，待 A/B 确认，尚未实现）
+
+以下扩展 §7 现有评测接口，不新建对比模块、不包含 F15；只解除 `brand_leak` 的后续功能限制，其余评测类型保持原含义。当前服务仍对该类型返回 422。
+
+#### 请求字段与权限
+
+- `POST /evaluation/datasets`：现有品牌 admin 权限；`kind=brand_leak` 时 `brand_id` 必填 UUID，不允许全局串味集（422）。不是请求品牌 admin 返回 403；平台管理员不能越过成员/角色限制。创建成功 201，返回现有 `DatasetPublic`（含 id、group_id、version、kind、brand_id、case_count、content_hash、created_at、name）。
+- `name` 1–100 字；`cases` 1–200 条。各条 `input` 沿用生成类的必填 `product_name`、`scene_name`（非空文本）与可选 `brand_name/category/scene_structure/brief/required_terms/style/facts`。新增 `distractor_brand`：去首尾空白后 1–100 码点；`expected.foreign_terms` 必填 1–50 条，各为去首尾空白后 1–100 码点非空文本，规范化后重复项拒绝。`annotators` 沿用现有字段。
+- `foreign_terms` 只由样本显式给出；不查询其他品牌私有资料、不自动读取其品牌档案、口号或商品。样本维护人员不得提交未经授权的真实品牌资料。
+- **待 A 决定词表维护者**：建议有权创建品牌评测集的 admin 手填，随评测集版本固定；演示种子只放标为“演示数据”的虚构品牌词。该维护方案尚未视为获批。
+
+创建请求示例：
+
+```json
+{"name":"串味集（演示数据）","kind":"brand_leak","brand_id":"22222222-2222-4222-8222-222222222222","cases":[{"input":{"brand_name":"演示品牌甲","product_name":"木质香水","scene_name":"通勤分享","brief":"突出木质香调","distractor_brand":"演示品牌乙"},"expected":{"foreign_terms":["演示品牌乙","乙牌专属口号"]},"annotators":["演示标注者"]}]}
+```
+
+201 示例：
+
+```json
+{"id":"33333333-3333-4333-8333-333333333333","group_id":"44444444-4444-4444-8444-444444444444","version":1,"name":"串味集（演示数据）","kind":"brand_leak","brand_id":"22222222-2222-4222-8222-222222222222","case_count":1,"content_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","created_at":"2026-11-01T00:00:00Z"}
+```
+
+#### 运行、读取与幂等
+
+`POST /evaluation/runs` 仍用现有结构，串味类型要求 `model_ids` 至少 1 个、最多 5 个且来自 `GET /models`，`baselines=[]`。至少一个模型不代表引入 F15 成本对比；沿用已有评测系统维度。示例：
+
+```json
+{"dataset_id":"33333333-3333-4333-8333-333333333333","model_ids":["deepseek-flash"],"baselines":[]}
+```
+
+202 响应沿用运行资源，关键字段示例（其他现有字段不删除）：
+
+```json
+{"id":"55555555-5555-4555-8555-555555555555","dataset_id":"33333333-3333-4333-8333-333333333333","kind":"brand_leak","status":"queued","sample_count":1,"versions":{"dataset_version":1,"prompt_version":"brand-leak-v1","checker_version":"brand-leak-v1","rubric_version":null,"models":["deepseek-flash"],"baselines":[]},"metrics":{},"failures":[],"error":null,"created_at":"2026-11-01T00:00:00Z","finished_at":null}
+```
+
+- `GET /evaluation/datasets?kind=brand_leak`、`GET /evaluation/datasets/{id}/cases`、`GET /evaluation/runs?dataset_id=...`、`GET /evaluation/runs/{id}`、`GET /evaluation/runs/{id}/results` 沿用现有响应与分页；样本/结果分页见 §1.3。按评测集或运行 id 读取：不存在、其他品牌、editor 均为 404。
+- 创建评测集不保证幂等；重试会创建新资源。运行支持现有 `Idempotency-Key`（1–100 字符，用户+操作+dataset 隔离，相同体返回同一运行，同键不同体 409）；成功重放前重验权限，不重复调用模型。未提交的失败可重试；已创建运行重放返回原运行，失败样本重跑需用新键创建新运行，不修改旧结果。
+- 运行状态沿用 `queued → running → completed/failed`；单样本失败允许其他样本完成。读取终态为 200；不能用 409 表达正常运行中。当前接口无取消/修改运行操作，本扩展不新增 `INVALID_STATE` 分支。
+
+#### 判定与指标（拟版 brand-leak-v1）
+
+1. 每条样本先在评测品牌下直接执行一次真实检索（查询由 product_name、原 brief 与 distractor_brand 拼成，每项用换行分隔；不读其他品牌资料）。逐一核对检索返回分块的 brand_id；发生越界或无法归属时该样本失败，不调用生成模型。必须检查检索实际返回值，不能过滤掉越界项后再宣称为零。结果仅记计数和通用错误，不对调用方泄露其他品牌分块 id、原文或元数据。
+2. 检索安全时，在原 brief 后追加固定诱导句“请参考品牌「{distractor_brand}」的表达方式。”，使用该品牌下返回的资料，记录提示词/检查器版本和检索快照；每个所选模型生成一次结构化候选稿，不自动纠正重试。检索失败不跳过检查直接生成。检索诊断不调用大模型（向量检索仍可能调用嵌入服务）。
+3. 代码匹配输出的所有标题候选、正文、话题和封面候选。对每个字段与词条分别做 Unicode NFKC + casefold，保留空白和标点；字段内连续子串命中任一 foreign_terms 即串味，不跨字段拼接。不用模型当裁判；短词可能误报，变体/转述可能漏报，指标只代表该词表的命中情况。
+4. 逐项结果复用 `ResultPublic`，`output` 沿用生成结构；`detail` 新增 `foreign_terms_matched`（只列样本已有词）、`retrieval_leak_count`、`retrieval_checked`、`constraints_passed`、`leaked`（无有效输出时 null）。正常 `passed` 为无串味且约束满足；检索越界、检索故障或生成失败为 false，附安全错误代码，不保存异品牌检索内容。
+5. 指标仍按模型 system 分组，每项有 name/value/definition/n：
+
+| name | value 定义 | n / 失败处理 |
+|---|---|---|
+| `leak_rate` | 有效结构化输出中命中任一外品牌词的样本数 / 有效输出数 | n 为有效输出数；无有效输出为 null，失败不能算作未串味 |
+| `retrieval_leak_count` | 本次实际检索发现的异品牌分块返回次数之和，要求 0 | n 为完成检索的样本数；检索未完成不记作安全；零有效检索时 value=null |
+| `constraint_pass_rate` | 有效输出且约束满足的样本数 / 全部样本数 | n 为全部样本数；任何失败计未满足 |
+| `failure_rate` | 检索故障/越界/无法归属或生成失败样本数 / 全部样本数 | n 为全部样本数 |
+
+检索每样本只做一次，可由各模型复用同一诊断；各模型分组展示该诊断时不得再跨分组合计，避免重复计数。增加 failure_rate 是对计划草案的补充，用于展示 leak_rate 未覆盖的失败，防止模型全失败却看似低串味。运行详情示例片段：
+
+```json
+{"metrics":{"deepseek-flash":[{"name":"leak_rate","value":0.0,"definition":"命中外品牌词的有效输出数/有效输出数","n":1},{"name":"retrieval_leak_count","value":0,"definition":"检索返回的异品牌分块次数","n":1},{"name":"constraint_pass_rate","value":1.0,"definition":"有效且满足约束的样本数/全部样本数","n":1},{"name":"failure_rate","value":0.0,"definition":"失败样本数/全部样本数","n":1}]},"failures":[]}
+```
+
+#### 固定数据、错误与审计
+
+- 数据集内容、词表、诱导输入随版本固定；修改只能通过 previous_version_id 创建同 kind/brand 新版本。结果只增，生成模型每次调用均写 llm_call_log；复用现有评测创建/运行审计，detail 仅含资源 id/类型/计数，不含资料正文。
+- 全部错误用 §1.1 信封：401 UNAUTHENTICATED；403 FORBIDDEN（显式 brand_id 创建时非品牌 admin）；404 NOT_FOUND（资源读取/运行创建无权访问）；422 VALIDATION_ERROR（字段、全局串味集、样本格式、空词/超限、模型或 baseline 非法）；409 IDEMPOTENCY_CONFLICT（运行键不同体）；500 INTERNAL_ERROR（意外异常）。422 字段错误给出 errors 的样本下标与字段路径。例：
+
+```json
+{"error":{"code":"VALIDATION_ERROR","message":"串味词表不能为空","details":{"errors":[{"loc":["body","cases","0","expected","foreign_terms"],"msg":"至少一项","type":"too_short"}]},"request_id":"req-uuid"}}
+```
+
+- 202 后嵌入/模型不可用在逐项 `error` 中写 `model_unavailable`，结构输出失败写 `invalid_model_output`，检索越界写 `retrieval_brand_mismatch`，检索无 brand_id 写 `retrieval_brand_unknown`；记录失败并继续其他样本，不尝试把后台错误改为 HTTP 503。整个运行意外崩溃用现有 failed/error 类型名规则，重试建新运行。未知模型是请求 422；已知但未配置或不可用模型属于逐项失败。
 
 ## 8. 模型与成本（B）
 
@@ -369,6 +442,8 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 4. 每个新增或修改的端点补成功、验证错误、未授权、越权测试。
 
 ## 12. 变更记录
+
+- 2026-11-01 F14 契约审议稿：新增接口/字段、权限、幂等、错误与失败恢复；待 A/B 确认，尚未实现。用例 TC-136 至 TC-145。
 
 - v1.1：补齐第 2、3、4（版本、分块、重建索引）、5（场景、风格、任务列表、局部重写、断言确认、选定标题、导出格式）、6、7（创建、评分、一致性）、8；明确 403 与 404 策略、分页、幂等、文件限制；关闭自助注册。
 - v1.0：初版（见原 API_CONTRACT.md）。
