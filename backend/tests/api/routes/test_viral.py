@@ -79,7 +79,7 @@ def test_sample_analysis_reads_and_audit_do_not_ingest_knowledge(
     assert s["text"] == SAMPLE and s["source_url"] == source
     p = analyze(client, h, s["id"])
     assert p["sample_id"] == s["id"] and p["brand_id"] == brand["id"]
-    assert p["prompt_version"] == "viral-v1" and p["checker_version"] == "viral-copy-v1"
+    assert p["prompt_version"] == "viral-v2" and p["checker_version"] == "viral-copy-v2"
     assert source not in "".join(m.content for m in llm.requests[0].messages)
     listing = client.get(
         f"{API}/brands/{brand['id']}/viral-samples?page_size=1&sort=created_at",
@@ -209,7 +209,7 @@ def test_sample_validation(
     assert r.status_code == 422 and r.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
-@pytest.mark.parametrize("failure", ["schema", "copy", "offline"])
+@pytest.mark.parametrize("failure", ["schema", "copy", "format", "offline"])
 def test_analysis_failure_recovery_and_bounded_calls(
     client: TestClient,
     db: Session,
@@ -226,6 +226,8 @@ def test_analysis_failure_recovery_and_bounded_calls(
         if failure == "schema"
         else json.dumps(copied)
         if failure == "copy"
+        else json.dumps({**ANALYSIS, "abstract_template": "围绕{{scene}}展开"})
+        if failure == "format"
         else ModelUnavailableError("offline")
     ]
     r = client.post(
@@ -236,8 +238,15 @@ def test_analysis_failure_recovery_and_bounded_calls(
     assert r.status_code == (503 if failure == "offline" else 422)
     assert len(llm.requests) == (1 if failure == "offline" else 2)
     if failure != "offline":
-        assert r.json()["error"]["details"]["reason"] == (
-            "schema_invalid" if failure == "schema" else "copied_text"
+        assert (
+            r.json()["error"]["details"]["reason"]
+            == (
+                {
+                    "schema": "schema_invalid",
+                    "copy": "copied_text",
+                    "format": "format_invalid",
+                }[failure]
+            )
         )
     assert not db.exec(
         select(ViralPattern).where(ViralPattern.sample_id == uuid.UUID(s["id"]))
@@ -327,8 +336,8 @@ def test_provider_attempts_are_recorded_without_real_network(
         headers=h,
         json={"model_id": "deepseek-flash"},
     )
-    assert r.status_code == 503 and len(calls) == 3
+    assert r.status_code == 503 and len(calls) == 4  # one transient retry
     logs = db.exec(
         select(LlmCallLog).where(LlmCallLog.brand_id == uuid.UUID(brand["id"]))
     ).all()
-    assert len(logs) == 3 and sum(r.status == "error" for r in logs) == 1
+    assert len(logs) == 4 and sum(r.status == "error" for r in logs) == 2

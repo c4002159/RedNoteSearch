@@ -8,6 +8,7 @@ from app.domain.viral import (
     ViralAnalysis,
     analysis_messages,
     contains_copied_text,
+    has_format_artifacts,
 )
 from app.models import Brand, ScenarioTemplate
 from app.models.viral import (
@@ -90,6 +91,9 @@ def analyze(
     model_id: str,
     llm: LlmClient,
 ) -> ViralPattern:
+    # End the read transaction first: the model call can take a minute and must not hold a connection
+    # inside an open transaction.
+    session.rollback()
     messages = analysis_messages(sample.text)
     analysis: ViralAnalysis | None = None
     reason = "schema_invalid"
@@ -106,13 +110,15 @@ def analyze(
         else:
             if contains_copied_text(sample.text, generated.value):
                 reason = "copied_text"
+            elif has_format_artifacts(generated.value):
+                reason = "format_invalid"
             else:
                 analysis = generated.value
                 break
         messages += (
             LlmMessage(
                 "user",
-                f"上次分析不符合要求（{reason}），请仅返回结构描述和使用占位符的抽象模板，不复用样本原句。",
+                f"上次分析不符合要求（{reason}），请仅返回结构描述和一段通顺的中文写作指引，不使用花括号、方括号或代码块，不复用样本原句。",
             ),
         )
     if analysis is None:

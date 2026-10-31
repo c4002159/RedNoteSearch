@@ -44,3 +44,11 @@ class InvalidInputError(ServiceError):
 
 class InvalidModelOutputError(InvalidInputError):
     """Structural analysis remains invalid after its bounded correction attempt."""
+
+
+class MaterialTooLongError(InvalidInputError):
+    """Parsed task material exceeds the text limit."""
+
+
+class MaterialLimitExceededError(InvalidInputError):
+    """A task already contains the maximum number of material snapshots."""

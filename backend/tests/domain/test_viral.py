@@ -1,7 +1,12 @@
 import pytest
 from pydantic import ValidationError
 
-from app.domain.viral import ViralAnalysis, analysis_messages, contains_copied_text
+from app.domain.viral import (
+    ViralAnalysis,
+    analysis_messages,
+    contains_copied_text,
+    has_format_artifacts,
+)
 
 ANALYSIS = {
     "title_pattern": "场景问题型",
@@ -10,7 +15,7 @@ ANALYSIS = {
     "tone": "克制",
     "emoji_usage": "少量",
     "hashtag_usage": "场景词",
-    "abstract_template": "在{{scene}}以{{supported_facts}}展开并用{{closing}}收束。",
+    "abstract_template": "开头从使用场景提出问题，中段结合资料展开，结尾自然收束。",
 }
 
 
@@ -26,6 +31,23 @@ def test_copy_guard_uses_twelve_unicode_codepoints_in_every_field() -> None:
         "😀" * 12, ViralAnalysis(**{**ANALYSIS, "paragraph_structure": ["😀" * 12]})
     )
     assert not contains_copied_text("short", ViralAnalysis(**ANALYSIS))
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"abstract_template": "围绕{{scene}}展开"},
+        {"abstract_template": "围绕【场景】展开"},
+        {"tone": "克制}"},
+        {"paragraph_structure": ["引入", "```json"]},
+        {"hook_type": "提问�"},
+    ],
+)
+def test_format_artifacts_are_detected_in_every_field(
+    changes: dict[str, object],
+) -> None:
+    assert has_format_artifacts(ViralAnalysis(**{**ANALYSIS, **changes}))
+    assert not has_format_artifacts(ViralAnalysis(**ANALYSIS))
 
 
 @pytest.mark.parametrize(

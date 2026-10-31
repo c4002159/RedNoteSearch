@@ -42,7 +42,7 @@ def get_viral_llm_factory() -> ViralLlmFactory:
             api_key=settings.DEEPSEEK_API_KEY,
             price=model_catalog.price_for(model_id),
             recorder=DbLlmCallRecorder(lambda: Session(engine), brand_id=brand_id),
-            max_retries=0,
+            max_retries=1,
         )
 
     return build
