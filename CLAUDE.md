@@ -15,7 +15,7 @@
 @docs/HANDOFF.md
 
 ## 当前状态（2026-11-01；会过时，以 `git log`、`docs/HANDOFF.md` 与 `docs/decisions/` 为准）
-- **后端 P0 已全部完成并合并**（现状、待办、固定工作流、红线、回滚方法见 `docs/HANDOFF.md`，接手先读它）。
+- **后端 P0 与 P1 已全部完成并合并**（F12 任务文件输入、F13 爆款结构分析、F14 品牌串味测试、合规规则批量导入导出；现状、待办、固定工作流、红线、回滚方法见 `docs/HANDOFF.md`，接手先读它）。决策见 ADR-011（人在回路）、ADR-012（后端分工变更）。
 - `main` 受保护：禁止直推，必选 CI 全绿才能合并，管理员也不能绕过，仅 Squash；**GitHub 不强制他人批准**（ADR-009）。改契约、迁移、认证与品牌授权、检索过滤、提示词与合规规则、CI、依赖锁时，要提醒作者在合并前于 PR 评论里 @ 对方并等到确认。
 - 模板的 `Items` 示例已移除；`backend/app/models/` 是包，新增模型文件后必须在 `models/__init__.py` 里导入，否则 `alembic check` 会失败。迁移保持线性、只有一个 head（ADR-001；后端自 2026-10-31 起全部由 A 与 AI 助手负责）。
 - **品牌授权**：路由里用 `backend/app/api/brand_deps.py` 的 `BrandAccessDep`（成员）、`BrandAdminDep`（品牌 admin）、`BrandManagerDep`（平台管理员或品牌 admin，用于管理品牌与成员），不要自己解析品牌或信任请求体里的 `brand_id`；平台管理员不是品牌数据的万能钥匙。商品（`/brands/{id}/products`、`/products/{id}`）与品牌档案（`/brands/{id}/voice-profile`）已实现；B 取品牌档案用 `app.services.voice_profiles.DbVoiceProfileProvider`（实现 `VoiceProfileProvider` 端口），商品卖点的 `evidence_status=linked` 才可作证据。知识库已实现上传、解析、分块、嵌入、审核、版本、停用与重建索引（`backend/app/services/knowledge.py`），真实检索是 `app.services.knowledge_search.DbKnowledgeSearch(session, embedder)`（实现 `KnowledgeSearch` 端口，只返回本品牌、已审核、当前、已索引的分块；嵌入器取 `DashScopeEmbeddingProvider`，测试用 `app.fakes.embedding.FakeEmbeddingProvider`）。错误统一为 `{"error":{"code","message","details","request_id"}}`（`backend/app/core/errors.py`）：抛 `HTTPException` 或 `NotFoundError`、`ConflictError` 即可，不要自己拼错误响应；前端只在 401 时登出。

@@ -179,6 +179,8 @@ RedNoteSearch/
 
 *目录建议（Phase 0 由 A 落地，待确认）*
 
+> **现状（2026-11-01）**：上图中标 B 的后端目录与模型文件已由 A 与 AI 助手实现（ADR-012）；实际文件名以 `backend/app/` 为准，例如 `api/routes/{tasks,versions,evidence,compliance,rule_import,evaluation,viral}.py`、`services/`、`domain/`；`models/` 是包，新增模型须在 `models/__init__.py` 导入。
+
 ## 3.4 模块间接口（两人并行的前提）
 
 | 接口 | 提供方 | 使用方 | 内容 |
@@ -291,7 +293,7 @@ RedNoteSearch/
 |---|---|
 | A | tenant、app_user、brand、brand_member、product、brand_voice_profile、kb_document、kb_review、kb_chunk（vector）、task_input、audit_log |
 | B | scenario_template、style_preset、task、generation_version、constraint_check、claim_evidence、compliance_rule、compliance_check、eval_dataset、eval_case、eval_run、eval_result、llm_model_config、llm_call_log |
-| P1 | viral_sample、viral_pattern（B） |
+| P1 | viral_sample、viral_pattern（原标 B，现由 A 与 AI 助手负责，ADR-012；迁移 `a3d7e9f1b5c2`）；F12 任务资料沿用 task_input 与 task_input_chunk，无新表 |
 
 *表 5-1 表归属*
 
@@ -391,7 +393,7 @@ RedNoteSearch/
 | 0. 契约与骨架 | A：建仓库与首个快照、分支保护、CI 裁剪、前端壳与 token、移除 Items 示例；B：评审契约与缺口、写 fake repository 与前端线框、评测集草案 | main 上 CI 全绿；两台机器按 README 启动；pgvector 扩展与迁移可重复；契约 v1 与目录所有权已合入。进度（2026-10-30）：仓库、CI、分支保护、Items 移除、models 拆包、跨模块接口与 fake 已完成；应用壳与 token（等 B 设计稿）、覆盖率基线文件、嵌入验证、发布端实测未完成 |
 | 1. P0 并行 | 各自纵向切片：页面、接口、表、测试；每 1–2 天一个小 PR | 各模块单元测试通过；main 始终可启动 |
 | 2. P0 集成与验收 | 接通真实 DB、模型适配器与 UI；端到端闭环；关键安全测试 | 第 10.3 验收清单全通过；缺陷清零或明确记录 |
-| 3. P1 | 按剩余时间：F14、F13、F15、F12（见协作手册取舍顺序） | 每项独立验收，不影响 P0 |
+| 3. P1 | **已完成并合并（2026-11-01）：F12 任务文件输入、F14 品牌串味测试、F13 爆款结构分析、合规规则批量导入导出与模板、停用原因；F15 不做** | 每项独立验收，不影响 P0 |
 
 *表 7-1 阶段*
 
@@ -573,6 +575,8 @@ RedNoteSearch/
 
 ## 10.3 P0 验收清单
 
+> **状态（2026-11-01）**：后端 P0 与 P1 已合并；本地 PostgreSQL+pgvector 上全量后端测试通过（463 个），CI 全绿；用真实 DeepSeek 与百炼跑通过一次完整流程。下面的清单中前端相关项仍待页面实现后验收。
+
 - 两人在干净环境按 README 启动；迁移、vector 扩展、种子数据执行成功（待 Docker 实测）。
 - 运营只能访问被授权品牌；管理员管理品牌与资料；权限由后端强制。
 - 待审资料不参与检索；通过后可检索；新版本需重新审核；停用后新任务不引用，历史版本仍可追溯。
@@ -688,8 +692,8 @@ AI 编码助手用于加快实现，不改变需求基线、接口、安全边�
 | 5 | 模板 workflow 逐个核对（已完成）；.agents、.claude 与 smokeshow 清理（已完成） | A | 已完成 |
 | 6 | 阿里云百炼嵌入模型的型号与维度 | A | 查官方文档后写入首个 kb_chunk 迁移 |
 | 7 | 重试默认值（模型调用 ≤2、约束重生成 ≤2、合规改写 ≤2） | A、B | 提案，待确认 |
-| 8 | B 的设计稿，及由此产生的契约字段（场景与结构模板、受众与重点、高级约束、上传入口） | B（A 审阅） | 需要改契约时走契约变更流程 |
-| 9 | P1 接口细节（爆款分析、模型对比、任务文件输入） | B / A | P0 验收后再补 |
+| 8 | B 的设计稿，及由此产生的契约字段 | B（A 审阅） | 第一批（壳、token、公共组件）与第二批（结果页、生成工作台）已合并；后续：任务与版本历史、知识库、合规规则（含批量导入）、评测、F13 页面 |
+| 9 | P1 接口细节 | A | 已完成：F12、F13、F14、规则批量导入（契约与实现均已合并）；F15 不做 |
 | 10 | 成员 B 对 ADR-001 至 ADR-009 的知悉与复核 | B | 第一次同步会上记录 |
 
 *表 13-2 仍待办与待确认*
