@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     FASTAPI_ENV: Literal["development"] | None = None
 
     PROJECT_NAME: str
+    # Embedding model (ADR-006). Empty key: indexing reports the model as unavailable.
+    DASHSCOPE_API_KEY: str | None = None
+    EMBEDDING_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    EMBEDDING_MODEL: str = "text-embedding-v4"
     SENTRY_DSN: HttpUrl | None = None
     DATABASE_URL: PostgresDsn
 
