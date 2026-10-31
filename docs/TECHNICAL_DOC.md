@@ -244,11 +244,24 @@ RedNoteSearch/
 | 知识库 | 资料详情：版本与审核记录、停用 | /knowledge/:id | 全部查看、admin 操作 | A | P0 |
 | 质量与评测 | 评测集 | /evaluation/datasets | admin | B | P0 |
 | 质量与评测 | 评测运行与报告 | /evaluation/runs、/evaluation/runs/:id | admin | B | P0 |
-| 质量与评测 | 合规规则查看 | /compliance/rules | 全部查看 | B | P0 |
+| 质量与评测 | 合规规则：查看与维护（新增、修改、停用，示例规则标注来源待核对） | /compliance/rules | 全部查看、admin 维护 | A | P0 |
 | 增强（P1） | 爆款结构分析；多模型对比 | /analysis/viral、/compare | editor、admin | B | P1 |
 | 系统 | 用户设置（模板自带）；审计日志 | /settings、/admin/audit | 全部、admin | A | P0 / P2 |
 
 *表 4-3 导航与页面*
+
+### 4.3.1 前端分工（2026-11-01 起）
+后端已经全部完成，接口见 `docs/API_CONTRACT.md`，前端只用生成的客户端。分工如下：
+
+| | 设计稿 | 前端实现 |
+|---|---|---|
+| **B** | **全部页面**（包括 A 实现的页面）：设计稿是视觉基线（ADR-008），通过 PR 提交到 `docs/design/` | 生成工作台、任务与版本历史、结果页（四类字段、证据面板、风险面板、编辑、重写、复检、确认、复制、导出）、评测集、评测运行与报告、人工评分 |
+| **A（与 AI 助手）** | 审阅、对照契约提出修改 | 应用壳（顶栏、可折叠分组导航、品牌切换、用户菜单）、设计 token 与公共组件、品牌与切换、商品管理、品牌档案、知识库（列表与上传、待审队列与审核、详情与停用）、合规规则查看与维护、用户设置 |
+
+约定：
+- **文件归属**：应用壳（`frontend/src/routes/_layout.tsx`、`components/Sidebar`）、设计 token（`index.css`）、`components/Common` 归 A；B 的页面放在各自的路由文件和 `components/` 下自己的目录里，需要改公共部分先提小 PR 并 @A。
+- **顺序**：A 先根据 B 导出的设计稿做应用壳和 token，B 的页面接进壳里。壳完成前，B 可以先在自己的目录里写页面，用客户端和假数据开发。
+- **设计稿是视觉参考**：字段、选项、文案以契约、文案模块和接口为准；图与契约冲突时先列出来问人（见 `docs/design/README.md`）。
 
 ## 4.4 状态标签与视觉映射
 
