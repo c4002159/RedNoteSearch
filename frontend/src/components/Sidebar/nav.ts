@@ -1,5 +1,7 @@
 import {
+  BarChart3,
   Building2,
+  FlaskConical,
   History,
   type LucideIcon,
   Settings,
@@ -48,6 +50,18 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "质量与评测",
     items: [
+      {
+        title: "评测集",
+        path: "/evaluation/datasets",
+        icon: FlaskConical,
+        access: "admin",
+      },
+      {
+        title: "评测运行与报告",
+        path: "/evaluation/runs",
+        icon: BarChart3,
+        access: "admin",
+      },
       {
         title: "风险提示规则",
         path: "/compliance/rules",
