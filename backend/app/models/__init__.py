@@ -76,8 +76,12 @@ from app.models.product import (
     VoiceProfilePublic,
     VoiceProfilesPublic,
 )
+from app.models.task_input import AuditLog, TaskInput, TaskInputChunk
 
 __all__ = [
+    "AuditLog",
+    "TaskInput",
+    "TaskInputChunk",
     "ChunkPublic",
     "ChunksPublic",
     "DocumentDetail",

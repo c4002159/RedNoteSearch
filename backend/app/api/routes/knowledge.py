@@ -247,9 +247,16 @@ def read_chunks(
     status_code=202,
 )
 def reindex_document(
-    doc: DocumentAdminDep, session: SessionDep, embedder: EmbedderDep
+    doc: DocumentAdminDep,
+    session: SessionDep,
+    access: Annotated[tuple[KbDocument, BrandAccess], Depends(get_document_access)],
+    embedder: EmbedderDep,
 ) -> DocumentPublic:
-    return _public(kb.reindex_document(session=session, embedder=embedder, doc=doc))
+    return _public(
+        kb.reindex_document(
+            session=session, embedder=embedder, doc=doc, actor_id=access[1].user_id
+        )
+    )
 
 
 @router.post(
