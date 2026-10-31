@@ -20,6 +20,7 @@ from app.models import (
     ReviewAction,
 )
 from app.ports.embedding import EmbeddingProvider
+from app.services.audit import record_audit
 from app.services.chunking import chunk_text
 from app.services.errors import ConflictError, InvalidStateError, NotFoundError
 from app.services.parsing import parse_document
@@ -68,6 +69,15 @@ def _add_review(
         KbReview(
             document_id=doc.id, action=action.value, actor_id=actor_id, reason=reason
         )
+    )
+    record_audit(
+        session,
+        action=f"knowledge.{action.value}",
+        entity_type="kb_document",
+        actor_id=actor_id,
+        brand_id=doc.brand_id,
+        entity_id=doc.id,
+        detail={"title": doc.title, "version": doc.version},
     )
 
 
@@ -254,7 +264,11 @@ def deactivate_document(
 
 
 def reindex_document(
-    *, session: Session, embedder: EmbeddingProvider, doc: KbDocument
+    *,
+    session: Session,
+    embedder: EmbeddingProvider,
+    doc: KbDocument,
+    actor_id: uuid.UUID,
 ) -> KbDocument:
     """Re-embed the stored chunks of an approved document. A model failure marks the index failed."""
     if doc.status != DocumentStatus.APPROVED.value:
@@ -268,6 +282,15 @@ def reindex_document(
         session.commit()
         raise
     session.add(doc)
+    record_audit(
+        session,
+        action="knowledge.reindex",
+        entity_type="kb_document",
+        actor_id=actor_id,
+        brand_id=doc.brand_id,
+        entity_id=doc.id,
+        detail={"title": doc.title, "version": doc.version},
+    )
     _commit(session)
     session.refresh(doc)
     return doc
