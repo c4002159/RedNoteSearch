@@ -40,3 +40,7 @@ class ModelUnavailableError(ServiceError):
 
 class InvalidInputError(ServiceError):
     """A value the request carried is not acceptable (for example an unsafe regular expression)."""
+
+
+class InvalidModelOutputError(InvalidInputError):
+    """Structural analysis remains invalid after its bounded correction attempt."""

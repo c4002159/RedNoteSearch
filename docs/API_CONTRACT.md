@@ -496,9 +496,9 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 - 多模型对比（B）：`POST /model-comparisons`（幂等）；`GET /model-comparisons/{id}`：并列各模型的约束通过率、人工评分、延迟、费用；失败模型单独显示。
 
-### 10.1 F13：爆款结构分析（契约审议稿，待 A/B 确认，尚未实现）
+### 10.1 F13：爆款结构分析（已定稿，已实现）
 
-仅支持用户手动贴入已获授权的文本，提取结构标签和抽象模板，不承诺传播效果；样本属于当前品牌，不进入知识库或任务检索。下列接口尚未实现。F15 不在本次交付范围。
+仅支持用户手动贴入已获授权的文本，提取结构标签和抽象模板，不承诺传播效果；样本属于当前品牌，不进入知识库或任务检索。下列接口已实现。F15 不在本次交付范围。
 
 #### 样本创建与读取
 
@@ -506,9 +506,9 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 |---|---|---|
 | `POST /brands/{brand_id}/viral-samples` | 品牌成员；JSON `{text,note?,source_url?}` | 201 `ViralSample` |
 | `GET /brands/{brand_id}/viral-samples` | 品牌成员；分页同 §1.3，sort 仅 ±created_at | 200 标准分页，items 为去掉 text 的样本元数据加 excerpt |
-| `GET /viral-samples/{sample_id}`（新增读取建议） | 样本品牌成员 | 200 `ViralSample`，供刷新恢复 |
-| `GET /viral-samples/{sample_id}/patterns`（新增读取建议） | 样本品牌成员；分页同 §1.3 | 200 标准分页，items 为已成功保存的模式，created_at DESC、id DESC |
-| `GET /viral-patterns/{pattern_id}`（新增读取建议） | 模式品牌成员 | 200 `ViralPattern`，供分析结果刷新恢复 |
+| `GET /viral-samples/{sample_id}`（已实现） | 样本品牌成员 | 200 `ViralSample`，供刷新恢复 |
+| `GET /viral-samples/{sample_id}/patterns`（已实现） | 样本品牌成员；分页同 §1.3 | 200 标准分页，items 为已成功保存的模式，created_at DESC、id DESC |
+| `GET /viral-patterns/{pattern_id}`（已实现） | 模式品牌成员 | 200 `ViralPattern`，供分析结果刷新恢复 |
 
 显式品牌路径非成员为 403；样本/模式 id 不存在或非成员为 404。平台管理员也不能跳过品牌成员检查。所有接口需 JWT。`source_url` 在前端仅显示为纯文本，不渲染成可跳转链接。
 
@@ -542,7 +542,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 - `title_pattern`、`hook_type`、`tone`、`emoji_usage`、`hashtag_usage` 为非空描述文本，各 ≤200 码点；不是前端写死的枚举。`paragraph_structure` 有序列表 1–20 条，每条非空、≤300 码点；`abstract_template` 非空、≤5000 码点，使用 `{{scene}}`、`{{supported_facts}}`、`{{closing}}` 等占位符，不保存样本长句。模型结果只接受本节结构字段；id/品牌/版本由服务端赋值。
 - 输出先做结构校验，再做复制检查：样本与所有结构文本字段分别经过 Unicode NFKC、移除 Unicode 空白；任一输出字段出现与样本连续 ≥12 个相同码点即拒绝。包括 abstract_template，不仅检查模板字段，避免其他字段夹带原句。短样本仍接受但该阈值不能发现 <12 字复用；此检查不代表所有改写或授权问题均已排除。
-- 模型结构或复制检查不满足时反馈一次并最多重试一轮（总计最多 2 次分析模型调用）。最终不合格返回拟新增 422 `INVALID_MODEL_OUTPUT`（不是既有任务 last_error 字段），details.reason 为 `schema_invalid` 或 `copied_text`；不保存不合格模式。模型超时/不可用返回 503 MODEL_UNAVAILABLE，不保存半成品。
+- 模型结构或复制检查不满足时反馈一次并最多重试一轮（总计最多 2 次分析模型调用）。最终不合格返回新增 422 `INVALID_MODEL_OUTPUT`（不是既有任务 last_error 字段），details.reason 为 `schema_invalid` 或 `copied_text`；不保存不合格模式。模型超时/不可用返回 503 MODEL_UNAVAILABLE，不保存半成品。
 - 分析过程为请求内“校验→模型分析→代码检查→提交成功结果”；不增改既有任务 flow_status。样本只读；重复成功请求会产生新的模式，不覆盖旧模式。网络超时不代表服务端失败，先读取已保存结果再决定是否重新分析。
 
 #### 转为品牌场景模板
@@ -569,7 +569,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 | 403 `FORBIDDEN` | 显式品牌路径非成员；或同品牌 editor 调用 to-template | 由该品牌 admin 操作 |
 | 404 `NOT_FOUND` | 样本/模式不存在或非所属品牌成员 | 不泄露存在性 |
 | 422 `VALIDATION_ERROR` | 空文本/超长、非法 URL/scene/model_id/UUID/分页；details.errors | 修正输入 |
-| 422 `INVALID_MODEL_OUTPUT`（拟新增） | 分析重试后仍结构错/连续复制；details.reason | 换输入或新请求；不返回模型原始输出 |
+| 422 `INVALID_MODEL_OUTPUT`（新增） | 分析重试后仍结构错/连续复制；details.reason | 换输入或新请求；不返回模型原始输出 |
 | 503 `MODEL_UNAVAILABLE` | 模型未配置、超时或不可用 | 样本保留，无模式半成品；恢复后可重新请求 |
 | 500 `INTERNAL_ERROR` | 意外故障，仅通用错误与 request_id | 先读取已保存结果，再决定是否重新请求 |
 
@@ -584,6 +584,12 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - 每次模型调用（含失败及重试）独立记录 llm_call_log，不在错误/审计里保存原始敏感模型输出。成功创建样本写 viral.sample_create，成功分析写 viral.analyze，转换写 viral.to_template；detail 仅资源 id、长度、模型/版本，原文与原链接不写审计。失败不写成功审计；每次成功请求均保存新结果并原子写入审计，旧模式与模板不覆盖。
 - 新增三个读取接口的理由：原占位只有创建/分析/转换，无法在页面刷新后恢复样本全文与已分析结果；读取仍沿用品牌成员隔离，不引入跨品牌访问。
 
+#### 实现补充（2026-11-01）
+
+- 迁移 a3d7e9f1b5c2 接在 f2c0e6b8d4a1 后，只创建 viral_sample 和 viral_pattern；带对应 downgrade。样本列表默认 -created_at，分页沿用通用约定。
+- 同品牌模板版本分配使用品牌父行锁串行化，以覆盖首次尚无同名模板的情况；再查同场景同名最大版本并加一，旧模板不覆盖。
+- 模型客户端关闭内部重试，结构校验或复制检查失败最多补问一次，保证最多两次供应商请求；每次请求通过现有 DbLlmCallRecorder 独立记录，错误不含原始输出。
+
 ## 11. 合同变更流程
 
 1. 提案人先更新本文与 JSON 样例，说明兼容影响。
@@ -592,6 +598,8 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 4. 每个新增或修改的端点补成功、验证错误、未授权、越权测试。
 
 ## 12. 变更记录
+
+- 2026-11-01 F13 实现：样本与模式读写、同步分析与复制检查、品牌模板递增转换、审计和调用日志；新增一条线性迁移并重新生成客户端。
 
 - 2026-11-01 F12 契约审议稿（按 A 审核修订）：不提供删除替换；去除新增幂等设计；固定检查顺序、任务行锁与 422 异常映射。用例 TC-126 至 TC-135（TC-133 已删除，不复用）。尚未实现，等待最终复审确认。
 - 2026-11-01 F14 契约审议稿（按 A 审核修订）：词表维护已决定；不改端口，查库复核分块归属；区分诱导词命中与检索泄漏；运行幂等仅沿用已有行为。TC-136 至 TC-144；TC-145 并入 TC-141。尚未实现，等待最终复审确认。

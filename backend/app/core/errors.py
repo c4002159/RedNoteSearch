@@ -20,6 +20,7 @@ from app.services.errors import (
     ConflictError,
     FileTooLargeError,
     InvalidInputError,
+    InvalidModelOutputError,
     InvalidStateError,
     ModelUnavailableError,
     NotFoundError,
@@ -146,6 +147,17 @@ def _invalid_input_handler(request: Request, exc: Exception) -> Response:
     )
 
 
+def _invalid_model_output_handler(request: Request, exc: Exception) -> Response:
+    assert isinstance(exc, InvalidModelOutputError)
+    return error_response(
+        request,
+        status_code=422,
+        code="INVALID_MODEL_OUTPUT",
+        message=exc.message,
+        details=exc.details,
+    )
+
+
 def _file_too_large_handler(request: Request, exc: Exception) -> Response:
     assert isinstance(exc, FileTooLargeError)
     return error_response(
@@ -214,6 +226,7 @@ def install_error_handling(app: FastAPI) -> None:
     app.add_exception_handler(ConflictError, _conflict_handler)
     app.add_exception_handler(InvalidStateError, _invalid_state_handler)
     app.add_exception_handler(InvalidInputError, _invalid_input_handler)
+    app.add_exception_handler(InvalidModelOutputError, _invalid_model_output_handler)
     app.add_exception_handler(FileTooLargeError, _file_too_large_handler)
     app.add_exception_handler(UnsupportedFileTypeError, _unsupported_file_type_handler)
     app.add_exception_handler(ParseError, _parse_error_handler)
