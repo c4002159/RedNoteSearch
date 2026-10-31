@@ -63,6 +63,13 @@ services:
       EMAILS_FROM_EMAIL: ${EMAILS_FROM_EMAIL}
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?Variable not set}@db:5432/app
       SENTRY_DSN: ${SENTRY_DSN:-}
+      # Model providers (ADR-006). Empty means disabled; real keys live only in your local .env.
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DEEPSEEK_PRICE_IN_PER_1K: ${DEEPSEEK_PRICE_IN_PER_1K:-}
+      DEEPSEEK_PRICE_OUT_PER_1K: ${DEEPSEEK_PRICE_OUT_PER_1K:-}
+      LLM_PRICE_VERSION: ${LLM_PRICE_VERSION:-}
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
