@@ -13,7 +13,22 @@ Modules:
 
 from sqlmodel import SQLModel
 
-from app.models.catalog import Brand, BrandCategory, BrandMember, MemberRole, Tenant
+from app.models.catalog import (
+    Brand,
+    BrandCategory,
+    BrandCreate,
+    BrandListItem,
+    BrandMember,
+    BrandPublic,
+    BrandsPublic,
+    BrandUpdate,
+    MemberCreate,
+    MemberPublic,
+    MemberRole,
+    MembersPublic,
+    MemberUpdate,
+    Tenant,
+)
 from app.models.common import Message, get_datetime_utc
 from app.models.identity import (
     NewPassword,
@@ -44,14 +59,23 @@ __all__ = [
     "EMBEDDING_DIMENSIONS",
     "Brand",
     "BrandCategory",
+    "BrandCreate",
+    "BrandListItem",
     "BrandMember",
+    "BrandPublic",
+    "BrandUpdate",
+    "BrandsPublic",
     "DocumentStatus",
     "DocumentType",
     "IndexStatus",
     "KbChunk",
     "KbDocument",
     "KbReview",
+    "MemberCreate",
+    "MemberPublic",
     "MemberRole",
+    "MemberUpdate",
+    "MembersPublic",
     "Message",
     "NewPassword",
     "ReviewAction",

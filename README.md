@@ -21,7 +21,7 @@
 | [AI_TEAM_GUIDE.md](./AI_TEAM_GUIDE.md) | 与 AI 协作的边界、文件所有权、自检与 PR 规则 |
 | [docs/TECHNICAL_DOC.md](./docs/TECHNICAL_DOC.md) | 技术文档（开发协作基线）：需求与边界、架构、前端约束、数据库、分工、Git 与 CI、测试、AI 协作（Markdown 版；Word 快照见 `docs/TECHNICAL_DOC_v1.3.docx`） |
 | [docs/API_CONTRACT.md](./docs/API_CONTRACT.md) | 接口契约 v1.1（字段以此为准） |
-| [docs/TEST_CASES.csv](./docs/TEST_CASES.csv) | 67 条测试用例 |
+| [docs/TEST_CASES.csv](./docs/TEST_CASES.csv) | 69 条测试用例 |
 | [docs/decisions/](./docs/decisions/) | 决策记录 ADR-001 至 ADR-008 |
 
 ## 分工与分支

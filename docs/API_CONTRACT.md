@@ -76,13 +76,27 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 ## 3. 品牌、商品、品牌档案（A）
 
 ### `GET /brands`
-当前用户可访问品牌：`{"items":[{"id","name","category","role"}]}`。
+当前用户**作为成员**的品牌：`{"items":[{"id","name","category","role"}]}`，按名称排序。平台管理员也只看到自己是成员的品牌；创建品牌时创建者自动成为该品牌的 admin，所以能看到自己创建的品牌。
 
 ### `POST /brands`　`PATCH /brands/{brand_id}`
-平台管理员。体：`{"name","category","description"}`；`category`：`perfume | skincare | makeup | home_fragrance | other`。
+- `POST` 仅平台管理员（`is_superuser`），返回 201。体：`{"name","category","description","slug"}`；`name` 必填（1–100），`category` 默认 `other`，`slug` 可选（小写字母、数字、连字符，2–60），不传则由名称生成；名称不含英文字母时生成 `brand-<8位随机>`；`slug` 重复返回 409。`category`：`perfume | skincare | makeup | home_fragrance | other`。
+- 租户：目前是单租户演示，品牌自动归入默认租户（`tenant` 表里最早的一条，没有则创建 `Default`）；体里没有 `tenant_id`。
+- `PATCH` 平台管理员或该品牌的 admin；体里的字段都可选。
 
 ### `GET /brands/{brand_id}/members`　`POST /brands/{brand_id}/members`　`PATCH …/members/{user_id}`　`DELETE …/members/{user_id}`
-品牌 admin。体：`{"user_id","role":"admin|editor"}`。不得移除最后一位 admin（`CONFLICT`）。
+平台管理员或该品牌的 admin。体：`{"user_id","role":"admin|editor"}`。`POST` 返回 201；用户不存在 404；已是成员 409；`role` 不合法 422。不得移除或降级最后一位 admin（409）。`DELETE` 成功返回 `{"message":"Member removed successfully"}`。
+
+### 品牌授权的实现约定（A 提供，B 的路由使用）
+依赖在 `backend/app/api/brand_deps.py`，品牌 id 只取自路径，服务端用 `brand_member` 校验：
+- `BrandAccessDep`：品牌成员（editor 或 admin）；非成员 403。
+- `BrandAdminDep`：品牌 admin；否则 403。
+- `BrandManagerDep`：平台管理员或品牌 admin，返回 `Brand`；平台管理员访问不存在的品牌 404。用于管理品牌与成员。
+- **平台管理员不是品牌数据的万能钥匙**：`BrandAccessDep` 对非成员的平台管理员同样 403，品牌范围内的数据（资料、任务、版本等）要先成为成员。
+- 请求体里的 `brand_id` 不授予任何权限。
+
+### 实现状态与偏差（2026-10-31）
+- 错误响应暂时沿用模板格式 `{"detail": "..."}`，**统一错误信封（`error.code`、`request_id`）尚未实现**：它会改变前端对错误的读取方式，需要单独的 PR 与前端调整。
+- 令牌无效时模板返回 403（契约写 401），未登录没带令牌时返回 401；也留待统一错误处理时一并调整。
 
 ### 商品
 - `GET /brands/{brand_id}/products?status=active|archived&page=`：品牌成员。

@@ -1,12 +1,14 @@
 from pathlib import Path
 
 import sentry_sdk
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
 from app.api.main import api_router
 from app.core.config import settings
+from app.services.errors import ConflictError, NotFoundError
 
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 
@@ -23,6 +25,17 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     generate_unique_id_function=custom_generate_unique_id,
 )
+
+
+@app.exception_handler(NotFoundError)
+def handle_not_found(_: Request, exc: NotFoundError) -> JSONResponse:
+    return JSONResponse(status_code=404, content={"detail": exc.message})
+
+
+@app.exception_handler(ConflictError)
+def handle_conflict(_: Request, exc: ConflictError) -> JSONResponse:
+    return JSONResponse(status_code=409, content={"detail": exc.message})
+
 
 app.add_middleware(
     CORSMiddleware,
