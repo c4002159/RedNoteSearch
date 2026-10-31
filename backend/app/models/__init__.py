@@ -48,11 +48,15 @@ from app.models.evidence import (
     SourceLevel,
 )
 from app.models.generation import (
+    ConfirmVersion,
+    ExportCounts,
     FlowStatus,
     GenerationVersion,
     GenerationVersionPublic,
     GenerationVersionsPublic,
     LlmCallLog,
+    MarkdownExport,
+    RewriteRequest,
     ScenarioPublic,
     ScenariosPublic,
     ScenarioTemplate,
@@ -69,6 +73,7 @@ from app.models.generation import (
     TaskPublic,
     TasksPublic,
     VersionOrigin,
+    XhsPartsExport,
 )
 from app.models.identity import (
     NewPassword,
@@ -120,6 +125,11 @@ from app.models.product import (
 from app.models.task_input import AuditLog, TaskInput, TaskInputChunk
 
 __all__ = [
+    "ConfirmVersion",
+    "ExportCounts",
+    "MarkdownExport",
+    "RewriteRequest",
+    "XhsPartsExport",
     "ComplianceCheck",
     "ComplianceCheckPublic",
     "ComplianceChecksPublic",

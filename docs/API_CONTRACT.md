@@ -266,6 +266,14 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 ### `POST /generation-versions/{version_id}/confirm`
 体：`{"selected_title_index":0,"selected_cover_index":0}`。仅当约束已通过、无未处理的 `block` 级风险、各检查已针对最终文本运行时才允许，否则 `INVALID_STATE`。成功后 `ready_to_copy`，记录 `confirmed_by/confirmed_at`。该状态不表示法律合规获批。
 
+**编辑、重写、重新检查、确认与导出的实现约定（2026-10-31）**
+- 都按版本的所属品牌做资源 id 授权：不存在或非本品牌成员一律 404；品牌任意成员（editor 或 admin）都可以操作，操作人写入审计。任务正在生成（`generating`）时，编辑、重写、重新检查返回 409。
+- `POST /generation-versions/{id}/edit`（201）：请求体字段同版本内容（标题候选至少 1 个、正文非空、标签 ≤20、封面 ≤5，空白项被去掉）；创建新版本（`origin=edited`，`parent_version_id` 指向被编辑的版本，`model` 为空，因为文字是人写的），状态 `edited_pending_recheck`，成为任务的最新版本；原版本不变。
+- `POST /generation-versions/{id}/recheck`（202）：立即把版本置为 `checking` 并返回，后台依次重跑约束、证据、合规。允许的起始状态：`checking`、`edited_pending_recheck`、`needs_human_review`、`checks_completed`、`constraint_failed`；`ready_to_copy` 是终态，返回 409。检查途中模型不可用时版本保持 `checking`，任务 `last_error=model_unavailable`，可再次重检。**重检不会自动改写**（自动改写只在生成之后发生）。
+- `POST /generation-versions/{id}/rewrite`（202）：`target` 为 `titles | opening | body | cover`，`instruction` 可选（≤500 字）。同步调用模型生成改写结果并保存为新版本（`origin=rewritten`，指向被改写的版本；模型不可用返回 503 且不保存任何东西），随后后台自动对新版本做全部检查。提示词只让模型改写所选部分，其余原样保留。
+- `POST /generation-versions/{id}/confirm`：体 `{selected_title_index, selected_cover_index?}`（索引越界 422）。**只有任务的最新版本可以确认**；条件：状态为 `checks_completed` 或 `needs_human_review`（即检查针对的就是这份文字）、约束已通过、没有未处理的 `block` 级风险提示；否则 409 `INVALID_STATE`，消息列出全部原因。成功后 `ready_to_copy`，记录确认人和时间，写 `version.confirm` 审计。**这表示运营确认了文字，不表示合规通过**；`needs_human_review` 的版本（例如还有无依据的断言）运营确认后也可以复制，责任由确认人承担。
+- `GET /generation-versions/{id}/export?format=xhs_parts|markdown`：只有 `ready_to_copy` 才能导出（409）；`format` 缺省或不是这两个值 422。`xhs_parts` 返回 `{format,title,body,tags,counts}`，标题取选定的标题，正文换行统一为 LF、去行尾空白、去掉 Markdown 标记（标题行 #、加粗、代码符号），保留 emoji；`tags` 不带 `#`；`counts` 是 `title_weight / body_units / tags_visible_units / tags_count`。`markdown` 返回 `{format,content}`，是唯一包含封面文案的格式。
+
 ### 导出与复制格式
 `GET /generation-versions/{version_id}/export?format=xhs_parts|markdown`，仅 `ready_to_copy` 版本可导出，否则 `INVALID_STATE`。
 

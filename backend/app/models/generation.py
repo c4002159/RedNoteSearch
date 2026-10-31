@@ -333,3 +333,33 @@ class GenerationVersionPublic(SQLModel):
 
 class GenerationVersionsPublic(SQLModel):
     items: list[GenerationVersionPublic]
+
+
+class RewriteRequest(SQLModel):
+    target: Literal["titles", "opening", "body", "cover"]
+    instruction: str = Field(default="", max_length=500)
+
+
+class ConfirmVersion(SQLModel):
+    selected_title_index: int = Field(ge=0)
+    selected_cover_index: int | None = Field(default=None, ge=0)
+
+
+class ExportCounts(BaseModel):
+    title_weight: float
+    body_units: int
+    tags_visible_units: int
+    tags_count: int
+
+
+class XhsPartsExport(BaseModel):
+    format: Literal["xhs_parts"] = "xhs_parts"
+    title: str
+    body: str
+    tags: list[str]
+    counts: ExportCounts
+
+
+class MarkdownExport(BaseModel):
+    format: Literal["markdown"] = "markdown"
+    content: str

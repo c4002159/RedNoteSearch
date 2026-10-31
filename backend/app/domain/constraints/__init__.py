@@ -13,7 +13,9 @@ from app.domain.constraints.checks import (
 from app.domain.constraints.export import (
     HIDDEN_TOPIC_SUFFIX,
     XhsParts,
+    plain_body,
     strip_hidden_topic_suffix,
+    to_markdown,
     to_xhs_parts,
 )
 from app.domain.constraints.length import (
@@ -44,10 +46,12 @@ __all__ = [
     "check_title",
     "forbidden_word_issues",
     "normalize_tag",
+    "plain_body",
     "strip_hidden_topic_suffix",
     "tag_visible_units",
     "tags_units",
     "title_weight",
+    "to_markdown",
     "to_xhs_parts",
     "utf16_units",
 ]

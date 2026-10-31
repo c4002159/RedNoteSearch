@@ -26,6 +26,22 @@ def _where(field: str) -> str:
     return {"body": "正文", "hashtags": "标签"}.get(field, field)
 
 
+REWRITE_TARGETS = {
+    "titles": "标题候选",
+    "opening": "正文的开头（第一段）",
+    "body": "正文",
+    "cover": "封面文案",
+}
+
+
+def target_problem(target: str) -> str:
+    """The instruction that limits a rewrite to one part of the note."""
+    return (
+        f"只重写“{REWRITE_TARGETS[target]}”，其余部分原样保留；"
+        "重写后仍要满足字数、必含词和禁用词的要求"
+    )
+
+
 def build_rewrite_messages(
     note: GeneratedNote, problems: Sequence[str], instruction: str = ""
 ) -> tuple[LlmMessage, ...]:

@@ -1,5 +1,6 @@
 """Copy formats for the publish page (ADR-005): title, body and tags are copied separately."""
 
+import re
 from dataclasses import dataclass
 
 from app.domain.constraints.length import (
@@ -46,3 +47,26 @@ def strip_hidden_topic_suffix(text: str) -> str:
     Tag names are kept: ``#春日香氛[话题]#`` becomes ``#春日香氛``.
     """
     return text.replace(HIDDEN_TOPIC_SUFFIX, "")
+
+
+_HEADING = re.compile(r"^\s{0,3}#{1,6}\s+")
+_EMPHASIS = re.compile(r"(\*\*|__|`)")
+
+
+def plain_body(text: str) -> str:
+    """Body text for pasting into the publish page: LF line breaks, no trailing spaces, no Markdown
+    markers (headings, bold, code ticks). Emoji and the rest of the wording are kept."""
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    cleaned = [_EMPHASIS.sub("", _HEADING.sub("", line)).rstrip() for line in lines]
+    return "\n".join(cleaned).strip()
+
+
+def to_markdown(title: str, body: str, tags: list[str], covers: list[str]) -> str:
+    """A Markdown copy of a confirmed note: the only export that includes the cover texts."""
+    parts = to_xhs_parts(title, plain_body(body), tags)
+    out = [f"# {parts.title}", "", parts.body]
+    if parts.tags_text:
+        out += ["", parts.tags_text]
+    if covers:
+        out += ["", "## 封面文案候选", *[f"- {c}" for c in covers]]
+    return "\n".join(out) + "\n"
