@@ -141,6 +141,33 @@ def test_rule_listing_visibility_and_filters(
         ).status_code
         == 422
     )
+    # scope narrows the mixed list to one side, so each tab can page and count on its own
+    brand_only = client.get(
+        f"{API}/compliance-rules?scope=brand&brand_id={brand['id']}",
+        headers=admin_headers,
+    ).json()
+    assert [r["id"] for r in brand_only["items"]] == [own["id"]]
+    assert brand_only["total"] == 1
+    global_only = client.get(
+        f"{API}/compliance-rules?scope=global&brand_id={brand['id']}&page_size=100",
+        headers=admin_headers,
+    ).json()
+    assert global_only["items"] and all(
+        r["brand_id"] is None for r in global_only["items"]
+    )
+    assert (
+        client.get(
+            f"{API}/compliance-rules?scope=brand", headers=admin_headers
+        ).status_code
+        == 422
+    )
+    assert (
+        client.get(
+            f"{API}/compliance-rules?scope=brand&brand_id={brand['id']}",
+            headers=outsider_headers,
+        ).status_code
+        == 403
+    )
     page = client.get(
         f"{API}/compliance-rules?page=1&page_size=2", headers=admin_headers
     ).json()

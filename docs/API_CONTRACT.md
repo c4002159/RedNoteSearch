@@ -373,7 +373,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 ## 6. 合规规则（B）
 
-- `GET /compliance-rules?layer=&rule_type=&severity=&brand_id=&page=`：登录用户可查全局规则与所属品牌规则。
+- `GET /compliance-rules?layer=&rule_type=&severity=&brand_id=&scope=&page=&page_size=`：登录用户可查全局规则与所属品牌规则。`scope`（2026-11-01 新增，只增参数）可选 `global`（只要全局规则）或 `brand`（只要 `brand_id` 指定的品牌的规则，必须带 `brand_id`，否则 422）；不传则仍是全局加品牌。`page_size` 默认 20、最大 100。列表包含已停用规则。
 - `GET /compliance-rules/{rule_id}`：规则详情。
 - 字段：`id`、`brand_id|null`、`layer`、`rule_type`（`absolute_term | efficacy_claim | medical_term | data_claim | platform_rule | brand_forbidden`）、`pattern`、`is_regex`、`severity`、`suggestion`、`source_name`、`source_url`、`source_clause`、`region_scope`、`effective_from`、`effective_to`、`rule_version`、`enabled`。
 - 规则的创建、修改、停用属 **P2**（品牌 admin）；P0 规则由种子数据或评测目录导入，不通过 API 编辑。
