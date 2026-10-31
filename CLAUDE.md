@@ -12,12 +12,14 @@
 @AI_TEAM_GUIDE.md
 @docs/decisions/README.md
 @docs/INTEGRATION_FOR_B.md
+@docs/HANDOFF.md
 
-## 当前状态（2026-10-30；会过时，以 `git log` 与 `docs/decisions/` 为准）
+## 当前状态（2026-11-01；会过时，以 `git log`、`docs/HANDOFF.md` 与 `docs/decisions/` 为准）
+- **后端 P0 已全部完成并合并**（现状、待办、固定工作流、红线、回滚方法见 `docs/HANDOFF.md`，接手先读它）。
 - `main` 受保护：禁止直推，必选 CI 全绿才能合并，管理员也不能绕过，仅 Squash；**GitHub 不强制他人批准**（ADR-009）。改契约、迁移、认证与品牌授权、检索过滤、提示词与合规规则、CI、依赖锁时，要提醒作者在合并前于 PR 评论里 @ 对方并等到确认。
-- 模板的 `Items` 示例已移除；`backend/app/models/` 是包，新增模型文件后必须在 `models/__init__.py` 里导入，否则 `alembic check` 会失败。迁移各写各表，保持线性（ADR-001）。
+- 模板的 `Items` 示例已移除；`backend/app/models/` 是包，新增模型文件后必须在 `models/__init__.py` 里导入，否则 `alembic check` 会失败。迁移保持线性、只有一个 head（ADR-001；后端自 2026-10-31 起全部由 A 与 AI 助手负责）。
 - **品牌授权**：路由里用 `backend/app/api/brand_deps.py` 的 `BrandAccessDep`（成员）、`BrandAdminDep`（品牌 admin）、`BrandManagerDep`（平台管理员或品牌 admin，用于管理品牌与成员），不要自己解析品牌或信任请求体里的 `brand_id`；平台管理员不是品牌数据的万能钥匙。商品（`/brands/{id}/products`、`/products/{id}`）与品牌档案（`/brands/{id}/voice-profile`）已实现；B 取品牌档案用 `app.services.voice_profiles.DbVoiceProfileProvider`（实现 `VoiceProfileProvider` 端口），商品卖点的 `evidence_status=linked` 才可作证据。知识库已实现上传、解析、分块、嵌入、审核、版本、停用与重建索引（`backend/app/services/knowledge.py`），真实检索是 `app.services.knowledge_search.DbKnowledgeSearch(session, embedder)`（实现 `KnowledgeSearch` 端口，只返回本品牌、已审核、当前、已索引的分块；嵌入器取 `DashScopeEmbeddingProvider`，测试用 `app.fakes.embedding.FakeEmbeddingProvider`）。错误统一为 `{"error":{"code","message","details","request_id"}}`（`backend/app/core/errors.py`）：抛 `HTTPException` 或 `NotFoundError`、`ConflictError` 即可，不要自己拼错误响应；前端只在 401 时登出。
-- 跨模块接口与内存 fake 在 `backend/app/ports/` 与 `backend/app/fakes/`；B 的领域逻辑可以直接基于它们开发。纯逻辑测试要覆盖模板那个自动连数据库的 fixture（参考 `backend/tests/ports/conftest.py`）。
+- 跨模块接口与内存 fake 在 `backend/app/ports/` 与 `backend/app/fakes/`；领域逻辑只依赖它们，测试用 fake。纯逻辑测试要覆盖模板那个自动连数据库的 fixture（参考 `backend/tests/ports/conftest.py`）。
 - 字数口径与发布页一致（ADR-004 已修订）：标题 ASCII 可打印字符计 0.5、其余计 1，≤20；正文去掉换行后的 UTF-16 码元，emoji 计 2，≤1000；标签 ≤10；标题、正文、标签分开复制，粘贴不会变成话题（ADR-005 已修订）；模型供应商与嵌入模型见 ADR-006（嵌入默认 `text-embedding-v4`，1024 维，已于 2026-10-31 实际调用验证，写入与查询都显式传 `dimensions=1024`）。
 - 整体覆盖率在 CI 实测 93%；领域层要求 ≥90%（ADR-002）。
 - 不得提交：品牌手册 PDF 原件、截图、API 密钥、`.env`（ADR-007）。
@@ -54,4 +56,4 @@ B 主要做设计稿和前端页面，后端由 A 与 AI 助手负责。为了�
 - 解决冲突后重新跑本地能跑的检查，并等 CI 通过；不要声称本地跑过没跑的检查。
 
 ## 本机的限制
-本地没有 Docker 时，后端测试、迁移、Playwright 跑不了，以 CI 结果为准，不要声称本地跑过。
+后端数据库测试需要 Docker 里的 PostgreSQL（A 的机器上有 Docker Desktop，但助手的 shell 调不到，用终端面板；端口冲突与细节见 `docs/HANDOFF.md` 第 6 节）。没跑过的检查以 CI 结果为准，不要声称本地跑过。
