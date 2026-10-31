@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import type { brandsAddMemberData, brandsAddMemberErrors, brandsAddMemberResponses, brandsCreateBrandData, brandsCreateBrandErrors, brandsCreateBrandResponses, brandsReadBrandsData, brandsReadBrandsResponses, brandsReadMembersData, brandsReadMembersErrors, brandsReadMembersResponses, brandsRemoveMemberData, brandsRemoveMemberErrors, brandsRemoveMemberResponses, brandsUpdateBrandData, brandsUpdateBrandErrors, brandsUpdateBrandResponses, brandsUpdateMemberData, brandsUpdateMemberErrors, brandsUpdateMemberResponses, knowledgeDeactivateDocumentData, knowledgeDeactivateDocumentErrors, knowledgeDeactivateDocumentResponses, knowledgeIngestDocumentData, knowledgeIngestDocumentErrors, knowledgeIngestDocumentResponses, knowledgeIngestNewVersionData, knowledgeIngestNewVersionErrors, knowledgeIngestNewVersionResponses, knowledgeReadChunksData, knowledgeReadChunksErrors, knowledgeReadChunksResponses, knowledgeReadDocumentData, knowledgeReadDocumentErrors, knowledgeReadDocumentResponses, knowledgeReadDocumentsData, knowledgeReadDocumentsErrors, knowledgeReadDocumentsResponses, knowledgeReindexDocumentData, knowledgeReindexDocumentErrors, knowledgeReindexDocumentResponses, knowledgeReviewDocumentData, knowledgeReviewDocumentErrors, knowledgeReviewDocumentResponses, knowledgeSubmitDocumentData, knowledgeSubmitDocumentErrors, knowledgeSubmitDocumentResponses, loginLoginAccessTokenData, loginLoginAccessTokenErrors, loginLoginAccessTokenResponses, loginRecoverPasswordData, loginRecoverPasswordErrors, loginRecoverPasswordHtmlContentData, loginRecoverPasswordHtmlContentErrors, loginRecoverPasswordHtmlContentResponses, loginRecoverPasswordResponses, loginResetPasswordData, loginResetPasswordErrors, loginResetPasswordResponses, loginTestTokenData, loginTestTokenResponses, privateCreateUserData, privateCreateUserErrors, privateCreateUserResponses, productsArchiveProductData, productsArchiveProductErrors, productsArchiveProductResponses, productsCreateProductData, productsCreateProductErrors, productsCreateProductResponses, productsReadProductsData, productsReadProductsErrors, productsReadProductsResponses, productsUpdateProductData, productsUpdateProductErrors, productsUpdateProductResponses, tasksCreateStylePresetData, tasksCreateStylePresetErrors, tasksCreateStylePresetResponses, tasksCreateTaskData, tasksCreateTaskErrors, tasksCreateTaskResponses, tasksGenerateTaskData, tasksGenerateTaskErrors, tasksGenerateTaskResponses, tasksReadScenariosData, tasksReadScenariosResponses, tasksReadStylePresetsData, tasksReadStylePresetsErrors, tasksReadStylePresetsResponses, tasksReadTaskData, tasksReadTaskErrors, tasksReadTaskResponses, tasksReadTasksData, tasksReadTasksErrors, tasksReadTasksResponses, tasksReadTaskVersionsData, tasksReadTaskVersionsErrors, tasksReadTaskVersionsResponses, tasksReadVersionData, tasksReadVersionErrors, tasksReadVersionResponses, usersCreateUserData, usersCreateUserErrors, usersCreateUserResponses, usersDeleteUserData, usersDeleteUserErrors, usersDeleteUserMeData, usersDeleteUserMeResponses, usersDeleteUserResponses, usersReadUserByIdData, usersReadUserByIdErrors, usersReadUserByIdResponses, usersReadUserMeData, usersReadUserMeResponses, usersReadUsersData, usersReadUsersErrors, usersReadUsersResponses, usersRegisterUserData, usersRegisterUserErrors, usersRegisterUserResponses, usersUpdatePasswordMeData, usersUpdatePasswordMeErrors, usersUpdatePasswordMeResponses, usersUpdateUserData, usersUpdateUserErrors, usersUpdateUserMeData, usersUpdateUserMeErrors, usersUpdateUserMeResponses, usersUpdateUserResponses, utilsHealthCheckData, utilsHealthCheckResponses, utilsTestEmailData, utilsTestEmailErrors, utilsTestEmailResponses, voiceProfileActivateVersionData, voiceProfileActivateVersionErrors, voiceProfileActivateVersionResponses, voiceProfileCreateVersionData, voiceProfileCreateVersionErrors, voiceProfileCreateVersionResponses, voiceProfileReadActiveProfileData, voiceProfileReadActiveProfileErrors, voiceProfileReadActiveProfileResponses, voiceProfileReadVersionsData, voiceProfileReadVersionsErrors, voiceProfileReadVersionsResponses } from './types.gen';
+import type { brandsAddMemberData, brandsAddMemberErrors, brandsAddMemberResponses, brandsCreateBrandData, brandsCreateBrandErrors, brandsCreateBrandResponses, brandsReadBrandsData, brandsReadBrandsResponses, brandsReadMembersData, brandsReadMembersErrors, brandsReadMembersResponses, brandsRemoveMemberData, brandsRemoveMemberErrors, brandsRemoveMemberResponses, brandsUpdateBrandData, brandsUpdateBrandErrors, brandsUpdateBrandResponses, brandsUpdateMemberData, brandsUpdateMemberErrors, brandsUpdateMemberResponses, complianceCreateBrandRuleData, complianceCreateBrandRuleErrors, complianceCreateBrandRuleResponses, complianceCreateGlobalRuleData, complianceCreateGlobalRuleErrors, complianceCreateGlobalRuleResponses, complianceReadRuleData, complianceReadRuleErrors, complianceReadRuleResponses, complianceReadRulesData, complianceReadRulesErrors, complianceReadRulesResponses, complianceReadVersionComplianceData, complianceReadVersionComplianceErrors, complianceReadVersionComplianceResponses, complianceResolveCheckData, complianceResolveCheckErrors, complianceResolveCheckResponses, complianceUpdateRuleData, complianceUpdateRuleErrors, complianceUpdateRuleResponses, evidenceConfirmEvidenceData, evidenceConfirmEvidenceErrors, evidenceConfirmEvidenceResponses, evidenceReadVersionEvidenceData, evidenceReadVersionEvidenceErrors, evidenceReadVersionEvidenceResponses, knowledgeDeactivateDocumentData, knowledgeDeactivateDocumentErrors, knowledgeDeactivateDocumentResponses, knowledgeIngestDocumentData, knowledgeIngestDocumentErrors, knowledgeIngestDocumentResponses, knowledgeIngestNewVersionData, knowledgeIngestNewVersionErrors, knowledgeIngestNewVersionResponses, knowledgeReadChunksData, knowledgeReadChunksErrors, knowledgeReadChunksResponses, knowledgeReadDocumentData, knowledgeReadDocumentErrors, knowledgeReadDocumentResponses, knowledgeReadDocumentsData, knowledgeReadDocumentsErrors, knowledgeReadDocumentsResponses, knowledgeReindexDocumentData, knowledgeReindexDocumentErrors, knowledgeReindexDocumentResponses, knowledgeReviewDocumentData, knowledgeReviewDocumentErrors, knowledgeReviewDocumentResponses, knowledgeSubmitDocumentData, knowledgeSubmitDocumentErrors, knowledgeSubmitDocumentResponses, loginLoginAccessTokenData, loginLoginAccessTokenErrors, loginLoginAccessTokenResponses, loginRecoverPasswordData, loginRecoverPasswordErrors, loginRecoverPasswordHtmlContentData, loginRecoverPasswordHtmlContentErrors, loginRecoverPasswordHtmlContentResponses, loginRecoverPasswordResponses, loginResetPasswordData, loginResetPasswordErrors, loginResetPasswordResponses, loginTestTokenData, loginTestTokenResponses, privateCreateUserData, privateCreateUserErrors, privateCreateUserResponses, productsArchiveProductData, productsArchiveProductErrors, productsArchiveProductResponses, productsCreateProductData, productsCreateProductErrors, productsCreateProductResponses, productsReadProductsData, productsReadProductsErrors, productsReadProductsResponses, productsUpdateProductData, productsUpdateProductErrors, productsUpdateProductResponses, tasksCreateStylePresetData, tasksCreateStylePresetErrors, tasksCreateStylePresetResponses, tasksCreateTaskData, tasksCreateTaskErrors, tasksCreateTaskResponses, tasksGenerateTaskData, tasksGenerateTaskErrors, tasksGenerateTaskResponses, tasksReadScenariosData, tasksReadScenariosResponses, tasksReadStylePresetsData, tasksReadStylePresetsErrors, tasksReadStylePresetsResponses, tasksReadTaskData, tasksReadTaskErrors, tasksReadTaskResponses, tasksReadTasksData, tasksReadTasksErrors, tasksReadTasksResponses, tasksReadTaskVersionsData, tasksReadTaskVersionsErrors, tasksReadTaskVersionsResponses, tasksReadVersionData, tasksReadVersionErrors, tasksReadVersionResponses, usersCreateUserData, usersCreateUserErrors, usersCreateUserResponses, usersDeleteUserData, usersDeleteUserErrors, usersDeleteUserMeData, usersDeleteUserMeResponses, usersDeleteUserResponses, usersReadUserByIdData, usersReadUserByIdErrors, usersReadUserByIdResponses, usersReadUserMeData, usersReadUserMeResponses, usersReadUsersData, usersReadUsersErrors, usersReadUsersResponses, usersRegisterUserData, usersRegisterUserErrors, usersRegisterUserResponses, usersUpdatePasswordMeData, usersUpdatePasswordMeErrors, usersUpdatePasswordMeResponses, usersUpdateUserData, usersUpdateUserErrors, usersUpdateUserMeData, usersUpdateUserMeErrors, usersUpdateUserMeResponses, usersUpdateUserResponses, utilsHealthCheckData, utilsHealthCheckResponses, utilsTestEmailData, utilsTestEmailErrors, utilsTestEmailResponses, voiceProfileActivateVersionData, voiceProfileActivateVersionErrors, voiceProfileActivateVersionResponses, voiceProfileCreateVersionData, voiceProfileCreateVersionErrors, voiceProfileCreateVersionResponses, voiceProfileReadActiveProfileData, voiceProfileReadActiveProfileErrors, voiceProfileReadActiveProfileResponses, voiceProfileReadVersionsData, voiceProfileReadVersionsErrors, voiceProfileReadVersionsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -573,6 +573,144 @@ export class TasksService {
             security: [{ scheme: 'bearer', type: 'http' }],
             url: '/api/v1/tasks/{task_id}/generate',
             ...options
+        });
+    }
+}
+
+export class EvidenceService {
+    /**
+     * Read Version Evidence
+     */
+    public static readVersionEvidence<ThrowOnError extends boolean = true>(options: Options<evidenceReadVersionEvidenceData, ThrowOnError>) {
+        return (options.client ?? client).get<evidenceReadVersionEvidenceResponses, evidenceReadVersionEvidenceErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/generation-versions/{version_id}/evidence',
+            ...options
+        });
+    }
+    
+    /**
+     * Confirm Evidence
+     *
+     * A person's decision about the claim. It does not change the system's ``status``.
+     */
+    public static confirmEvidence<ThrowOnError extends boolean = true>(options: Options<evidenceConfirmEvidenceData, ThrowOnError>) {
+        return (options.client ?? client).post<evidenceConfirmEvidenceResponses, evidenceConfirmEvidenceErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/claim-evidence/{evidence_id}/confirm',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+}
+
+export class ComplianceService {
+    /**
+     * Read Rules
+     */
+    public static readRules<ThrowOnError extends boolean = true>(options?: Options<complianceReadRulesData, ThrowOnError>) {
+        return (options?.client ?? client).get<complianceReadRulesResponses, complianceReadRulesErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/compliance-rules',
+            ...options
+        });
+    }
+    
+    /**
+     * Create Global Rule
+     */
+    public static createGlobalRule<ThrowOnError extends boolean = true>(options: Options<complianceCreateGlobalRuleData, ThrowOnError>) {
+        return (options.client ?? client).post<complianceCreateGlobalRuleResponses, complianceCreateGlobalRuleErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/compliance-rules',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Read Rule
+     */
+    public static readRule<ThrowOnError extends boolean = true>(options: Options<complianceReadRuleData, ThrowOnError>) {
+        return (options.client ?? client).get<complianceReadRuleResponses, complianceReadRuleErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/compliance-rules/{rule_id}',
+            ...options
+        });
+    }
+    
+    /**
+     * Update Rule
+     *
+     * Edit or switch off (``enabled = false``) a rule. Each edit raises its ``rule_version``.
+     */
+    public static updateRule<ThrowOnError extends boolean = true>(options: Options<complianceUpdateRuleData, ThrowOnError>) {
+        return (options.client ?? client).patch<complianceUpdateRuleResponses, complianceUpdateRuleErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/compliance-rules/{rule_id}',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Create Brand Rule
+     */
+    public static createBrandRule<ThrowOnError extends boolean = true>(options: Options<complianceCreateBrandRuleData, ThrowOnError>) {
+        return (options.client ?? client).post<complianceCreateBrandRuleResponses, complianceCreateBrandRuleErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/compliance-rules',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Read Version Compliance
+     */
+    public static readVersionCompliance<ThrowOnError extends boolean = true>(options: Options<complianceReadVersionComplianceData, ThrowOnError>) {
+        return (options.client ?? client).get<complianceReadVersionComplianceResponses, complianceReadVersionComplianceErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/generation-versions/{version_id}/compliance',
+            ...options
+        });
+    }
+    
+    /**
+     * Resolve Check
+     *
+     * Record that a person dealt with the hint. This does not make the text compliant.
+     */
+    public static resolveCheck<ThrowOnError extends boolean = true>(options: Options<complianceResolveCheckData, ThrowOnError>) {
+        return (options.client ?? client).post<complianceResolveCheckResponses, complianceResolveCheckErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/compliance-checks/{check_id}/resolve',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
         });
     }
 }
