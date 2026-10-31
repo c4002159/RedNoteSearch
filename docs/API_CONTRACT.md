@@ -213,13 +213,13 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 上传示例：请求头 `Authorization: Bearer <token>`，可带 `Idempotency-Key: upload-brief-001`；multipart 部件 `file` 的文件名为 `brief.pdf`、内容为该文件的字节。201 示例（下例摘要用 64 位哈希示意，不代表真实文件）：
 
 ```json
-{"id":"11111111-1111-4111-8111-111111111111","filename":"brief.pdf","char_count":12,"content_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","created_at":"2026-11-01T00:00:00Z","excerpt":"任务内产品资料节选"}
+{"id":"11111111-1111-4111-8111-111111111111","filename":"brief.pdf","char_count":9,"content_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","created_at":"2026-11-01T00:00:00Z","excerpt":"任务内产品资料节选"}
 ```
 
 `GET` 示例：
 
 ```json
-{"items":[{"id":"11111111-1111-4111-8111-111111111111","filename":"brief.pdf","char_count":12,"content_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","created_at":"2026-11-01T00:00:00Z","excerpt":"任务内产品资料节选"}],"total":1,"page":1,"page_size":20}
+{"items":[{"id":"11111111-1111-4111-8111-111111111111","filename":"brief.pdf","char_count":9,"content_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","created_at":"2026-11-01T00:00:00Z","excerpt":"任务内产品资料节选"}],"total":1,"page":1,"page_size":20}
 ```
 
 `id` 为不可变任务资料快照 id；文件名取 basename、长度 1–300 个 Unicode 码点（超限 422），不保存本机路径。`char_count` 为解析所得并实际保存文本的 Unicode 码点数（含换行，emoji 计一个码点）；`excerpt` 取该文本前 200 码点，不返回全文。`content_hash` 沿用任务资料现有 SHA-256 文本哈希口径，不重定义旧哈希。响应时间与 id 规则见 §1。
