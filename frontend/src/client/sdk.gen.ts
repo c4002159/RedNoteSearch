@@ -1184,7 +1184,11 @@ export class KnowledgeService {
             responseType: 'json',
             security: [{ scheme: 'bearer', type: 'http' }],
             url: '/api/v1/knowledge-documents/{document_id}/deactivate',
-            ...options
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
         });
     }
 }

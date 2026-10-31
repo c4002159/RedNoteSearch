@@ -202,6 +202,10 @@ class ChunksPublic(SQLModel):
     page_size: int
 
 
+class DeactivateRequest(SQLModel):
+    reason: str | None = Field(default=None, max_length=500)
+
+
 class ReviewCreate(SQLModel):
     action: Literal["approve", "reject"]
     reason: str | None = Field(default=None, max_length=500)
