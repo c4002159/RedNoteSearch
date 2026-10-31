@@ -166,6 +166,8 @@ class DocumentPublic(SQLModel):
     is_current: bool
     source_filename: str | None
     submitted_by: uuid.UUID | None
+    # Display name of the submitter (full name, else email); null when the user no longer exists.
+    submitted_by_name: str | None = None
     created_at: datetime | None
 
 
@@ -179,6 +181,7 @@ class DocumentsPublic(SQLModel):
 class ReviewPublic(SQLModel):
     action: str
     actor_id: uuid.UUID | None
+    actor_name: str | None = None
     reason: str | None
     created_at: datetime | None
 
