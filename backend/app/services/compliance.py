@@ -338,9 +338,19 @@ def list_rules(
     severity: str | None,
     page: int,
     page_size: int,
+    scope_filter: str | None = None,
 ) -> tuple[list[ComplianceRule], int]:
-    """Global rules plus the brand rules the user may see (one brand when ``brand_id`` is given)."""
-    if brand_id is not None:
+    """Global rules plus the brand rules the user may see (one brand when ``brand_id`` is given).
+
+    ``scope_filter`` narrows that to ``global`` (brand_id is null) or ``brand`` (the given brand only).
+    """
+    scope: Any
+    if scope_filter == "global":
+        scope = col(ComplianceRule.brand_id).is_(None)
+    elif scope_filter == "brand":
+        assert brand_id is not None  # the route rejects ``brand`` without a brand_id
+        scope = ComplianceRule.brand_id == brand_id
+    elif brand_id is not None:
         scope = or_(
             col(ComplianceRule.brand_id).is_(None), ComplianceRule.brand_id == brand_id
         )

@@ -4121,6 +4121,10 @@ export type complianceReadRulesData = {
          */
         severity?: Severity | null;
         /**
+         * Scope
+         */
+        scope?: 'global' | 'brand' | null;
+        /**
          * Page
          */
         page?: number;
