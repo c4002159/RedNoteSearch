@@ -2,7 +2,20 @@ import { AxiosError } from "axios"
 
 function extractErrorMessage(err: Error): string {
   if (err instanceof AxiosError) {
-    const errDetail = (err.response?.data as any)?.detail
+    const data = err.response?.data as any
+    // Unified error envelope (docs/API_CONTRACT.md 1.1): error.message, error.details, error.request_id
+    const envelope = data?.error
+    if (envelope && typeof envelope.message === "string") {
+      const firstError = envelope.details?.errors?.[0]?.msg
+      const text =
+        envelope.code === "VALIDATION_ERROR" && typeof firstError === "string"
+          ? firstError
+          : envelope.message
+      return envelope.request_id
+        ? `${text} (request_id: ${envelope.request_id})`
+        : text
+    }
+    const errDetail = data?.detail
     if (Array.isArray(errDetail) && errDetail.length > 0) {
       return errDetail[0].msg
     }
