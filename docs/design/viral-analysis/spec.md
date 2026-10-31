@@ -30,7 +30,7 @@
 **样本详情**（`GET /viral-samples/{id}`）：全文、备注、来源链接。**来源链接只作纯文字显示，不做成可点击链接。** 已分析的结构列表来自 `GET …/patterns`。
 **分析**（`POST /viral-samples/{id}/analyze`，体 `{model_id}`，同步，成功 201）：通常 20–90 秒，前端超时设置 ≥120 秒，所以必须有等待状态：显示已等待秒数、按钮不可点、不提供取消。网络层超时后，界面**先提示去读取结构列表核对**，没有新结果再重试，避免重复分析。
 **结构详情**（`GET /viral-patterns/{id}`）：`title_pattern`、`hook_type`、`tone`、`emoji_usage`、`hashtag_usage`、`paragraph_structure`（1–20 段，按有序列表显示）、`abstract_template`（≤5000，**按纯文本段落显示，不渲染占位符、不当可填充模板**）、`model_id`、`prompt_version`、`checker_version`。
-**转为场景模板**（`POST /viral-patterns/{id}/to-template`，体 `{name 1–100, scene}`，仅品牌管理员）：场景 `seeding`、`review`、`tutorial`、`launch`、`promotion`、`story`；成功返回 `structure` 与 `template_version`；编辑者调用返回 403。
+**转为场景模板**（`POST /viral-patterns/{id}/to-template`，体 `{name 1–100, scene}`，仅品牌管理员）：场景 `seeding`、`review`、`tutorial`、`launch`、`promotion`、`story`；成功返回 `structure` 与 `template_version`；编辑者调用返回 403。**成功后留在结构详情页，不跳转**：页内提示显示新场景模板的名称和 `template_version`（场景模板管理页目前不存在）。
 
 ## 交互
 - 分析成功后跳到新结构的详情，或刷新结构列表。
@@ -47,7 +47,7 @@
 ## 未验证
 - 三个 `reason` 的中文含义（格式不符、照搬原文、模板格式不合格）是我按字面理解写的，请 A 确认；“可重试一次”只是设计建议，契约没写重试规则。
 - 样本列表是否返回“已有结构数”“标题”：契约没写，图没画；样本没有标题字段，所以详情页头直接写“样本详情”。
-- 转为场景模板成功后界面显示“接口返回了 structure 与 template_version”，是否跳转到场景模板页、场景模板页是否存在，契约和技术文档都没有，图没有画跳转。
+- 转为场景模板成功后的提示文案（名称加 `template_version`）是我写的。
 - “场景类型”的中文名（种草、测评、教程、上新、促销、故事）是我起的，契约只有英文枚举。
 - 等待中的秒数计时与“最长等待”文案是设计假设；没有画进度条，因为同步请求没有进度。
 - 所有错误提示文案（除错误码与 reason 名称外）是我写的；1024 宽没有画；没有调用任何接口。

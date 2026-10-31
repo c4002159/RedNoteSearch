@@ -29,16 +29,16 @@
 ## 区域与字段
 **评测集列表**（`GET /evaluation/datasets?kind=`）：名称、类型（合规检测 `compliance`、事实核查 `factcheck`、生成质量 `generation`、品牌串味 `brand_leak`）、范围、版本、样本数 `case_count`、创建时间；筛选只有类型。
 **新建评测集**（`POST /evaluation/datasets`，201）：名称 1–100 字；类型；范围；样本为 JSON 数组 1–200 条；各类型样本格式写在字段说明里（来自契约）。品牌串味样本比生成类多 `distractor_brand`，`expected.foreign_terms` 必填 1–50 条。校验失败 422，指出第几条、哪个字段。
-**评测集详情**：版本信息（`case_count`、`group_id`、`content_hash`、创建时间）；样本分页 `GET …/cases?page=`；版本固定，修改产生新版本（契约用 `previous_version_id`）。
+**评测集详情**：后端**没有** `GET /evaluation/datasets/{id}`。页面的版本信息（`version`、`group_id`、`content_hash`、`case_count`、`created_at`）取自列表项（`GET /evaluation/datasets`，从列表页带入，或用 `kind` 与分页重新读取后按 id 选出）；样本取自 `GET /evaluation/datasets/{id}/cases?page=`；版本固定，修改产生新版本（契约用 `previous_version_id`）。
 **新建运行**（`POST /evaluation/runs`，202，带 Idempotency-Key）：从 `GET /models` 选模型（已启用的可选）；品牌串味基线传空数组；合规检测基线 `lexicon_only`、事实核查基线 `no_verification` 由系统带上，界面只说明。
 **运行详情**（`GET /evaluation/runs/{id}`）：指标按系统（`model:<id>` 或基线）分组；每项显示 name、value、n 和接口返回的 definition；另有 failures、error。指标没有综合分。价格没配置时 `avg_cost` 为 null，显示“—”，不显示 0。
 - 合规检测：`precision`、`recall`、`f1`、`exact_match_rate`；事实核查：`accuracy`、`unsupported_accepted_rate`、`supported_recall`；生成质量：`constraint_pass_rate`、`block_hint_rate`、`failure_rate`、`avg_latency_ms`、`avg_cost`、`avg_tokens`。图只画了生成质量与品牌串味的运行详情，另两类用同一张指标表，没有单独画。
 **品牌串味**（F14）：只显示 `leak_rate`、`retrieval_leak_count`、`constraint_pass_rate`、`failure_rate`；页内固定说明“衡量的是被诱导时是否把别家品牌词写进文案”；不画综合分，不写“安全”之类结论；`retrieval_leak_count` 单独成行并说明它是检索问题，不等于模型照抄诱导品牌。样本结果显示 `foreign_terms_matched`、`retrieval_leak_count / retrieval_checked`、`constraints_passed`、`leaked`。单条错误取值：`model_unavailable`、`invalid_model_output`、`retrieval_brand_mismatch`、`retrieval_brand_unknown`。
-**结果与评分**：`GET …/results`；评分 `POST …/ratings`（`result_id`、`scores`、`rubric_version`、`note`），量表 `rubric-v1` 四个维度（结构、调性、具体度、贴合资料）各 1–5，四项必填，不算总分。**一致性** `GET …/agreement`：每个维度显示两两平均的加权 Cohen’s kappa、完全一致比例、相差不超过 1 的比例和 `method`；评分者或样本不足时接口返回 null，界面显示“暂无一致性”，不画 0。人工评分页面写明“只作参考，不是系统验证”。
+**结果与评分**：`GET …/results`；结果列表项字段：`case_index`、`system`、`output`、`detail`、`passed`、`error`、`latency_ms`、`cost`；“输出摘要”从 `output` 截取，“无输出”靠 `error` 判断（显示 `error` 的取值）。评分 `POST …/ratings`（`result_id`、`scores`、`rubric_version`、`note`），**维度和量表一律取自 `GET /evaluation/rubrics`，不写死**；图里的“结构、调性、具体度、贴合资料”和 1–5 只是 `rubric-v1` 的示意，四项必填，不算总分。“是否已评分”没有接口可读，**这个标记不画**；评分保存成功后只提示“已保存”。**一致性** `GET …/agreement`：每个维度显示两两平均的加权 Cohen’s kappa、完全一致比例、相差不超过 1 的比例和 `method`；评分者或样本不足时接口返回 null，界面显示“暂无一致性”，不画 0。人工评分页面写明“只作参考，不是系统验证”。
 
 ## 交互
 - 运行是异步的：排队中、运行中时界面定期重新读取，完成后显示指标；运行中不显示 0 或空表。
-- 新建运行成功后进入该运行详情；评分保存后该行变为“我已评分”。
+- 新建运行成功后进入该运行详情；评分保存成功后弹出“已保存”提示，列表不显示评分状态。
 - 只有 401 才退出登录；403、404 沿用公共组件。
 
 ## 用到的组件
@@ -54,7 +54,7 @@
 - 契约没有“取消运行”接口，图里没有取消按钮；失败运行是否可重新运行也没写，图只用“新建运行”。
 - 单条样本错误（如 `retrieval_brand_mismatch`）如何计入各指标的分母，契约没写，图不作说明。
 - 评测集的版本字段：详情里的“基于此版本新建”入口我没有画，`previous_version_id` 在界面上怎么给用户用，请 A 确认。
-- 结果列表的字段（输出摘要、“我已评分”、无输出）契约只写了详情字段，列表字段按我的假设画；评分者之间是否互相可见，契约没写。
+- 评分弹窗调用 `POST …/ratings` 需要 `result_id`，而结果列表项字段里没有写 `id`：图按“列表项带 `id`”画，请 A 确认。评分者之间是否互相可见，契约没写。
 - 样本表里“场景、商品、诱导品牌”列取自样本的 `input`，列表接口是否原样返回，需要确认。
 - 评测集列表的创建人、搜索、`page_size` 筛选没画，契约只有 `kind`。
 - 所有错误提示文案（除错误码外）是我写的；1024 宽没有画；没有调用任何接口。
