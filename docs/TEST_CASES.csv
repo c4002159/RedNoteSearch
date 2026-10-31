@@ -114,3 +114,10 @@ TC-096,P0,检查流程到 checks_completed,P0,模型返回干净的笔记和没�
 TC-097,P0,block 级提示触发有限的自动改写,P0,第一版含 block 级提示,生成,生成新版本（origin=rewritten，parent 指向旧版本）并重检；旧版本和它的提示不变；模型一直不改好时最多改写 2 轮，最终为 needs_human_review,集成
 TC-098,P0,改写后约束不通过,P1,改写结果标题超长,生成,改写版本为 constraint_failed，任务同步,集成
 TC-099,P0,检查途中模型不可用,P0,生成成功但证据阶段模型失败,生成,版本保留且状态为 checking，任务 last_error=model_unavailable，不是卡在 generating,集成
+TC-100,P0,编辑创建新版本,P0,已生成并检查完的版本,POST edit 提交修改后的标题与正文；非法输入,新版本 origin=edited、状态 edited_pending_recheck、成为最新版本且 model 为空；原版本不变；空标题或空正文或超限 422；写 version.edit 审计；未重检的编辑稿不能确认,集成
+TC-101,P0,重新检查最终文本,P0,编辑后的版本,POST recheck；缺必含词的编辑稿,依次重跑约束、证据、合规并更新状态；缺必含词的编辑稿为 constraint_failed；检查途中模型不可用版本保持 checking 且 last_error=model_unavailable，恢复后重检成功清除；已确认的版本重检 409,集成
+TC-102,P0,确认的条件,P0,各种状态的版本,确认；有未处理的 block 提示；标记已处理后再确认；重复确认；确认非最新版本；索引越界,未处理的 block 提示、未检查的编辑稿、约束未通过、非最新版本都是 409 且消息列出原因；处理后可确认并变 ready_to_copy，记录确认人与时间；索引越界 422；已确认再确认 409,集成
+TC-103,P0,导出与状态限制,P0,已确认和未确认的版本,export?format=xhs_parts 与 markdown；非法 format,未确认 409；xhs_parts 的标题取选定标题、正文 LF 且去掉 Markdown 标记、标签不含 #、counts 与 TC-042 一致、不含封面；markdown 含封面文案；非法 format 422,集成
+TC-104,P0,局部重写,P0,已检查完的版本,rewrite target=body；target 非法；模型不可用,生成 origin=rewritten 的新版本并自动做全部检查；提示词只要求改写所选部分并带上运营说明；旧版本不变；target 非法或说明超长 422；模型不可用 503 且不留下新版本,集成
+TC-105,P0,版本操作的隔离,P0,品牌成员与外人,外人和未登录对 edit、recheck、rewrite、confirm、export 的访问；不存在的 id,外人与不存在的 id 都是 404，未登录 401；成员 editor 可以确认,集成/安全
+TC-106,P0,导出文本整理,P0,含 Markdown 标记、CRLF、行尾空白与 emoji 的正文,plain_body 与 to_markdown,统一 LF、去行尾空白、去掉标题行 # 与加粗与代码符号、保留 emoji 与正文中间的 # 号；markdown 导出只在有内容时才含标签与封面小节,单元
