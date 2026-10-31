@@ -15,6 +15,7 @@
 - 全部数值来自 Stitch 导出的 `code.html` 与 Tailwind 配置，不是新设计。落地以 `index.css` 为准，由 A 映射到前端现有的 shadcn 变量（`--background`、`--primary` 等），不改名。
 - `primary #004ac6` 标为“链接文字色”，`primary-container #2563eb` 标为“主按钮色”，避免两个名字混用。
 - 辅助文字与占位符的 `outline` 由 `#737686` 加深为 `#5f6372`。我们没有实测对比度，不写“已通过无障碍检查”；只给出调整后的值，**待实现时用工具核对**。
+- **输入框边框加深（审核建议 a）**：`outline-variant #c3c6d7` 对白底约 1.7:1，不满足界面元素 3:1（FC-11）。新增建议名 `input-border #80849a`（我按 WCAG 公式算出：对 `#ffffff` 约 3.7:1，对 `#f9f9ff` 约 3.5:1，对输入框底 `#f0f3ff` 约 3.3:1），只用于输入框、下拉、文本域的 1px 边框；`outline-variant` 保留给卡片、表格的边框与分割线。落地时仍请用工具核对。本批所有图的输入框已按此重画。
 - 状态标签与颜色对应关系见技术文档表 4-4。`system_supported`（“系统判定支持”）改为浅蓝（soft-blue：文字 `#1E40AF`，底 `#DBEAFE`），不用绿色，旁边保留“非事实保证”提示；`ready_to_copy`（“可复制（运营已确认）”）保留绿色；“人工确认（非系统验证）”按 #32，中性蓝灰。
 - 场景图标底色只用于场景卡片 32px 图标块。
 
@@ -25,6 +26,8 @@
 | `evidence: system_supported` | 系统判定支持 | 浅蓝（原为绿色，已改）；旁附“非事实保证” |
 | `ready_to_copy` | 可复制（运营已确认） | 绿色（保留） |
 | `human_confirmed` | 人工确认（非系统验证） | 中性蓝灰 |
+| `source_level: approved_kb`（新增） | 已审核知识库 | 中性灰 |
+| `source_level: task_material`（新增） | 任务内资料（未审核） | 橙色（提示未经审核） |
 
 ## 字体（已决定）
 落地用系统字体栈：`system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif`。设计稿里的 Plus Jakarta Sans **暂不引入**（demo 需离线运行、不新增依赖）；设计稿的视觉保留，字号、行高、字重不变。
