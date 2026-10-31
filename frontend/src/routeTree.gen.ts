@@ -16,7 +16,13 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as LayoutBrandsRouteImport } from './routes/_layout/brands'
+import { Route as LayoutGenerateRouteImport } from './routes/_layout/generate'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
+import { Route as LayoutTasksIndexRouteImport } from './routes/_layout/tasks/index'
+import { Route as LayoutTasksTaskIdIndexRouteImport } from './routes/_layout/tasks/$taskId/index'
+import { Route as LayoutTasksTaskIdCompareRouteImport } from './routes/_layout/tasks/$taskId/compare'
+import { Route as LayoutTasksTaskIdVersionsVersionIdRouteImport } from './routes/_layout/tasks/$taskId/versions/$versionId'
 
 const LayoutRoute = LayoutRouteImport.update({
   id: '/_layout',
@@ -52,11 +58,43 @@ const LayoutAdminRoute = LayoutAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutBrandsRoute = LayoutBrandsRouteImport.update({
+  id: '/brands',
+  path: '/brands',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutGenerateRoute = LayoutGenerateRouteImport.update({
+  id: '/generate',
+  path: '/generate',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutTasksIndexRoute = LayoutTasksIndexRouteImport.update({
+  id: '/tasks/',
+  path: '/tasks/',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutTasksTaskIdIndexRoute = LayoutTasksTaskIdIndexRouteImport.update({
+  id: '/tasks/$taskId/',
+  path: '/tasks/$taskId/',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutTasksTaskIdCompareRoute =
+  LayoutTasksTaskIdCompareRouteImport.update({
+    id: '/tasks/$taskId/compare',
+    path: '/tasks/$taskId/compare',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+const LayoutTasksTaskIdVersionsVersionIdRoute =
+  LayoutTasksTaskIdVersionsVersionIdRouteImport.update({
+    id: '/tasks/$taskId/versions/$versionId',
+    path: '/tasks/$taskId/versions/$versionId',
+    getParentRoute: () => LayoutRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
@@ -65,7 +103,13 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
+  '/brands': typeof LayoutBrandsRoute
+  '/generate': typeof LayoutGenerateRoute
   '/settings': typeof LayoutSettingsRoute
+  '/tasks/': typeof LayoutTasksIndexRoute
+  '/tasks/$taskId/compare': typeof LayoutTasksTaskIdCompareRoute
+  '/tasks/$taskId/': typeof LayoutTasksTaskIdIndexRoute
+  '/tasks/$taskId/versions/$versionId': typeof LayoutTasksTaskIdVersionsVersionIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -73,8 +117,14 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
+  '/brands': typeof LayoutBrandsRoute
+  '/generate': typeof LayoutGenerateRoute
   '/settings': typeof LayoutSettingsRoute
   '/': typeof LayoutIndexRoute
+  '/tasks': typeof LayoutTasksIndexRoute
+  '/tasks/$taskId/compare': typeof LayoutTasksTaskIdCompareRoute
+  '/tasks/$taskId': typeof LayoutTasksTaskIdIndexRoute
+  '/tasks/$taskId/versions/$versionId': typeof LayoutTasksTaskIdVersionsVersionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -84,8 +134,14 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_layout/admin': typeof LayoutAdminRoute
+  '/_layout/brands': typeof LayoutBrandsRoute
+  '/_layout/generate': typeof LayoutGenerateRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/': typeof LayoutIndexRoute
+  '/_layout/tasks/': typeof LayoutTasksIndexRoute
+  '/_layout/tasks/$taskId/compare': typeof LayoutTasksTaskIdCompareRoute
+  '/_layout/tasks/$taskId/': typeof LayoutTasksTaskIdIndexRoute
+  '/_layout/tasks/$taskId/versions/$versionId': typeof LayoutTasksTaskIdVersionsVersionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -96,7 +152,13 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/admin'
+    | '/brands'
+    | '/generate'
     | '/settings'
+    | '/tasks/'
+    | '/tasks/$taskId/compare'
+    | '/tasks/$taskId/'
+    | '/tasks/$taskId/versions/$versionId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -104,8 +166,14 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/admin'
+    | '/brands'
+    | '/generate'
     | '/settings'
     | '/'
+    | '/tasks'
+    | '/tasks/$taskId/compare'
+    | '/tasks/$taskId'
+    | '/tasks/$taskId/versions/$versionId'
   id:
     | '__root__'
     | '/_layout'
@@ -114,8 +182,14 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/_layout/admin'
+    | '/_layout/brands'
+    | '/_layout/generate'
     | '/_layout/settings'
     | '/_layout/'
+    | '/_layout/tasks/'
+    | '/_layout/tasks/$taskId/compare'
+    | '/_layout/tasks/$taskId/'
+    | '/_layout/tasks/$taskId/versions/$versionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -177,6 +251,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/brands': {
+      id: '/_layout/brands'
+      path: '/brands'
+      fullPath: '/brands'
+      preLoaderRoute: typeof LayoutBrandsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/generate': {
+      id: '/_layout/generate'
+      path: '/generate'
+      fullPath: '/generate'
+      preLoaderRoute: typeof LayoutGenerateRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/settings': {
       id: '/_layout/settings'
       path: '/settings'
@@ -184,19 +272,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutSettingsRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/tasks/': {
+      id: '/_layout/tasks/'
+      path: '/tasks'
+      fullPath: '/tasks/'
+      preLoaderRoute: typeof LayoutTasksIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/tasks/$taskId/': {
+      id: '/_layout/tasks/$taskId/'
+      path: '/tasks/$taskId'
+      fullPath: '/tasks/$taskId/'
+      preLoaderRoute: typeof LayoutTasksTaskIdIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/tasks/$taskId/compare': {
+      id: '/_layout/tasks/$taskId/compare'
+      path: '/tasks/$taskId/compare'
+      fullPath: '/tasks/$taskId/compare'
+      preLoaderRoute: typeof LayoutTasksTaskIdCompareRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/tasks/$taskId/versions/$versionId': {
+      id: '/_layout/tasks/$taskId/versions/$versionId'
+      path: '/tasks/$taskId/versions/$versionId'
+      fullPath: '/tasks/$taskId/versions/$versionId'
+      preLoaderRoute: typeof LayoutTasksTaskIdVersionsVersionIdRouteImport
+      parentRoute: typeof LayoutRoute
+    }
   }
 }
 
 interface LayoutRouteChildren {
   LayoutAdminRoute: typeof LayoutAdminRoute
+  LayoutBrandsRoute: typeof LayoutBrandsRoute
+  LayoutGenerateRoute: typeof LayoutGenerateRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
+  LayoutTasksIndexRoute: typeof LayoutTasksIndexRoute
+  LayoutTasksTaskIdCompareRoute: typeof LayoutTasksTaskIdCompareRoute
+  LayoutTasksTaskIdIndexRoute: typeof LayoutTasksTaskIdIndexRoute
+  LayoutTasksTaskIdVersionsVersionIdRoute: typeof LayoutTasksTaskIdVersionsVersionIdRoute
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAdminRoute: LayoutAdminRoute,
+  LayoutBrandsRoute: LayoutBrandsRoute,
+  LayoutGenerateRoute: LayoutGenerateRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutIndexRoute: LayoutIndexRoute,
+  LayoutTasksIndexRoute: LayoutTasksIndexRoute,
+  LayoutTasksTaskIdCompareRoute: LayoutTasksTaskIdCompareRoute,
+  LayoutTasksTaskIdIndexRoute: LayoutTasksTaskIdIndexRoute,
+  LayoutTasksTaskIdVersionsVersionIdRoute:
+    LayoutTasksTaskIdVersionsVersionIdRoute,
 }
 
 const LayoutRouteWithChildren =
