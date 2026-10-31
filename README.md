@@ -44,7 +44,7 @@ cd frontend && bun install && bun run dev
 
 本机已有程序占用 5432 端口（比如另一个 Postgres）时，启动数据库会报 `port is already allocated`：在 `.env` 里把 `POSTGRES_PORT` 和 `DATABASE_URL` 里的端口一起改成 5433 即可。Windows 中文系统上运行后端测试若出现 `gbk` 解码错误，请确认已拉取最新代码（邮件模板读取已指定 UTF-8）。
 
-演示数据（冰希黎演示品牌：5 份资料、3 个商品、1 个生效的品牌档案）：
+演示数据（冰希黎演示品牌：5 份资料、3 个商品、1 个生效的品牌档案、3 个评测集）：
 
 ```bash
 cd backend && uv run python -m app.seed                    # 用真实嵌入（需要 .env 里的 DASHSCOPE_API_KEY）

@@ -5,6 +5,36 @@ export type ClientOptions = {
 };
 
 /**
+ * AgreementPublic
+ */
+export type AgreementPublic = {
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Rubric Version
+     */
+    rubric_version: string | null;
+    /**
+     * Raters
+     */
+    raters: number;
+    /**
+     * Rated Results
+     */
+    rated_results: number;
+    /**
+     * Method
+     */
+    method: string;
+    /**
+     * Dimensions
+     */
+    dimensions: Array<DimensionAgreementPublic>;
+};
+
+/**
  * Body_knowledge-ingest_document
  */
 export type Body_knowledge_ingest_document = {
@@ -178,6 +208,80 @@ export type BrandsPublic = {
      * Items
      */
     items: Array<BrandListItem>;
+};
+
+/**
+ * CaseIn
+ */
+export type CaseIn = {
+    /**
+     * Input
+     */
+    input: {
+        [key: string]: unknown;
+    };
+    /**
+     * Expected
+     */
+    expected?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Annotators
+     */
+    annotators?: Array<string>;
+};
+
+/**
+ * CasePublic
+ */
+export type CasePublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Case Index
+     */
+    case_index: number;
+    /**
+     * Input
+     */
+    input: {
+        [key: string]: unknown;
+    };
+    /**
+     * Expected
+     */
+    expected: {
+        [key: string]: unknown;
+    };
+    /**
+     * Annotators
+     */
+    annotators: Array<string>;
+};
+
+/**
+ * CasesPublic
+ */
+export type CasesPublic = {
+    /**
+     * Items
+     */
+    items: Array<CasePublic>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
 };
 
 /**
@@ -415,6 +519,111 @@ export type ConfirmVersion = {
 };
 
 /**
+ * DatasetCreate
+ */
+export type DatasetCreate = {
+    /**
+     * Name
+     */
+    name: string;
+    kind: EvalKind;
+    /**
+     * Brand Id
+     */
+    brand_id?: string | null;
+    /**
+     * Cases
+     */
+    cases: Array<CaseIn>;
+    /**
+     * Previous Version Id
+     */
+    previous_version_id?: string | null;
+};
+
+/**
+ * DatasetPublic
+ */
+export type DatasetPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Group Id
+     */
+    group_id: string;
+    /**
+     * Version
+     */
+    version: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string | null;
+    /**
+     * Case Count
+     */
+    case_count: number;
+    /**
+     * Content Hash
+     */
+    content_hash: string;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+};
+
+/**
+ * DatasetsPublic
+ */
+export type DatasetsPublic = {
+    /**
+     * Items
+     */
+    items: Array<DatasetPublic>;
+};
+
+/**
+ * DimensionAgreementPublic
+ */
+export type DimensionAgreementPublic = {
+    /**
+     * Dimension
+     */
+    dimension: string;
+    /**
+     * Rater Pairs
+     */
+    rater_pairs: number;
+    /**
+     * Samples
+     */
+    samples: number;
+    /**
+     * Exact Agreement
+     */
+    exact_agreement: number | null;
+    /**
+     * Within One
+     */
+    within_one: number | null;
+    /**
+     * Weighted Kappa
+     */
+    weighted_kappa: number | null;
+};
+
+/**
  * DocumentDetail
  */
 export type DocumentDetail = {
@@ -583,6 +792,11 @@ export type DocumentsPublic = {
      */
     page_size: number;
 };
+
+/**
+ * EvalKind
+ */
+export type EvalKind = 'generation' | 'compliance' | 'factcheck' | 'brand_leak';
 
 /**
  * ExportCounts
@@ -838,6 +1052,50 @@ export type Message = {
 };
 
 /**
+ * ModelInfo
+ */
+export type ModelInfo = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Provider
+     */
+    provider: string;
+    /**
+     * Model Name
+     */
+    model_name: string;
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Price In Per 1K
+     */
+    price_in_per_1k: number | null;
+    /**
+     * Price Out Per 1K
+     */
+    price_out_per_1k: number | null;
+    /**
+     * Price Version
+     */
+    price_version: string | null;
+};
+
+/**
+ * ModelsPublic
+ */
+export type ModelsPublic = {
+    /**
+     * Items
+     */
+    items: Array<ModelInfo>;
+};
+
+/**
  * NewPassword
  */
 export type NewPassword = {
@@ -1006,6 +1264,66 @@ export type ProductsPublic = {
 };
 
 /**
+ * RatingCreate
+ */
+export type RatingCreate = {
+    /**
+     * Result Id
+     */
+    result_id: string;
+    /**
+     * Scores
+     */
+    scores: {
+        [key: string]: number;
+    };
+    /**
+     * Rubric Version
+     */
+    rubric_version: string;
+    /**
+     * Note
+     */
+    note?: string | null;
+};
+
+/**
+ * RatingPublic
+ */
+export type RatingPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Run Id
+     */
+    run_id: string;
+    /**
+     * Result Id
+     */
+    result_id: string;
+    /**
+     * Rater Id
+     */
+    rater_id: string;
+    /**
+     * Scores
+     */
+    scores: {
+        [key: string]: number;
+    };
+    /**
+     * Rubric Version
+     */
+    rubric_version: string;
+    /**
+     * Note
+     */
+    note: string | null;
+};
+
+/**
  * ResolveCheck
  */
 export type ResolveCheck = {
@@ -1013,6 +1331,78 @@ export type ResolveCheck = {
      * Note
      */
     note: string;
+};
+
+/**
+ * ResultPublic
+ */
+export type ResultPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Case Id
+     */
+    case_id: string;
+    /**
+     * Case Index
+     */
+    case_index: number;
+    /**
+     * System
+     */
+    system: string;
+    /**
+     * Output
+     */
+    output: {
+        [key: string]: unknown;
+    };
+    /**
+     * Detail
+     */
+    detail: {
+        [key: string]: unknown;
+    };
+    /**
+     * Passed
+     */
+    passed: boolean | null;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Latency Ms
+     */
+    latency_ms: number;
+    /**
+     * Cost
+     */
+    cost: number | null;
+};
+
+/**
+ * ResultsPublic
+ */
+export type ResultsPublic = {
+    /**
+     * Items
+     */
+    items: Array<ResultPublic>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
 };
 
 /**
@@ -1250,6 +1640,131 @@ export type RulesPublic = {
      * Items
      */
     items: Array<RulePublic>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+};
+
+/**
+ * RunCreate
+ */
+export type RunCreate = {
+    /**
+     * Dataset Id
+     */
+    dataset_id: string;
+    /**
+     * Model Ids
+     */
+    model_ids?: Array<string>;
+    /**
+     * Prompt Version
+     */
+    prompt_version?: string | null;
+    /**
+     * Baselines
+     */
+    baselines?: Array<'lexicon_only' | 'no_verification'>;
+};
+
+/**
+ * RunPublic
+ */
+export type RunPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Dataset Id
+     */
+    dataset_id: string;
+    /**
+     * Kind
+     */
+    kind: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Sample Count
+     */
+    sample_count: number;
+    versions: RunVersions;
+    /**
+     * Metrics
+     */
+    metrics: {
+        [key: string]: unknown;
+    };
+    /**
+     * Failures
+     */
+    failures: Array<{
+        [key: string]: unknown;
+    }>;
+    /**
+     * Error
+     */
+    error: string | null;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+    /**
+     * Finished At
+     */
+    finished_at: string | null;
+};
+
+/**
+ * RunVersions
+ */
+export type RunVersions = {
+    /**
+     * Dataset Version
+     */
+    dataset_version: number;
+    /**
+     * Prompt Version
+     */
+    prompt_version: string | null;
+    /**
+     * Checker Version
+     */
+    checker_version: string | null;
+    /**
+     * Rubric Version
+     */
+    rubric_version: string | null;
+    /**
+     * Models
+     */
+    models: Array<string>;
+    /**
+     * Baselines
+     */
+    baselines: Array<string>;
+};
+
+/**
+ * RunsPublic
+ */
+export type RunsPublic = {
+    /**
+     * Items
+     */
+    items: Array<RunPublic>;
     /**
      * Total
      */
@@ -3158,6 +3673,334 @@ export type complianceResolveCheckResponses = {
 };
 
 export type complianceResolveCheckResponse = complianceResolveCheckResponses[keyof complianceResolveCheckResponses];
+
+export type evaluationReadModelsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/models';
+};
+
+export type evaluationReadModelsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ModelsPublic;
+};
+
+export type evaluationReadModelsResponse = evaluationReadModelsResponses[keyof evaluationReadModelsResponses];
+
+export type evaluationReadRubricsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/evaluation/rubrics';
+};
+
+export type evaluationReadRubricsResponses = {
+    /**
+     * Response Evaluation-Read Rubrics
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type evaluationReadRubricsResponse = evaluationReadRubricsResponses[keyof evaluationReadRubricsResponses];
+
+export type evaluationReadDatasetsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Kind
+         */
+        kind?: EvalKind | null;
+    };
+    url: '/api/v1/evaluation/datasets';
+};
+
+export type evaluationReadDatasetsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type evaluationReadDatasetsError = evaluationReadDatasetsErrors[keyof evaluationReadDatasetsErrors];
+
+export type evaluationReadDatasetsResponses = {
+    /**
+     * Successful Response
+     */
+    200: DatasetsPublic;
+};
+
+export type evaluationReadDatasetsResponse = evaluationReadDatasetsResponses[keyof evaluationReadDatasetsResponses];
+
+export type evaluationCreateDatasetData = {
+    body: DatasetCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/evaluation/datasets';
+};
+
+export type evaluationCreateDatasetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type evaluationCreateDatasetError = evaluationCreateDatasetErrors[keyof evaluationCreateDatasetErrors];
+
+export type evaluationCreateDatasetResponses = {
+    /**
+     * Successful Response
+     */
+    201: DatasetPublic;
+};
+
+export type evaluationCreateDatasetResponse = evaluationCreateDatasetResponses[keyof evaluationCreateDatasetResponses];
+
+export type evaluationReadCasesData = {
+    body?: never;
+    path: {
+        /**
+         * Dataset Id
+         */
+        dataset_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/evaluation/datasets/{dataset_id}/cases';
+};
+
+export type evaluationReadCasesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type evaluationReadCasesError = evaluationReadCasesErrors[keyof evaluationReadCasesErrors];
+
+export type evaluationReadCasesResponses = {
+    /**
+     * Successful Response
+     */
+    200: CasesPublic;
+};
+
+export type evaluationReadCasesResponse = evaluationReadCasesResponses[keyof evaluationReadCasesResponses];
+
+export type evaluationReadRunsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Dataset Id
+         */
+        dataset_id?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/evaluation/runs';
+};
+
+export type evaluationReadRunsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type evaluationReadRunsError = evaluationReadRunsErrors[keyof evaluationReadRunsErrors];
+
+export type evaluationReadRunsResponses = {
+    /**
+     * Successful Response
+     */
+    200: RunsPublic;
+};
+
+export type evaluationReadRunsResponse = evaluationReadRunsResponses[keyof evaluationReadRunsResponses];
+
+export type evaluationCreateRunData = {
+    body: RunCreate;
+    headers?: {
+        /**
+         * Idempotency-Key
+         */
+        'idempotency-key'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/evaluation/runs';
+};
+
+export type evaluationCreateRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type evaluationCreateRunError = evaluationCreateRunErrors[keyof evaluationCreateRunErrors];
+
+export type evaluationCreateRunResponses = {
+    /**
+     * Successful Response
+     */
+    202: RunPublic;
+};
+
+export type evaluationCreateRunResponse = evaluationCreateRunResponses[keyof evaluationCreateRunResponses];
+
+export type evaluationReadRunData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/evaluation/runs/{run_id}';
+};
+
+export type evaluationReadRunErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type evaluationReadRunError = evaluationReadRunErrors[keyof evaluationReadRunErrors];
+
+export type evaluationReadRunResponses = {
+    /**
+     * Successful Response
+     */
+    200: RunPublic;
+};
+
+export type evaluationReadRunResponse = evaluationReadRunResponses[keyof evaluationReadRunResponses];
+
+export type evaluationReadResultsData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/evaluation/runs/{run_id}/results';
+};
+
+export type evaluationReadResultsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type evaluationReadResultsError = evaluationReadResultsErrors[keyof evaluationReadResultsErrors];
+
+export type evaluationReadResultsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResultsPublic;
+};
+
+export type evaluationReadResultsResponse = evaluationReadResultsResponses[keyof evaluationReadResultsResponses];
+
+export type evaluationRateData = {
+    body: RatingCreate;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/evaluation/runs/{run_id}/ratings';
+};
+
+export type evaluationRateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type evaluationRateError = evaluationRateErrors[keyof evaluationRateErrors];
+
+export type evaluationRateResponses = {
+    /**
+     * Successful Response
+     */
+    201: RatingPublic;
+};
+
+export type evaluationRateResponse = evaluationRateResponses[keyof evaluationRateResponses];
+
+export type evaluationReadAgreementData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: string;
+    };
+    query?: never;
+    url: '/api/v1/evaluation/runs/{run_id}/agreement';
+};
+
+export type evaluationReadAgreementErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type evaluationReadAgreementError = evaluationReadAgreementErrors[keyof evaluationReadAgreementErrors];
+
+export type evaluationReadAgreementResponses = {
+    /**
+     * Successful Response
+     */
+    200: AgreementPublic;
+};
+
+export type evaluationReadAgreementResponse = evaluationReadAgreementResponses[keyof evaluationReadAgreementResponses];
 
 export type versionsEditVersionData = {
     body: GeneratedNote;

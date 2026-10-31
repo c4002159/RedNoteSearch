@@ -26,6 +26,9 @@ from app.models import (
     Brand,
     BrandCategory,
     BrandCreate,
+    CaseIn,
+    DatasetCreate,
+    EvalKind,
     KbChunk,
     KbDocument,
     ProductCreate,
@@ -36,6 +39,7 @@ from app.models import (
 )
 from app.ports.embedding import EmbeddingProvider
 from app.services import brands as brand_service
+from app.services import evaluation as eval_service
 from app.services import knowledge as kb
 from app.services import products as product_service
 from app.services import voice_profiles as voice_service
@@ -97,6 +101,85 @@ VOICE = VoiceProfileCreate(
     preferred_words=["清爽", "柔和", "日常", "通勤", "分享"],
     forbidden_words=["最好", "第一", "100%", "绝对", "神器"],
     sample_refs=["笔记范例（演示）"],
+)
+
+
+SPEC_SOURCE = "演示商品 A「晨雾淡香水」：前调为柑橘与佛手柑，中调为白茶，后调为雪松与白麝香；香调清新，适合日常通勤。"
+
+EVAL_DATASETS: tuple[tuple[str, EvalKind, list[CaseIn]], ...] = (
+    (
+        "合规词库样本（演示）",
+        EvalKind.COMPLIANCE,
+        [
+            CaseIn(input={"text": "这是最好的香水"}, expected={"hit_words": ["最好"]}),
+            CaseIn(
+                input={"text": "全网第一，唯一选择"},
+                expected={"hit_words": ["第一", "唯一"]},
+            ),
+            CaseIn(input={"text": "用完皮肤会美白"}, expected={"hit_words": ["美白"]}),
+            CaseIn(input={"text": "含 99% 天然成分"}, expected={"hit_words": ["99%"]}),
+            CaseIn(
+                input={"text": "前调是佛手柑，味道清爽"}, expected={"hit_words": []}
+            ),
+            CaseIn(
+                input={"text": "通勤路上喷一下，很柔和"}, expected={"hit_words": []}
+            ),
+        ],
+    ),
+    (
+        "事实核查样本（演示）",
+        EvalKind.FACTCHECK,
+        [
+            CaseIn(
+                input={"claim": "前调为柑橘与佛手柑", "sources": [SPEC_SOURCE]},
+                expected={"verdict": "supported"},
+            ),
+            CaseIn(
+                input={"claim": "后调含有雪松", "sources": [SPEC_SOURCE]},
+                expected={"verdict": "supported"},
+            ),
+            CaseIn(
+                input={"claim": "获得过国际大奖", "sources": [SPEC_SOURCE]},
+                expected={"verdict": "insufficient"},
+            ),
+            CaseIn(
+                input={"claim": "含有玫瑰精油", "sources": [SPEC_SOURCE]},
+                expected={"verdict": "insufficient"},
+            ),
+            CaseIn(
+                input={"claim": "中调为玫瑰", "sources": [SPEC_SOURCE]},
+                expected={"verdict": "conflict"},
+            ),
+        ],
+    ),
+    (
+        "文案生成样本（演示）",
+        EvalKind.GENERATION,
+        [
+            CaseIn(
+                input={
+                    "product_name": "晨雾淡香水（演示）",
+                    "category": "perfume",
+                    "scene_name": "种草笔记",
+                    "brief": "突出通勤场景",
+                    "required_terms": ["通勤"],
+                    "facts": ["前调为柑橘与佛手柑，香调清新"],
+                },
+                expected={"forbidden_words": ["最好", "第一"]},
+            ),
+            CaseIn(
+                input={
+                    "product_name": "午后木质香薰（演示）",
+                    "category": "home_fragrance",
+                    "scene_name": "品牌故事",
+                    "brief": "居家阅读的午后",
+                    "required_terms": ["雪松"],
+                    "facts": ["以雪松与檀香木为主，香气温和"],
+                },
+                expected={"forbidden_words": ["最好"]},
+            ),
+        ],
+    ),
 )
 
 
@@ -191,6 +274,12 @@ def seed_demo(
         version=profile.version,
         actor_id=owner.id,
     )
+    for name, kind, cases in EVAL_DATASETS:
+        eval_service.create_dataset(
+            session=session,
+            data=DatasetCreate(name=name, kind=kind, brand_id=brand.id, cases=cases),
+            user=owner,
+        )
     return brand
 
 

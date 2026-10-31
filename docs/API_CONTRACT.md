@@ -315,6 +315,21 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - `POST /evaluation/runs/{run_id}/ratings`：`{"result_id","scores":{"structure":4,"tone":3},"rubric_version","note"}`；评分者取自登录用户。
 - `GET /evaluation/runs/{run_id}/agreement`：评分者人数、样本数与一致性统计（方法在响应中注明）。
 
+**评测的实现约定（2026-10-31）**
+- 权限：评测集、运行、结果、评分只对**品牌 admin**可见（品牌评测集），全局评测集对平台管理员和任一品牌的 admin 可见；创建品牌评测集需要该品牌 admin，创建全局评测集（`brand_id = null`）需要平台管理员（否则 403）。看不到的评测集、运行一律 404。
+- 评测集类型与样本格式（创建时校验，不合格 422 并指出第几条）：
+  - `compliance`：`input.text`；`expected.hit_words`（应当被命中的词）。
+  - `factcheck`：`input.claim`、`input.sources`（1 到 5 段资料）；`expected.verdict` 为 `supported | insufficient | conflict`。
+  - `generation`：`input.product_name`、`input.scene_name`，可选 `brand_name`、`category`、`scene_structure`、`brief`、`required_terms`、`style`、`facts`；`expected.forbidden_words` 可选。
+  - `brand_leak` 属后续功能，创建评测集或运行返回 422。
+- 版本：评测集创建后内容固定；带 `previous_version_id` 创建时生成同一 `group_id` 的下一个版本（类型和品牌必须相同），旧版本保留。每个版本有 `content_hash`。
+- 运行（`POST /evaluation/runs`，202，后台执行，可带 `Idempotency-Key`）：`model_ids` 必须是 `GET /models` 里的模型（未知模型 422）；`factcheck`、`generation` 至少选一个模型，`compliance` 不用模型。`baselines` 按类型限定：`compliance` 只有 `lexicon_only`（只用词库层，不含功效依据层），`factcheck` 只有 `no_verification`（相信所有说法），`generation` 没有基线。
+- 运行详情返回：样本数、各项版本（评测集版本、提示词版本、检查器版本、评分表版本、模型、基线）、**按系统分组的指标**（每个指标带 `name`、`value`、`definition`、`n`），以及失败项（哪个样本、哪个系统、简短原因）。**没有综合分。**一个样本失败不会中断整个运行，失败计入指标：生成类的失败算“未通过约束”，核查类的失败算“判断错误”。运行崩溃时状态为 `failed`，`error` 只含异常类型名。
+- 指标：`compliance`——precision、recall、f1、exact_match_rate；`factcheck`——accuracy、**unsupported_accepted_rate**（没有依据或相矛盾的说法被误判为有依据的占比，越低越好）、supported_recall；`generation`——constraint_pass_rate、block_hint_rate、failure_rate、avg_latency_ms、avg_cost、avg_tokens。`avg_cost` 只在配置了价格时才有值。生成类评测只看模型的第一次回答，不做纠正重试。
+- `GET /evaluation/runs/{id}/results` 列出逐项结果（输出、详情、是否通过、耗时、费用）。
+- 评分：`GET /evaluation/rubrics` 返回评分表 `rubric-v1`（结构、调性、具体度、贴合资料，1 到 5 分，各维度分开，**不合成总分**）。`POST /evaluation/runs/{id}/ratings` 的评分者取自登录用户，四个维度都必须有分且在范围内，`rubric_version` 必须是当前版本；同一评分者对同一结果再次提交会替换之前的分数。`GET /evaluation/runs/{id}/agreement` 返回评分者人数、已评样本数，以及**每个维度**的评分者两两加权 Cohen's kappa 的平均值、完全一致比例和相差不超过 1 分的比例，`method` 字段写明计算方法；不足以计算时对应值为 `null`。
+- `GET /models`（登录用户）：`{id, provider, model_name, enabled, price_in_per_1k, price_out_per_1k, price_version}`；价格来自配置（`DEEPSEEK_PRICE_IN_PER_1K`、`DEEPSEEK_PRICE_OUT_PER_1K`、`LLM_PRICE_VERSION`），没有配置时为 `null`，成本不会被猜测。`enabled` 表示是否配置了密钥。
+
 ## 8. 模型与成本（B）
 
 - `GET /models`：登录用户；`{"items":[{"id","provider","model_name","enabled","price_in_per_1k","price_out_per_1k","price_version"}]}`。价格为配置数据，非硬编码。
