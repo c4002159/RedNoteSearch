@@ -1,6 +1,7 @@
 import { Link as RouterLink } from "@tanstack/react-router"
-import { ChevronsUpDown, LogOut, Settings } from "lucide-react"
+import { LogOut, Settings } from "lucide-react"
 
+import { Pill } from "@/components/Common/StatusBadge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -10,88 +11,63 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar"
 import useAuth from "@/hooks/useAuth"
+import { useBrand } from "@/hooks/useBrand"
+import { label, ROLE_LABEL } from "@/lib/zh"
 import { getInitials } from "@/utils"
 
-interface UserInfoProps {
-  fullName?: string
-  email?: string
-}
-
-function UserInfo({ fullName, email }: UserInfoProps) {
-  return (
-    <div className="flex items-center gap-2.5 w-full min-w-0">
-      <Avatar className="size-8">
-        <AvatarFallback className="bg-zinc-600 text-white">
-          {getInitials(fullName || "User")}
-        </AvatarFallback>
-      </Avatar>
-      <div className="flex flex-col items-start min-w-0">
-        <p className="text-sm font-medium truncate w-full">{fullName}</p>
-        <p className="text-xs text-muted-foreground truncate w-full">{email}</p>
-      </div>
-    </div>
-  )
-}
-
-export function User({ user }: { user: any }) {
-  const { logout } = useAuth()
-  const { isMobile, setOpenMobile } = useSidebar()
+// User menu in the top bar: name, email, role in the current brand, settings, sign out.
+export function User() {
+  const { user, logout } = useAuth()
+  const { current } = useBrand()
 
   if (!user) return null
-
-  const handleMenuClick = () => {
-    if (isMobile) {
-      setOpenMobile(false)
-    }
-  }
-  const handleLogout = async () => {
-    logout()
-  }
+  const name = user.full_name || user.email
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-              data-testid="user-menu"
-            >
-              <UserInfo fullName={user?.full_name} email={user?.email} />
-              <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <UserInfo fullName={user?.full_name} email={user?.email} />
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <RouterLink to="/settings" onClick={handleMenuClick}>
-              <DropdownMenuItem>
-                <Settings />
-                User Settings
-              </DropdownMenuItem>
-            </RouterLink>
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut />
-              Log Out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          data-testid="user-menu"
+          className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-accent"
+        >
+          <span className="hidden flex-col items-end text-right sm:flex">
+            <span className="text-sm font-medium leading-tight">{name}</span>
+            <span className="text-xs leading-tight text-muted-foreground">
+              {current ? label(ROLE_LABEL, current.role, "role") : "未选择品牌"}
+            </span>
+          </span>
+          <Avatar className="size-9">
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              {getInitials(name)}
+            </AvatarFallback>
+          </Avatar>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-60">
+        <DropdownMenuLabel className="space-y-1 font-normal">
+          <p className="text-sm font-medium">{name}</p>
+          <p className="text-xs text-muted-foreground">{user.email}</p>
+          <div className="flex flex-wrap items-center gap-1 pt-1">
+            {user.is_superuser && <Pill tone="softBlue">平台管理员</Pill>}
+            {current && (
+              <span className="text-xs text-muted-foreground">
+                {current.name} · {label(ROLE_LABEL, current.role, "role")}
+              </span>
+            )}
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <RouterLink to="/settings">
+            <Settings /> 用户设置
+          </RouterLink>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={logout}>
+          <LogOut /> 退出登录
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
