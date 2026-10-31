@@ -136,3 +136,7 @@ TC-118,P0,证据带来源标题,P1,证据指向已审核资料与任务资料,�
 TC-119,P0,风险提示带来源链接,P1,规则有来源链接；模型语境层的提示,列出提示、标记已处理,规则提示带 source_url；语境层提示为空,集成
 TC-120,P0,被拒操作的结构化原因,P0,有 block 提示；非最新版本；未重检的编辑稿；未确认就导出,确认、导出、再次生成被拒,409 INVALID_STATE 的 details 含 current_state；确认被拒另含 reasons 数组且与 message 一致,集成
 TC-121,P0,上传按类型限制并使用规定的错误码,P0,超过 5 MB 的文本；不在白名单的类型；50 MB 以内的 PDF,上传,文本超限与类型不符都是 422 且分别为 FILE_TOO_LARGE（details.limit_bytes）与 UNSUPPORTED_FILE_TYPE（details.allowed），不保存任何东西；PDF 与 DOCX 的上限是 50 MB,集成/单元
+TC-122,P0,没有依据的断言需要人工决定才能确认,P0,版本含系统无法支持的断言,确认；逐条人工确认后再确认,断言未决定时 409（codes 含 unconfirmed_claims，reasons 写明条数）；部分决定仍 409；全部判定成立并写备注后可确认；系统判定 status 保持不变，只记录人的决定,集成
+TC-123,P0,被人工判定不成立的断言阻止确认,P0,有一条断言被判不成立,确认；改写后重新检查,409 且 codes 含 rejected_claims；evidence_summary.rejected 为 1；改写后的新版本重新判断断言，原来的人工决定不沿用到措辞不同的文字上,集成
+TC-124,P0,人工确认的断言在导出中标注,P0,已确认的版本含人工确认的断言,导出 xhs_parts 与 markdown,xhs_parts 的 verification 给出 system_supported 与 human_confirmed 数量且复制文字本身不夹带标注；markdown 末尾有“人工核对记录”并逐条列出断言和备注；不出现“已验证”“合规通过”,集成
+TC-125,P0,断言统计与确认原因代码,P0,各种系统判定与人工决定的组合,统计与生成原因,人工判定不成立的断言无论系统怎么判都计为 rejected；系统支持且人工同意的仍算系统支持；人工确认只计入无系统依据的断言；原因代码稳定且有可读文字,单元

@@ -3,6 +3,7 @@
 import pytest
 
 from app.domain.flow import (
+    Blocker,
     FlowStatus,
     allowed_transitions,
     can_transition,
@@ -64,7 +65,7 @@ def test_only_checked_statuses_can_reach_ready_to_copy() -> None:
     assert reaching == {S.CHECKS_COMPLETED, S.NEEDS_HUMAN_REVIEW}
 
 
-def _blockers(**overrides: object) -> list[str]:
+def _blockers(**overrides: object) -> list[Blocker]:
     base: dict[str, object] = {
         "status": S.CHECKS_COMPLETED,
         "constraints_passed": True,
@@ -82,7 +83,7 @@ def test_confirm_is_allowed_when_everything_is_in_order() -> None:
 def test_confirm_reports_every_reason() -> None:
     assert len(_blockers(constraints_passed=False)) == 1
     assert len(_blockers(unresolved_block_risks=2)) == 1
-    assert "2" in _blockers(unresolved_block_risks=2)[0]
+    assert "2" in _blockers(unresolved_block_risks=2)[0].message
     assert len(_blockers(checks_run_on_final_text=False)) == 1
     assert len(_blockers(status=S.GENERATING)) == 1
     everything = _blockers(
@@ -92,3 +93,32 @@ def test_confirm_reports_every_reason() -> None:
         checks_run_on_final_text=False,
     )
     assert len(everything) == 4
+
+
+def test_blockers_have_stable_codes_for_the_interface() -> None:
+    everything = _blockers(
+        status=S.EDITED_PENDING_RECHECK,
+        constraints_passed=False,
+        unresolved_block_risks=1,
+        checks_run_on_final_text=False,
+        unconfirmed_claims=2,
+        rejected_claims=1,
+    )
+    assert [b.code for b in everything] == [
+        "status_not_confirmable",
+        "checks_not_run",
+        "constraints_failed",
+        "open_block_risks",
+        "rejected_claims",
+        "unconfirmed_claims",
+    ]
+    assert all(b.message for b in everything)
+
+
+def test_claims_without_support_need_a_person_before_confirming() -> None:
+    assert [b.code for b in _blockers(unconfirmed_claims=3)] == ["unconfirmed_claims"]
+    assert "3" in _blockers(unconfirmed_claims=3)[0].message
+    assert [b.code for b in _blockers(rejected_claims=1)] == ["rejected_claims"]
+    assert (
+        _blockers(unconfirmed_claims=0, rejected_claims=0) == []
+    )  # all supported or vouched for

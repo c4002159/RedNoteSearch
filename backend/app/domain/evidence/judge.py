@@ -148,3 +148,32 @@ def build_judge_messages(
         LlmMessage("system", JUDGE_SYSTEM),
         LlmMessage("user", f"说法：{claim}\n\n资料：\n{sources}"),
     )
+
+
+@dataclass(frozen=True)
+class ClaimSummary:
+    """Where a version's claims stand. ``human_confirmed`` counts claims the system could not support
+    that a person vouched for: they must be labelled as such, never as verified."""
+
+    total: int
+    system_supported: int
+    human_confirmed: int
+    unconfirmed: int
+    rejected: int
+
+
+def summarize_claims(
+    claims: Sequence[tuple[str, bool | None]],
+) -> ClaimSummary:
+    """``claims`` are (system status, human decision) pairs. A claim a person rejected counts as rejected
+    whatever the system said; one the system did not support needs a decision, and ``None`` means nobody
+    decided yet."""
+    supported = EvidenceStatus.SYSTEM_SUPPORTED.value
+    rejected = sum(1 for _, decision in claims if decision is False)
+    return ClaimSummary(
+        total=len(claims),
+        system_supported=sum(1 for s, d in claims if s == supported and d is not False),
+        human_confirmed=sum(1 for s, d in claims if s != supported and d is True),
+        unconfirmed=sum(1 for s, d in claims if s != supported and d is None),
+        rejected=rejected,
+    )

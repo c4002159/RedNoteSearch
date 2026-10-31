@@ -13,11 +13,13 @@ from app.domain.evidence.judge import (
     PROMPT_VERSION,
     Candidate,
     ClaimJudgement,
+    ClaimSummary,
     EvidenceStatus,
     ExtractedClaims,
     build_extract_messages,
     build_judge_messages,
     decide,
+    summarize_claims,
 )
 from app.models import (
     ClaimEvidence,
@@ -253,3 +255,7 @@ def to_public(
             item.source_title = titles.get((row.document_id, row.document_version))
         result.append(item)
     return result
+
+
+def claim_summary(rows: list[ClaimEvidence]) -> ClaimSummary:
+    return summarize_claims([(r.status, r.human_confirmed) for r in rows])

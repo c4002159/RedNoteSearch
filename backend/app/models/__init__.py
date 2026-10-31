@@ -76,7 +76,9 @@ from app.models.evidence import (
 )
 from app.models.generation import (
     ConfirmVersion,
+    EvidenceSummaryPublic,
     ExportCounts,
+    ExportVerification,
     FlowStatus,
     GenerationVersion,
     GenerationVersionPublic,
@@ -152,6 +154,8 @@ from app.models.product import (
 from app.models.task_input import AuditLog, TaskInput, TaskInputChunk
 
 __all__ = [
+    "EvidenceSummaryPublic",
+    "ExportVerification",
     "AgreementPublic",
     "CaseIn",
     "CasePublic",

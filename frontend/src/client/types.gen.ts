@@ -807,6 +807,32 @@ export type DocumentsPublic = {
 export type EvalKind = 'generation' | 'compliance' | 'factcheck' | 'brand_leak';
 
 /**
+ * EvidenceSummaryPublic
+ */
+export type EvidenceSummaryPublic = {
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * System Supported
+     */
+    system_supported: number;
+    /**
+     * Human Confirmed
+     */
+    human_confirmed: number;
+    /**
+     * Unconfirmed
+     */
+    unconfirmed: number;
+    /**
+     * Rejected
+     */
+    rejected: number;
+};
+
+/**
  * ExportCounts
  */
 export type ExportCounts = {
@@ -826,6 +852,20 @@ export type ExportCounts = {
      * Tags Count
      */
     tags_count: number;
+};
+
+/**
+ * ExportVerification
+ */
+export type ExportVerification = {
+    /**
+     * System Supported
+     */
+    system_supported: number;
+    /**
+     * Human Confirmed
+     */
+    human_confirmed: number;
 };
 
 /**
@@ -953,6 +993,7 @@ export type GenerationVersionPublic = {
      * Claim Evidence
      */
     claim_evidence?: Array<ClaimEvidencePublic>;
+    evidence_summary?: EvidenceSummaryPublic | null;
 };
 
 /**
@@ -2375,6 +2416,7 @@ export type XhsPartsExport = {
      */
     tags: Array<string>;
     counts: ExportCounts;
+    verification: ExportVerification;
 };
 
 export type loginLoginAccessTokenData = {

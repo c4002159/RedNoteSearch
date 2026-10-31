@@ -14,6 +14,7 @@ from app.domain.flow import FlowStatus
 from app.infra.openai_compat import deepseek_client
 from app.models import (
     BrandMember,
+    EvidenceSummaryPublic,
     GenerationVersion,
     GenerationVersionPublic,
     GenerationVersionsPublic,
@@ -270,9 +271,10 @@ def read_version(
     access: VersionAccessDep, session: SessionDep
 ) -> GenerationVersionPublic:
     version = GenerationVersionPublic.model_validate(access[0], from_attributes=True)
-    version.claim_evidence = evidence_service.to_public(
-        session=session,
-        rows=evidence_service.list_evidence(session=session, version_id=access[0].id),
+    rows = evidence_service.list_evidence(session=session, version_id=access[0].id)
+    version.claim_evidence = evidence_service.to_public(session=session, rows=rows)
+    version.evidence_summary = EvidenceSummaryPublic.model_validate(
+        evidence_service.claim_summary(rows), from_attributes=True
     )
     return version
 

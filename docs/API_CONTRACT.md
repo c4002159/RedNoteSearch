@@ -266,15 +266,16 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 人工确认断言：`{"human_confirmed":true|false,"note":"…"}`。记录 `confirmed_by/confirmed_at`；**不改变** `status`（系统判定与人工确认分开存储）。
 
 ### `POST /generation-versions/{version_id}/confirm`
-体：`{"selected_title_index":0,"selected_cover_index":0}`。仅当约束已通过、无未处理的 `block` 级风险、各检查已针对最终文本运行时才允许，否则 `INVALID_STATE`。成功后 `ready_to_copy`，记录 `confirmed_by/confirmed_at`。该状态不表示法律合规获批。
+体：`{"selected_title_index":0,"selected_cover_index":0}`。仅当约束已通过、无未处理的 `block` 级风险、各检查已针对最终文本运行、且**每条没有系统依据的断言都已有人工决定并且是“成立”**时才允许，否则 `INVALID_STATE`。成功后 `ready_to_copy`，记录 `confirmed_by/confirmed_at`。该状态不表示法律合规获批。
 
 **编辑、重写、重新检查、确认与导出的实现约定（2026-10-31）**
 - 都按版本的所属品牌做资源 id 授权：不存在或非本品牌成员一律 404；品牌任意成员（editor 或 admin）都可以操作，操作人写入审计。任务正在生成（`generating`）时，编辑、重写、重新检查返回 409。
 - `POST /generation-versions/{id}/edit`（201）：请求体字段同版本内容（标题候选至少 1 个、正文非空、标签 ≤20、封面 ≤5，空白项被去掉）；创建新版本（`origin=edited`，`parent_version_id` 指向被编辑的版本，`model` 为空，因为文字是人写的），状态 `edited_pending_recheck`，成为任务的最新版本；原版本不变。
 - `POST /generation-versions/{id}/recheck`（202）：立即把版本置为 `checking` 并返回，后台依次重跑约束、证据、合规。允许的起始状态：`checking`、`edited_pending_recheck`、`needs_human_review`、`checks_completed`、`constraint_failed`；`ready_to_copy` 是终态，返回 409。检查途中模型不可用时版本保持 `checking`，任务 `last_error=model_unavailable`，可再次重检。**重检不会自动改写**（自动改写只在生成之后发生）。
 - `POST /generation-versions/{id}/rewrite`（202）：`target` 为 `titles | opening | body | cover`，`instruction` 可选（≤500 字）。同步调用模型生成改写结果并保存为新版本（`origin=rewritten`，指向被改写的版本；模型不可用返回 503 且不保存任何东西），随后后台自动对新版本做全部检查。提示词只让模型改写所选部分，其余原样保留。
-- `POST /generation-versions/{id}/confirm`：体 `{selected_title_index, selected_cover_index?}`（索引越界 422）。**只有任务的最新版本可以确认**；条件：状态为 `checks_completed` 或 `needs_human_review`（即检查针对的就是这份文字）、约束已通过、没有未处理的 `block` 级风险提示；否则 409 `INVALID_STATE`，消息列出全部原因。成功后 `ready_to_copy`，记录确认人和时间，写 `version.confirm` 审计。**这表示运营确认了文字，不表示合规通过**；`needs_human_review` 的版本（例如还有无依据的断言）运营确认后也可以复制，责任由确认人承担。
-- `GET /generation-versions/{id}/export?format=xhs_parts|markdown`：只有 `ready_to_copy` 才能导出（409）；`format` 缺省或不是这两个值 422。`xhs_parts` 返回 `{format,title,body,tags,counts}`，标题取选定的标题，正文换行统一为 LF、去行尾空白、去掉 Markdown 标记（标题行 #、加粗、代码符号），保留 emoji；`tags` 不带 `#`；`counts` 是 `title_weight / body_units / tags_visible_units / tags_count`。`markdown` 返回 `{format,content}`，是唯一包含封面文案的格式。
+- `POST /generation-versions/{id}/confirm`：体 `{selected_title_index, selected_cover_index?}`（索引越界 422）。**只有任务的最新版本可以确认**；条件：状态为 `checks_completed` 或 `needs_human_review`（即检查针对的就是这份文字）、约束已通过、没有未处理的 `block` 级风险提示；否则 409 `INVALID_STATE`，`message` 与 `details.reasons` 列出全部原因，`details.codes` 给出稳定的原因代码。
+  **人在回路**：每条状态不是 `system_supported` 的断言都需要有人用 `POST /claim-evidence/{id}/confirm` 做决定——判定“成立”（建议写备注）后该断言放行，并在稿件和导出里标注为“人工确认，不是系统验证”；判定“不成立”或还没有决定，都不能确认（代码 `rejected_claims`、`unconfirmed_claims`），出路是改写稿件并重新检查，新版本的断言重新判断。系统的判定 `status` 不会被改写。成功后 `ready_to_copy`，记录确认人和时间，写 `version.confirm` 审计（含人工确认的断言数）。**这表示运营确认了文字，不表示合规通过，也不表示事实已被验证。**
+- `GET /generation-versions/{id}/export?format=xhs_parts|markdown`：只有 `ready_to_copy` 才能导出（409）；`format` 缺省或不是这两个值 422。`xhs_parts` 返回 `{format,title,body,tags,counts,verification}`（`verification` 是 `{system_supported, human_confirmed}`，用来在界面上标注“其中 N 条为人工确认”；正文不夹带标注），标题取选定的标题，正文换行统一为 LF、去行尾空白、去掉 Markdown 标记（标题行 #、加粗、代码符号），保留 emoji；`tags` 不带 `#`；`counts` 是 `title_weight / body_units / tags_visible_units / tags_count`。`markdown` 返回 `{format,content}`，是唯一包含封面文案的格式；有人工确认的断言时，末尾有“人工核对记录（资料里没有依据，由人工确认，不是系统验证）”，逐条列出断言和备注。
 
 ### 导出与复制格式
 `GET /generation-versions/{version_id}/export?format=xhs_parts|markdown`，仅 `ready_to_copy` 版本可导出，否则 `INVALID_STATE`。
@@ -298,10 +299,10 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - **风险提示项**多了 `source_url`（规则当前的来源链接，通过 `rule_id` 取；模型语境层发现的提示没有规则，为空）；`source_name`、`source_clause`、`region_scope` 在提示里随记录保存。
 - **风格参数** `style`：`tone` 自由文本（可空）；`length` ∈ `short | medium | long`（建议显示：偏短、适中、偏长）；`person` ∈ `first | second | third`（第一、第二、第三人称）；`emoji_density` ∈ `low | medium | high`（很少、适量、较多）；`hashtag_count` 0 到 10，默认 5。
 - **`progress.stage`** 实际会出现的值：`retrieving`、`generating`、`evidence`、`compliance`、`rewriting`、`done`，没有进行中的阶段时为 `null`（`constraint_check` 保留，目前不单独出现，约束检查在 `generating` 与 `evidence` 之间瞬间完成）。
-- **被拒绝的操作**（`INVALID_STATE`，409）的 `details` 里有 `current_state`；确认被拒时还有 `reasons`（数组，每条一个原因，`message` 是它们用“；”连起来的文字；只有非最新版本时 `reasons = ["not_latest_version"]`）。前端可以用 `reasons` 逐条显示。
+- **被拒绝的操作**（`INVALID_STATE`，409）的 `details` 里有 `current_state`；确认被拒时还有 `codes`（`status_not_confirmable`、`checks_not_run`、`constraints_failed`、`open_block_risks`、`rejected_claims`、`unconfirmed_claims`、`not_latest_version`）和 `reasons`（数组，每条一个原因，`message` 是它们用“；”连起来的文字；只有非最新版本时 `reasons = ["not_latest_version"]`）。前端可以用 `reasons` 逐条显示。
 - **限流**：目前没有任何接口返回 `429 RATE_LIMITED`（没有实现限流）。前端保留通用处理（读取 `Retry-After`）即可，不需要为它设计专门的页面状态。
 - **生成失败的展示**以任务的 `last_error` 为准：`model_unavailable`（模型不可用，任务回到原状态，可直接重试）、`invalid_model_output`（模型多次返回不合格的格式，任务为 `constraint_failed`）。
-- **确认**：`needs_human_review` 的最新版本也可以确认（没有未处理的 block 级提示即可），责任由确认人承担；有未得到支持的断言时，前端应在确认弹窗里显示提示，而不是禁用按钮。`selected_cover_index` 可选。`ready_to_copy` 是终态，不能再重检；非最新版本不能确认。
+- **确认**：最新版本在 `checks_completed` 或 `needs_human_review` 时可以确认，前提是没有未处理的 block 级提示，且每条没有系统依据的断言都已有人工决定并且是“成立”。有断言“未决定”或被判“不成立”时确认按钮应禁用，旁边列出这些断言并提供“成立 / 不成立”的操作（调用断言确认接口，备注建议必填），不要让用户猜原因。人工确认过的断言要标注为“人工确认（非系统验证）”，版本详情的 `evidence_summary` 给出 `total, system_supported, human_confirmed, unconfirmed, rejected`。`selected_cover_index` 可选。`ready_to_copy` 是终态，不能再重检；非最新版本不能确认。
 
 ## 6. 合规规则（B）
 
