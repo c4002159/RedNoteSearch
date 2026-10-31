@@ -277,6 +277,7 @@ def test_refusals_explain_themselves_with_structured_details(
         and len(error["details"]["reasons"]) == 1
     )
     assert error["message"] == "；".join(error["details"]["reasons"])
+    assert error["details"]["codes"] == ["open_block_risks"]
 
     edited = client.post(
         f"{version}/edit",
@@ -286,7 +287,7 @@ def test_refusals_explain_themselves_with_structured_details(
     old = client.post(
         f"{version}/confirm", headers=h, json={"selected_title_index": 0}
     ).json()["error"]["details"]
-    assert old["reasons"] == ["not_latest_version"]
+    assert old["codes"] == ["not_latest_version"]
     pending = client.post(
         f"{API}/generation-versions/{edited['id']}/confirm",
         headers=h,

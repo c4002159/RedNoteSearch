@@ -14,6 +14,7 @@ from app.domain.evidence.judge import (
     build_judge_messages,
     decide,
     quote_appears_in,
+    summarize_claims,
 )
 
 SOURCES = {"C1": "前调为柑橘与佛手柑，\n香调清新。", "C2": "适合日常通勤。"}
@@ -116,3 +117,28 @@ def test_prompts_carry_the_task_and_never_claim_truth() -> None:
     )
     assert "不表示说法本身是否属实" in JUDGE_SYSTEM
     assert "事实正确" not in JUDGE_SYSTEM
+
+
+def test_claim_summary_separates_system_support_from_human_confirmation() -> None:
+    summary = summarize_claims(
+        [
+            ("system_supported", None),  # backed by a source
+            (
+                "system_supported",
+                True,
+            ),  # backed, and a person agrees: still system support
+            ("evidence_missing", True),  # no source, a person vouches: human-confirmed
+            ("needs_human_review", True),
+            ("evidence_missing", None),  # nobody decided yet
+            ("evidence_missing", False),  # a person says it is wrong
+            ("system_supported", False),  # a person disagrees with the system
+        ]
+    )
+    assert (summary.total, summary.system_supported, summary.human_confirmed) == (
+        7,
+        2,
+        2,
+    )
+    assert (summary.unconfirmed, summary.rejected) == (1, 2)
+    empty = summarize_claims([])
+    assert (empty.total, empty.unconfirmed, empty.rejected) == (0, 0, 0)

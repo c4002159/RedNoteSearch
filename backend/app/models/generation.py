@@ -332,6 +332,7 @@ class GenerationVersionPublic(SQLModel):
     confirmed_at: datetime | None
     created_at: datetime | None
     claim_evidence: list[ClaimEvidencePublic] = Field(default_factory=list)
+    evidence_summary: EvidenceSummaryPublic | None = None
 
 
 class GenerationVersionsPublic(SQLModel):
@@ -348,6 +349,20 @@ class ConfirmVersion(SQLModel):
     selected_cover_index: int | None = Field(default=None, ge=0)
 
 
+class EvidenceSummaryPublic(BaseModel):
+    total: int
+    system_supported: int
+    # Claims the system could not support that a person vouched for: always label them as such.
+    human_confirmed: int
+    unconfirmed: int
+    rejected: int
+
+
+class ExportVerification(BaseModel):
+    system_supported: int
+    human_confirmed: int
+
+
 class ExportCounts(BaseModel):
     title_weight: float
     body_units: int
@@ -361,6 +376,7 @@ class XhsPartsExport(BaseModel):
     body: str
     tags: list[str]
     counts: ExportCounts
+    verification: ExportVerification
 
 
 class MarkdownExport(BaseModel):

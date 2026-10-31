@@ -16,6 +16,7 @@ from app.domain.generation.schema import GeneratedNote
 from app.models import ComplianceCheck, GenerationVersion, Task, VersionOrigin
 from app.models.common import get_datetime_utc
 from app.services import compliance as compliance_service
+from app.services import evidence as evidence_service
 from app.services.audit import record_audit
 from app.services.errors import (
     InvalidInputError,
@@ -195,19 +196,32 @@ def confirm_version(
     if task.latest_version_id != version.id:
         raise InvalidStateError(
             "Only the latest version of a task can be confirmed",
-            {"current_state": version.flow_status, "reasons": ["not_latest_version"]},
+            {
+                "current_state": version.flow_status,
+                "reasons": ["Only the latest version of a task can be confirmed"],
+                "codes": ["not_latest_version"],
+            },
         )
+    claims = evidence_service.claim_summary(
+        evidence_service.list_evidence(session=session, version_id=version.id)
+    )
     blockers = confirm_blockers(
         status=FlowStatus(version.flow_status),
         constraints_passed=bool(version.constraint_checks.get("passed")),
         unresolved_block_risks=_open_blocks(session, version),
         checks_run_on_final_text=version.flow_status
         in (FlowStatus.CHECKS_COMPLETED.value, FlowStatus.NEEDS_HUMAN_REVIEW.value),
+        unconfirmed_claims=claims.unconfirmed,
+        rejected_claims=claims.rejected,
     )
     if blockers:
         raise InvalidStateError(
-            "；".join(blockers),
-            {"current_state": version.flow_status, "reasons": blockers},
+            "；".join(b.message for b in blockers),
+            {
+                "current_state": version.flow_status,
+                "reasons": [b.message for b in blockers],
+                "codes": [b.code for b in blockers],
+            },
         )
     if not 0 <= selected_title_index < len(version.title_candidates):
         raise InvalidInputError("selected_title_index is out of range")
@@ -230,27 +244,43 @@ def confirm_version(
         actor_id=user_id,
         brand_id=task.brand_id,
         entity_id=version.id,
-        detail={"version_no": version.version_no},
+        detail={
+            "version_no": version.version_no,
+            "claims_total": claims.total,
+            "claims_human_confirmed": claims.human_confirmed,
+        },
     )
     session.commit()
     session.refresh(version)
     return version
 
 
-def export_version(version: GenerationVersion, fmt: str) -> dict[str, Any]:
-    """The confirmed text in a pasteable shape. Only ``ready_to_copy`` versions can be exported."""
+def export_version(
+    session: Session, version: GenerationVersion, fmt: str
+) -> dict[str, Any]:
+    """The confirmed text in a pasteable shape. Only ``ready_to_copy`` versions can be exported.
+
+    Claims the system could not support but a person confirmed are counted in ``verification`` and listed
+    in the Markdown export, so the text never reads as if the system had verified them."""
     if version.flow_status != FlowStatus.READY_TO_COPY.value:
         raise InvalidStateError(
             "Only a confirmed version can be exported",
             {"current_state": version.flow_status},
         )
+    rows = evidence_service.list_evidence(session=session, version_id=version.id)
+    summary = evidence_service.claim_summary(rows)
     index = version.selected_title_index or 0
     title = version.title_candidates[index]
     if fmt == "markdown":
+        record = [
+            f"- {r.claim_text}（人工确认{'：' + r.confirm_note if r.confirm_note else ''}）"
+            for r in rows
+            if r.status != "system_supported" and r.human_confirmed is True
+        ]
         return {
             "format": "markdown",
             "content": to_markdown(
-                title, version.body, version.hashtags, version.cover_candidates
+                title, version.body, version.hashtags, version.cover_candidates, record
             ),
         }
     parts = to_xhs_parts(title, plain_body(version.body), version.hashtags)
@@ -264,5 +294,9 @@ def export_version(version: GenerationVersion, fmt: str) -> dict[str, Any]:
             "body_units": parts.body_units,
             "tags_visible_units": parts.tags_units,
             "tags_count": parts.tag_count,
+        },
+        "verification": {
+            "system_supported": summary.system_supported,
+            "human_confirmed": summary.human_confirmed,
         },
     }

@@ -168,9 +168,10 @@ def confirm_version(
 )
 def export_version(
     access: VersionAccessDep,
+    session: SessionDep,
     format: Annotated[Literal["xhs_parts", "markdown"], Query()],  # noqa: A002 - the contract's name
 ) -> XhsPartsExport | MarkdownExport:
-    data = version_service.export_version(access[0], format)
+    data = version_service.export_version(session, access[0], format)
     if format == "markdown":
         return MarkdownExport(**data)
     return XhsPartsExport(**data)

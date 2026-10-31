@@ -42,3 +42,19 @@ def test_each_rewrite_target_limits_the_change_to_one_part(target: str) -> None:
 def test_unknown_rewrite_targets_are_not_accepted() -> None:
     with pytest.raises(KeyError):
         target_problem("everything")
+
+
+def test_markdown_export_lists_human_confirmed_claims_as_not_system_verified() -> None:
+    text = to_markdown(
+        "晨雾",
+        "正文",
+        ["日常"],
+        [],
+        ["- 获过奖（人工确认：品牌方提供了证书）", "- 产自法国（人工确认）"],
+    )
+    assert "## 人工核对记录（资料里没有依据，由人工确认，不是系统验证）" in text
+    assert text.endswith(
+        "- 获过奖（人工确认：品牌方提供了证书）\n- 产自法国（人工确认）\n"
+    )
+    assert "人工核对记录" not in to_markdown("晨雾", "正文", ["日常"], [], [])
+    assert "人工核对记录" not in to_markdown("晨雾", "正文", ["日常"], [], None)

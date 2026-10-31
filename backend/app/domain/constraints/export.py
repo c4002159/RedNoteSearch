@@ -61,7 +61,13 @@ def plain_body(text: str) -> str:
     return "\n".join(cleaned).strip()
 
 
-def to_markdown(title: str, body: str, tags: list[str], covers: list[str]) -> str:
+def to_markdown(
+    title: str,
+    body: str,
+    tags: list[str],
+    covers: list[str],
+    review_record: list[str] | None = None,
+) -> str:
     """A Markdown copy of a confirmed note: the only export that includes the cover texts."""
     parts = to_xhs_parts(title, plain_body(body), tags)
     out = [f"# {parts.title}", "", parts.body]
@@ -69,4 +75,10 @@ def to_markdown(title: str, body: str, tags: list[str], covers: list[str]) -> st
         out += ["", parts.tags_text]
     if covers:
         out += ["", "## 封面文案候选", *[f"- {c}" for c in covers]]
+    if review_record:
+        out += [
+            "",
+            "## 人工核对记录（资料里没有依据，由人工确认，不是系统验证）",
+            *review_record,
+        ]
     return "\n".join(out) + "\n"
