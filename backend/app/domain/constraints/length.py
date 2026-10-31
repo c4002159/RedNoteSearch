@@ -10,12 +10,13 @@ TAG_LIMIT = 10
 
 
 def title_weight(text: str) -> float:
-    """Weighted title length: ASCII printable characters (U+0020 to U+007E) count 0.5, all others 1.
+    """Weighted title length: ASCII printable characters (U+0020 to U+007E) count 0.5, every other
+    character counts one per UTF-16 code unit, so full-width punctuation and Chinese characters are 1
+    and an emoji is 2.
 
-    UNVERIFIED: full-width punctuation, Chinese brackets, spaces and emoji in titles are assumed to
-    follow this same rule ("anything outside ASCII printable counts 1").
+    Measured on the publish page on 2026-11-01 (ADR-004): full-width punctuation 1, emoji 2.
     """
-    half_units = sum(1 if " " <= ch <= "~" else 2 for ch in text)
+    half_units = sum(1 if " " <= ch <= "~" else 2 * utf16_units(ch) for ch in text)
     return half_units / 2
 
 

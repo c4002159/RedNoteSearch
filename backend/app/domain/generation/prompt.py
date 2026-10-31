@@ -12,7 +12,7 @@ from typing import Any, Literal
 from app.domain.constraints import BODY_LIMIT, TAG_LIMIT, TITLE_LIMIT
 from app.ports.llm import LlmMessage
 
-PROMPT_VERSION = "gen-v1"
+PROMPT_VERSION = "gen-v2"
 
 # A conservative guess of what one tag costs in the body budget (``#`` + a short name + a space).
 APPROX_TAG_COST = 8
@@ -72,7 +72,7 @@ SYSTEM_PROMPT = f"""你是小红书美妆香氛品牌的文案助手，为运营
 2. 标注为“任务资料”的内容没有经过审核，使用时要谨慎，不要当作已经核实的事实。
 3. 不使用绝对化用语（最、第一、唯一、100% 等），不承诺功效，不涉及医疗或治疗。
 4. “禁止宣称”和“禁用词”里的内容一律不要出现；“必含词”必须自然地出现在文中。
-5. 小红书长度限制：每个标题的加权长度不超过 {TITLE_LIMIT}（汉字等全角字符算 1，英文字母、数字、半角符号算 0.5）；正文加上标签的可见字符不超过 {BODY_LIMIT}（换行不算，一个 emoji 算 2）；标签不超过 {TAG_LIMIT} 个，标签不带 # 号。
+5. 小红书长度限制：每个标题的加权长度不超过 {TITLE_LIMIT}（汉字和全角标点算 1，emoji 算 2，英文字母、数字、半角符号算 0.5）；正文加上标签的可见字符不超过 {BODY_LIMIT}（换行不算，一个 emoji 算 2）；标签不超过 {TAG_LIMIT} 个，标签不带 # 号。
 6. 只输出一个 JSON 对象，不要输出其他文字，格式如下：
 {{"title_candidates": ["标题1", "标题2", "标题3"], "body": "正文", "hashtags": ["标签1", "标签2"], "cover_candidates": ["封面文案1", "封面文案2"]}}
 标题给 3 到 5 个候选；封面文案给 2 到 3 个，每个不超过 12 个字。"""

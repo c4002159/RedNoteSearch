@@ -146,7 +146,7 @@ def test_prompt_separates_verified_facts_from_unverified_points() -> None:
     )
     assert "第二人称" in user and "标签 3 个" in user and "语气：克制" in user
     assert "合规通过" not in system + user  # the prompt never claims compliance
-    assert PROMPT_VERSION == "gen-v1"
+    assert PROMPT_VERSION == "gen-v2"
 
 
 def test_prompt_handles_missing_context_and_adds_problems_on_retry() -> None:
