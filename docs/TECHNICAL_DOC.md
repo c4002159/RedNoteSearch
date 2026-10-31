@@ -267,6 +267,9 @@ RedNoteSearch/
 
 *表 4-4 状态标签映射*
 
+## 4.5 设计稿交付
+设计稿由 B 通过 PR 提交到 `docs/design/<page>/`：导出的 PNG（每张 ≤500 KB，命名为序号加页面名加状态）加一页 `spec.md`（需求编号、路由、角色、状态清单、区域与字段来源、交互、用到的组件与 token、与契约不一致的地方）。设计工具的链接只能作参考，不能代替导出图片；示例资料用自编内容，不使用客户原文（ADR-007）。A 审阅后落地为 token 与公共组件，B 在 PR 评论里 @ A 并等到确认再合并（ADR-009）。AI 助手读图只当视觉参考，字段、选项、文案以契约与接口为准。完整约定与自检清单见 `docs/design/README.md`。
+
 # 5. 数据库约定与表归属
 
 ## 5.1 表归属
@@ -299,7 +302,7 @@ RedNoteSearch/
 ## 6.1 约定
 
 - 基路径 /api/v1；JSON snake_case；ID 为 UUID 字符串；时间为 ISO 8601 UTC；写接口需 JWT。
-- 错误统一：{"error":{"code","message","details","request_id"}}；错误码：VALIDATION_ERROR 422、UNAUTHENTICATED 401、FORBIDDEN 403、NOT_FOUND 404、CONFLICT 409、RATE_LIMITED 429、MODEL_UNAVAILABLE 503。
+- 错误统一：{"error":{"code","message","details","request_id"}}；错误码：BAD_REQUEST 400、VALIDATION_ERROR 422、UNAUTHENTICATED 401、FORBIDDEN 403、NOT_FOUND 404、CONFLICT 409、RATE_LIMITED 429、MODEL_UNAVAILABLE 503、INTERNAL_ERROR 500。
 - 新增字段默认可选；删除或改名须版本化；变更先提契约 PR，再改服务端，再改前端，并补成功、验证错误、未授权、越权测试。
 
 ## 6.2 端点摘要（v1.1，字段见 docs/API_CONTRACT.md）
