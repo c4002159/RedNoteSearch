@@ -93,6 +93,26 @@ test("Dataset detail scope uses name, global and missing-name fallback", async (
   }
 })
 
+test("New run explains baselines without internal names", async ({ page }) => {
+  await page.goto("/evaluation/datasets")
+  for (const [name, baseline, internal] of [
+    ["品牌规则回归集", "基线：仅词表匹配", "lexicon_only"],
+    ["全局回归集", "基线：不做依据核对", "no_verification"],
+  ]) {
+    await page
+      .getByRole("row")
+      .filter({ hasText: name })
+      .getByRole("button", { name: "新建运行", exact: true })
+      .click()
+    await expect(page.getByRole("dialog")).toContainText(baseline)
+    await expect(page.getByRole("dialog")).not.toContainText(internal)
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "取消", exact: true })
+      .click()
+  }
+})
+
 test("Run detail links named dataset and labels evaluation systems", async ({
   page,
 }) => {
