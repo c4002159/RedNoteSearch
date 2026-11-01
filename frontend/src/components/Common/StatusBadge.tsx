@@ -11,7 +11,7 @@ import {
 } from "@/lib/zh"
 
 const badge = cva(
-  "inline-flex w-fit shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium",
+  "inline-flex w-fit shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium",
   {
     variants: {
       tone: {
