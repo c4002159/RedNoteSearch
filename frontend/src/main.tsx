@@ -35,7 +35,16 @@ const handleApiError = (error: Error) => {
     window.location.href = "/login"
   }
 }
+// A 4xx answer (not found, not allowed, invalid) will not change on a retry, so show it at once instead
+// of waiting through the default three retries. Network errors and 5xx are still retried.
+const retryQuery = (failureCount: number, error: Error) => {
+  const status =
+    error instanceof AxiosError ? error.response?.status : undefined
+  if (status !== undefined && status >= 400 && status < 500) return false
+  return failureCount < 3
+}
 const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: retryQuery } },
   queryCache: new QueryCache({
     onError: handleApiError,
   }),
