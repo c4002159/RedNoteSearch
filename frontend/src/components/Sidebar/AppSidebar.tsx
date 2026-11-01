@@ -1,11 +1,5 @@
 import { SidebarAppearance } from "@/components/Common/Appearance"
-import { Logo } from "@/components/Common/Logo"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-} from "@/components/ui/sidebar"
+import { Sidebar, SidebarContent, SidebarFooter } from "@/components/ui/sidebar"
 import useAuth from "@/hooks/useAuth"
 import { useBrand } from "@/hooks/useBrand"
 import { Main } from "./Main"
@@ -24,9 +18,6 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="px-4 py-5 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0">
-        <Logo variant="responsive" />
-      </SidebarHeader>
       <SidebarContent>
         <Main groups={groups} />
       </SidebarContent>
