@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import StringConstraints
+from pydantic import StringConstraints, model_validator
 from sqlalchemy import CheckConstraint, DateTime, Index
 from sqlmodel import Field, SQLModel
 
@@ -120,8 +120,19 @@ class BrandsPublic(SQLModel):
 
 
 class MemberCreate(SQLModel):
-    user_id: uuid.UUID
+    """Identify the user by `user_id` or by `email` (exactly one of them)."""
+
+    user_id: uuid.UUID | None = None
+    email: (
+        Annotated[str, StringConstraints(strip_whitespace=True, max_length=255)] | None
+    ) = None
     role: MemberRole
+
+    @model_validator(mode="after")
+    def _exactly_one_identifier(self) -> MemberCreate:
+        if (self.user_id is None) == (self.email is None or self.email == ""):
+            raise ValueError("Provide exactly one of user_id or email")
+        return self
 
 
 class MemberUpdate(SQLModel):

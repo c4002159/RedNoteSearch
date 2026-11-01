@@ -88,7 +88,7 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 - `PATCH` 平台管理员或该品牌的 admin；体里的字段都可选。
 
 ### `GET /brands/{brand_id}/members`　`POST /brands/{brand_id}/members`　`PATCH …/members/{user_id}`　`DELETE …/members/{user_id}`
-平台管理员或该品牌的 admin。体：`{"user_id","role":"admin|editor"}`。`POST` 返回 201；用户不存在 404；已是成员 409；`role` 不合法 422。不得移除或降级最后一位 admin（409）。`DELETE` 成功返回 `{"message":"Member removed successfully"}`。
+平台管理员或该品牌的 admin。体：`{"user_id" 或 "email"（二选一，都给或都不给 422）,"role":"admin|editor"}`；`email` 精确匹配（不区分大小写，前后空格去掉），品牌 admin 无需平台管理员权限即可按邮箱添加。`POST` 返回 201；用户不存在 404；已是成员 409；`role` 不合法 422。不得移除或降级最后一位 admin（409）。`DELETE` 成功返回 `{"message":"Member removed successfully"}`。
 
 ### 品牌授权的实现约定（A 提供，B 的路由使用）
 依赖在 `backend/app/api/brand_deps.py`，品牌 id 只取自路径，服务端用 `brand_member` 校验：

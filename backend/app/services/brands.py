@@ -130,11 +130,23 @@ def _get_member(
 
 
 def add_member(
-    *, session: Session, brand_id: uuid.UUID, user_id: uuid.UUID, role: MemberRole
+    *,
+    session: Session,
+    brand_id: uuid.UUID,
+    role: MemberRole,
+    user_id: uuid.UUID | None = None,
+    email: str | None = None,
 ) -> tuple[BrandMember, User]:
-    user = session.get(User, user_id)
+    """Add a user by id or by exact (case-insensitive) email."""
+    if user_id is not None:
+        user = session.get(User, user_id)
+    else:
+        user = session.exec(
+            select(User).where(func.lower(col(User.email)) == (email or "").lower())
+        ).first()
     if user is None:
         raise NotFoundError("User not found")
+    user_id = user.id
     if session.get(BrandMember, (brand_id, user_id)) is not None:
         raise ConflictError("The user is already a member of this brand")
     member = BrandMember(brand_id=brand_id, user_id=user_id, role=role.value)
