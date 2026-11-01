@@ -90,7 +90,7 @@ function Field({
 }
 
 const selectClass =
-  "h-10 w-full rounded-lg border border-input bg-surface-low px-3 text-sm"
+  "h-10 w-full rounded-lg border border-transparent bg-surface-low px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
 
 const SCENE_LOOK: Record<string, { icon: LucideIcon; bg: string; fg: string }> =
   {
@@ -182,7 +182,7 @@ function TermsInput({
     setDraft("")
   }
   return (
-    <div className="flex min-h-10 flex-wrap items-center gap-2 rounded-lg border border-input bg-surface-low px-2 py-1.5">
+    <div className="flex min-h-10 flex-wrap items-center gap-2 rounded-lg border border-transparent bg-surface-low px-2 py-1.5">
       {terms.map((t) => (
         <span
           key={t}
@@ -465,7 +465,7 @@ function NewTaskForm() {
               <span className="text-base font-semibold">文案风格（选填）</span>
               {(presets.data ?? []).length > 0 && (
                 <select
-                  className="h-8 rounded-lg border border-input bg-surface-low px-2 text-sm"
+                  className="h-8 rounded-lg border border-transparent bg-surface-low px-2 text-sm"
                   defaultValue=""
                   aria-label="套用风格预设"
                   onChange={(e) => {

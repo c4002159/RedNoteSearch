@@ -143,7 +143,7 @@ export function ProductForm({
               <label htmlFor="product-category">{T.category}</label>
               <select
                 id="product-category"
-                className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                className="h-10 w-full rounded-lg border border-transparent bg-surface-low px-2 text-sm"
                 {...form.register("category")}
               >
                 {Object.entries(BRAND_CATEGORY_LABEL).map(([k, v]) => (

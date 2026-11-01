@@ -458,7 +458,7 @@ function RewriteBar({
       <div className="flex flex-wrap gap-2">
         <select
           aria-label="重写部分"
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
           value={target}
           onChange={(e) => setTarget(e.target.value as typeof target)}
         >

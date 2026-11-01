@@ -126,7 +126,7 @@ export function AnalyzeSample({
             </label>
             <select
               id="analysis-model"
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className="h-10 w-full rounded-lg border border-transparent bg-surface-low px-3 text-sm"
               value={selected}
               disabled={pending || check.isPending}
               onChange={(e) => setModel(e.target.value)}

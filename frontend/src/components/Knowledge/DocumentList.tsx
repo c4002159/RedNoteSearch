@@ -131,7 +131,7 @@ function BrandDocuments({
         {!review && (
           <select
             aria-label={T.status}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
             value={status}
             onChange={(e) => {
               setStatus(e.target.value as DocumentStatus | "")
@@ -148,7 +148,7 @@ function BrandDocuments({
         )}
         <select
           aria-label={T.type}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
           value={type}
           onChange={(e) => {
             setType(e.target.value as DocumentType | "")

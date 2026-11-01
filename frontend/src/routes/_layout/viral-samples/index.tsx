@@ -56,7 +56,7 @@ function BrandSamples({ brandId }: { brandId: string }) {
       </div>
       <select
         aria-label={T.sort}
-        className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
         value={sort}
         onChange={(e) => {
           setSort(e.target.value as "created_at" | "-created_at")

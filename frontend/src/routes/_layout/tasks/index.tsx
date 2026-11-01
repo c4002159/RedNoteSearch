@@ -81,7 +81,7 @@ function TasksPage() {
       <div className="flex flex-wrap gap-3">
         <select
           aria-label="按状态筛选"
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
           value={status}
           onChange={(e) => {
             setStatus(e.target.value as FlowStatus | "")
@@ -97,7 +97,7 @@ function TasksPage() {
         </select>
         <select
           aria-label="排序"
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
           value={sort}
           onChange={(e) => {
             setSort(e.target.value)

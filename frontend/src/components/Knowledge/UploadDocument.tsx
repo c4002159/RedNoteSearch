@@ -176,7 +176,7 @@ export function UploadDocument({
               </label>
               <select
                 id="kb-type"
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className="h-10 w-full rounded-lg border border-transparent bg-surface-low px-3 text-sm"
                 {...form.register("doc_type")}
               >
                 {Object.entries(DOCUMENT_TYPE_LABEL).map(([k, v]) => (

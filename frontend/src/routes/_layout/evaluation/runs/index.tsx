@@ -61,7 +61,7 @@ function RunsPage() {
       </div>
       <select
         aria-label={T.selectDataset}
-        className="h-9 max-w-full rounded-md border border-input bg-background px-3 text-sm"
+        className="h-10 max-w-full rounded-lg border border-transparent bg-surface-low px-3 text-sm"
         value={dataset}
         onChange={(e) => {
           setDataset(e.target.value)

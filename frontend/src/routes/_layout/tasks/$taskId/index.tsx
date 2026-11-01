@@ -108,7 +108,7 @@ function TaskDetail() {
             <div className="ml-auto flex flex-wrap items-center gap-2 text-sm">
               <select
                 aria-label="左侧版本"
-                className="h-8 rounded-md border border-input bg-background px-2"
+                className="h-8 rounded-lg border border-transparent bg-surface-low px-2"
                 value={left}
                 onChange={(e) => setLeft(e.target.value)}
               >
@@ -121,7 +121,7 @@ function TaskDetail() {
               </select>
               <select
                 aria-label="右侧版本"
-                className="h-8 rounded-md border border-input bg-background px-2"
+                className="h-8 rounded-lg border border-transparent bg-surface-low px-2"
                 value={right}
                 onChange={(e) => setRight(e.target.value)}
               >

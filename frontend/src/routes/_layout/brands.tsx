@@ -100,7 +100,7 @@ function CreateBrand({
               <label htmlFor="brand-category">{T.category}</label>
               <select
                 id="brand-category"
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className="h-10 w-full rounded-lg border border-transparent bg-surface-low px-3 text-sm"
                 {...form.register("category")}
               >
                 {Object.entries(BRAND_CATEGORY_LABEL).map(([k, v]) => (
