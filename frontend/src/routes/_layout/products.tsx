@@ -12,6 +12,7 @@ import { CatalogGuard } from "@/components/Catalog/Fields"
 import { ProductForm } from "@/components/Catalog/ProductForm"
 import { SourceReference } from "@/components/Catalog/Sources"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { LoadingState } from "@/components/Common/LoadingState"
 import { Pager } from "@/components/Knowledge/Feedback"
 import { Button } from "@/components/ui/button"
 import {
@@ -21,7 +22,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Skeleton } from "@/components/ui/skeleton"
 import { useBrand } from "@/hooks/useBrand"
 import {
   BRAND_CATEGORY_LABEL,
@@ -95,7 +95,7 @@ function ProductsPage() {
           </Button>
         ))}
       </div>
-      {query.isLoading && <Skeleton className="h-40 w-full" />}
+      {query.isLoading && <LoadingState className="h-40 w-full" />}
       {query.isError && (
         <BrandError error={query.error} retry={() => query.refetch()} />
       )}{" "}

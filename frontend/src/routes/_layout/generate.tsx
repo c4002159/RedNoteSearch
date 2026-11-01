@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import {
+  KnowledgeService,
   type ProductPublic,
   ProductsService,
   type ScenarioPublic,
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/_layout/generate")({
 })
 
 const MAX_MATERIALS = 5
+const MAX_MATERIAL_CHARS = 50000
 const MAX_BRIEF = 2000
 const MAX_TERMS = 20
 const ACCEPT = ".pdf,.docx,.md,.txt,.csv"
@@ -113,6 +115,21 @@ function NewTaskForm() {
       ).data.items,
     enabled: !!brandId,
   })
+  // 只用来决定是否显示提示：有已入库、当前版本、已建好索引的资料才可能被检索到
+  const approvedDocs = useQuery({
+    queryKey: ["knowledge-approved", brandId],
+    queryFn: async () =>
+      (
+        await KnowledgeService.readDocuments({
+          path: { brand_id: brandId },
+          query: { status: "approved", page_size: 100 },
+        })
+      ).data.items,
+    enabled: !!brandId,
+  })
+  const noRetrievableDocs =
+    approvedDocs.isSuccess &&
+    !approvedDocs.data.some((d) => d.is_current && d.index_status === "ready")
   const scenarios = useQuery({
     queryKey: ["scenarios"],
     queryFn: async () => (await TasksService.readScenarios()).data.items,
@@ -209,10 +226,12 @@ function NewTaskForm() {
 
   const briefLength = [...brief].length
   const termCount = splitTerms(terms).length
+  const pastedLength = [...pasted].length
   const ready =
     !!productId &&
     !!scenarioId &&
     materialCount <= MAX_MATERIALS &&
+    pastedLength <= MAX_MATERIAL_CHARS &&
     briefLength <= MAX_BRIEF &&
     termCount <= MAX_TERMS
   const go = (start: boolean) => {
@@ -282,6 +301,15 @@ function NewTaskForm() {
           title="这个品牌还没有商品"
           description="请先让品牌管理员添加商品，再回来创建任务。"
         />
+      )}
+
+      {noRetrievableDocs && (
+        <p
+          role="status"
+          className="rounded-md bg-tone-warn-bg px-3 py-2 text-sm text-tone-warn"
+        >
+          这个品牌还没有已审核的资料，生成的内容可能没有事实依据；请先到知识库上传并审核资料。
+        </p>
       )}
 
       <section className="space-y-3 rounded-xl border bg-card p-4">
@@ -471,6 +499,12 @@ function NewTaskForm() {
             已添加 {materialCount} / {MAX_MATERIALS} 份
           </span>
         </div>
+        {pastedLength > MAX_MATERIAL_CHARS && (
+          <p role="alert" className="text-sm text-destructive">
+            粘贴的资料已超过 {MAX_MATERIAL_CHARS} 字（{pastedLength}
+            ），请缩短后再提交。
+          </p>
+        )}
         {materialCount > MAX_MATERIALS && (
           <p role="alert" className="text-sm text-destructive">
             资料最多 {MAX_MATERIALS} 份，请移除多余的。
