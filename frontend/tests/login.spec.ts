@@ -4,6 +4,16 @@ import { randomPassword } from "./utils/random.ts"
 
 test.use({ storageState: { cookies: [], origins: [] } })
 
+test("Unknown page has a Chinese title and recovery link", async ({ page }) => {
+  await page.goto("/not-a-real-page")
+  await expect(page).toHaveTitle("页面未找到 - RedNoteSearch")
+  await expect(page.getByTestId("not-found")).toContainText(
+    "没有找到你访问的页面",
+  )
+  await page.getByRole("button", { name: "返回", exact: true }).click()
+  await expect(page).toHaveURL(/\/login$/)
+})
+
 const fillForm = async (page: Page, email: string, password: string) => {
   await page.getByTestId("email-input").fill(email)
   await page.getByTestId("password-input").fill(password)
