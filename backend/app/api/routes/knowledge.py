@@ -6,6 +6,8 @@ from sqlmodel import col, select
 
 from app.api.brand_deps import BrandAccess, BrandAccessDep, BrandAdminDep
 from app.api.deps import CurrentUser, SessionDep
+from app.core.config import settings
+from app.fakes.embedding import FakeEmbeddingProvider
 from app.infra.dashscope import DashScopeEmbeddingProvider
 from app.models import (
     BrandMember,
@@ -33,7 +35,11 @@ router = APIRouter(tags=["knowledge"])
 
 
 def get_embedder() -> EmbeddingProvider:
-    """Overridden in tests with a fake; the real one calls Bailian text-embedding-v4."""
+    """Overridden in tests with a fake; the real one calls Bailian text-embedding-v4.
+
+    ``LLM_MODE=demo_fake`` uses the fake here too, so the demo needs no API key at all."""
+    if settings.LLM_MODE == "demo_fake":
+        return FakeEmbeddingProvider()
     return DashScopeEmbeddingProvider()
 
 
