@@ -839,3 +839,10 @@ export function evaluationSystemLabel(system: string): string {
     (system.startsWith("model:") ? `模型：${system.slice(6)}` : system)
   )
 }
+
+export const EVAL_LIST_TEXT = {
+  name: "名称",
+  actions: "操作",
+  view: "查看",
+  clear: "清除筛选",
+} as const
