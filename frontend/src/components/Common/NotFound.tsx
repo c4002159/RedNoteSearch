@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
+import { SHELL_TEXT } from "@/lib/zh"
 
 const NotFound = () => {
   return (
@@ -12,16 +13,16 @@ const NotFound = () => {
           <span className="text-6xl md:text-8xl font-bold leading-none mb-4">
             404
           </span>
-          <span className="text-2xl font-bold mb-2">Oops!</span>
+          <span className="text-2xl font-bold mb-2">{SHELL_TEXT.notice}</span>
         </div>
       </div>
 
       <p className="text-lg text-muted-foreground mb-4 text-center z-10">
-        The page you are looking for was not found.
+        {SHELL_TEXT.notFound}
       </p>
       <div className="z-10">
         <Link to="/">
-          <Button className="mt-4">Go Back</Button>
+          <Button className="mt-4">{SHELL_TEXT.back}</Button>
         </Link>
       </div>
     </div>

@@ -8,7 +8,6 @@ import {
 } from "@tanstack/react-router"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-
 import { LoginService } from "@/client"
 import { AuthLayout } from "@/components/Common/AuthLayout"
 import {
@@ -23,6 +22,7 @@ import { LoadingButton } from "@/components/ui/loading-button"
 import { PasswordInput } from "@/components/ui/password-input"
 import { isLoggedIn } from "@/hooks/useAuth"
 import useCustomToast from "@/hooks/useCustomToast"
+import { SHELL_TEXT } from "@/lib/zh"
 import { handleError } from "@/utils"
 
 const searchSchema = z.object({
@@ -33,14 +33,14 @@ const formSchema = z
   .object({
     new_password: z
       .string()
-      .min(1, { message: "Password is required" })
-      .min(8, { message: "Password must be at least 8 characters" }),
+      .min(1, { message: SHELL_TEXT.passwordRequired })
+      .min(8, { message: SHELL_TEXT.passwordMin }),
     confirm_password: z
       .string()
-      .min(1, { message: "Password confirmation is required" }),
+      .min(1, { message: SHELL_TEXT.passwordConfirmationRequired }),
   })
   .refine((data) => data.new_password === data.confirm_password, {
-    message: "The passwords don't match",
+    message: SHELL_TEXT.passwordMismatch,
     path: ["confirm_password"],
   })
 
@@ -60,7 +60,7 @@ export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
       {
-        title: "Reset Password - FastAPI Template",
+        title: SHELL_TEXT.resetTitle,
       },
     ],
   }),
@@ -85,7 +85,7 @@ function ResetPassword() {
     mutationFn: (data: { new_password: string; token: string }) =>
       LoginService.resetPassword({ body: data }),
     onSuccess: () => {
-      showSuccessToast("Password updated successfully")
+      showSuccessToast(SHELL_TEXT.passwordUpdated)
       form.reset()
       navigate({ to: "/login" })
     },
@@ -104,7 +104,7 @@ function ResetPassword() {
           className="flex flex-col gap-6"
         >
           <div className="flex flex-col items-center gap-2 text-center">
-            <h1 className="text-2xl font-bold">Reset Password</h1>
+            <h1 className="text-2xl font-bold">{SHELL_TEXT.reset}</h1>
           </div>
 
           <div className="grid gap-4">
@@ -113,11 +113,11 @@ function ResetPassword() {
               name="new_password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>New Password</FormLabel>
+                  <FormLabel>{SHELL_TEXT.newPassword}</FormLabel>
                   <FormControl>
                     <PasswordInput
                       data-testid="new-password-input"
-                      placeholder="New Password"
+                      placeholder={SHELL_TEXT.newPassword}
                       {...field}
                     />
                   </FormControl>
@@ -131,11 +131,11 @@ function ResetPassword() {
               name="confirm_password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
+                  <FormLabel>{SHELL_TEXT.confirmPassword}</FormLabel>
                   <FormControl>
                     <PasswordInput
                       data-testid="confirm-password-input"
-                      placeholder="Confirm Password"
+                      placeholder={SHELL_TEXT.confirmPassword}
                       {...field}
                     />
                   </FormControl>
@@ -149,14 +149,14 @@ function ResetPassword() {
               className="w-full"
               loading={mutation.isPending}
             >
-              Reset Password
+              {SHELL_TEXT.reset}
             </LoadingButton>
           </div>
 
           <div className="text-center text-sm">
-            Remember your password?{" "}
+            {SHELL_TEXT.rememberPassword}{" "}
             <RouterLink to="/login" className="underline underline-offset-4">
-              Log in
+              {SHELL_TEXT.login}
             </RouterLink>
           </div>
         </form>
