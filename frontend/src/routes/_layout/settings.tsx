@@ -1,61 +1,45 @@
+import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-
+import { UsersService } from "@/client"
 import ChangePassword from "@/components/UserSettings/ChangePassword"
-import DeleteAccount from "@/components/UserSettings/DeleteAccount"
+import { SettingsError } from "@/components/UserSettings/Feedback"
 import UserInformation from "@/components/UserSettings/UserInformation"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import useAuth from "@/hooks/useAuth"
-
-const tabsConfig = [
-  { value: "my-profile", title: "My profile", component: UserInformation },
-  { value: "password", title: "Password", component: ChangePassword },
-  { value: "danger-zone", title: "Danger zone", component: DeleteAccount },
-]
-
+import { SETTINGS_TEXT as T } from "@/lib/zh"
 export const Route = createFileRoute("/_layout/settings")({
-  component: UserSettings,
-  head: () => ({
-    meta: [
-      {
-        title: "Settings - FastAPI Template",
-      },
-    ],
-  }),
+  component: SettingsPage,
+  head: () => ({ meta: [{ title: `${T.title} - RedNoteSearch` }] }),
 })
-
-function UserSettings() {
-  const { user: currentUser } = useAuth()
-  const finalTabs = currentUser?.is_superuser
-    ? tabsConfig.slice(0, 3)
-    : tabsConfig
-
-  if (!currentUser) {
-    return null
-  }
-
+function SettingsPage() {
+  const user = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: async () => (await UsersService.readUserMe()).data,
+  })
   return (
-    <div className="flex flex-col gap-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">User Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account settings and preferences
-        </p>
+        <h1 className="text-2xl font-bold">{T.title}</h1>
+        <p className="text-sm text-muted-foreground">{T.description}</p>
       </div>
-
-      <Tabs defaultValue="my-profile">
-        <TabsList>
-          {finalTabs.map((tab) => (
-            <TabsTrigger key={tab.value} value={tab.value}>
-              {tab.title}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {finalTabs.map((tab) => (
-          <TabsContent key={tab.value} value={tab.value}>
-            <tab.component />
+      {user.isLoading && <Skeleton className="h-40 w-full" />}
+      {user.isError && (
+        <SettingsError error={user.error} retry={() => user.refetch()} />
+      )}{" "}
+      {user.data && !user.isError && (
+        <Tabs defaultValue="profile">
+          <TabsList>
+            <TabsTrigger value="profile">{T.profile}</TabsTrigger>
+            <TabsTrigger value="password">{T.passwordTab}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="profile">
+            <UserInformation key={user.data.id} user={user.data} />
           </TabsContent>
-        ))}
-      </Tabs>
+          <TabsContent value="password">
+            <ChangePassword />
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   )
 }
