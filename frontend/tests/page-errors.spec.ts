@@ -62,15 +62,13 @@ test("Brand and rule errors stay Chinese and preserve request ids", async ({
 
   await page.goto("/compliance/rules")
   await page.getByRole("button", { name: "导入规则", exact: true }).click()
-  await page
-    .locator("#rules-file")
-    .setInputFiles({
-      name: "invalid.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        '[{"layer":"bad","rule_type":"bad","pattern":"test","severity":"bad"}]',
-      ),
-    })
+  await page.locator("#rules-file").setInputFiles({
+    name: "invalid.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      '[{"layer":"bad","rule_type":"bad","pattern":"test","severity":"bad"}]',
+    ),
+  })
   const rows = page.getByRole("region", { name: "逐行错误" })
   await expect(rows).toContainText("层级")
   await expect(rows).toContainText("严重度")
