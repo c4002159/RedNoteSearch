@@ -22,7 +22,15 @@ client.setConfig({
 const handleApiError = (error: Error) => {
   // Only an unauthenticated response ends the session. A 403 means "not allowed to do this" and is
   // shown to the user (FC-08); logging out on it would also hide the reason.
-  if (error instanceof AxiosError && error.response?.status === 401) {
+  // Wrong credentials on the login request are also a 401; the login page shows that error itself.
+  const isLogin =
+    error instanceof AxiosError &&
+    error.config?.url?.includes("/login/access-token")
+  if (
+    error instanceof AxiosError &&
+    error.response?.status === 401 &&
+    !isLogin
+  ) {
     localStorage.removeItem("access_token")
     window.location.href = "/login"
   }
