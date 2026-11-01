@@ -788,3 +788,18 @@ export const SHELL_TEXT = {
   notifications: "通知",
   closeNotification: "关闭通知",
 } as const
+
+export const TASK_ERROR_LABEL = {
+  model_unavailable: "模型暂时不可用，任务没有丢，可以直接重试。",
+  invalid_model_output: "模型多次返回不符合格式的内容，请调整创作要求后重试。",
+} as const
+
+export const COUNT_LABEL = {
+  title_weight: "标题加权",
+  body_units: "正文字符",
+  tags_units: "话题可见字符",
+  tags_visible_units: "话题可见字符",
+  tag_count: "话题数",
+  tags_count: "话题数",
+  body_budget_used: "正文预算已用",
+} as const
