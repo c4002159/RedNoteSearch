@@ -785,4 +785,6 @@ export const SHELL_TEXT = {
   hello: "你好，",
   welcome: "欢迎回来，很高兴再次见到你！",
   requestId: "请求编号",
+  notifications: "通知",
+  closeNotification: "关闭通知",
 } as const
