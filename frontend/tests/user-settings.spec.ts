@@ -1,4 +1,15 @@
 import { expect, test } from "@playwright/test"
+
+test("Sidebar responds to desktop viewport changes", async ({ page }) => {
+  await page.context().clearCookies()
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto("/settings")
+  const sidebar = page.locator('[data-slot="sidebar"]')
+  await expect(sidebar).toHaveAttribute("data-state", "expanded")
+  await page.setViewportSize({ width: 1024, height: 900 })
+  await expect(sidebar).toHaveAttribute("data-state", "collapsed")
+})
+
 import { firstSuperuser, firstSuperuserPassword } from "./config.ts"
 import { createUser } from "./utils/privateApi.ts"
 import { randomEmail, randomPassword } from "./utils/random"
