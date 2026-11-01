@@ -236,14 +236,8 @@ test("Selected mode is preserved across sessions", async ({ page }) => {
   await page.goto("/settings")
 
   await page.getByTestId("theme-button").click()
-  if (
-    await page.evaluate(() =>
-      document.documentElement.classList.contains("dark"),
-    )
-  ) {
-    await page.getByTestId("light-mode").click()
-    await page.getByTestId("theme-button").click()
-  }
+  await page.getByTestId("light-mode").click()
+  await expect(page.getByTestId("light-mode")).not.toBeVisible()
 
   const isLightMode = await page.evaluate(() =>
     document.documentElement.classList.contains("light"),
@@ -251,6 +245,7 @@ test("Selected mode is preserved across sessions", async ({ page }) => {
   expect(isLightMode).toBe(true)
 
   await page.getByTestId("theme-button").click()
+  await expect(page.getByTestId("dark-mode")).toBeVisible()
   await page.getByTestId("dark-mode").click()
   let isDarkMode = await page.evaluate(() =>
     document.documentElement.classList.contains("dark"),
@@ -264,4 +259,24 @@ test("Selected mode is preserved across sessions", async ({ page }) => {
     document.documentElement.classList.contains("dark"),
   )
   expect(isDarkMode).toBe(true)
+})
+
+test("Inner shell has Chinese controls, product title and no template footer", async ({
+  page,
+}) => {
+  await page.goto("/settings")
+  await expect(page).toHaveTitle("用户设置 - RedNoteSearch")
+  // Development tools may mount their own footer outside the application layout.
+  await expect(page.locator('[data-slot="sidebar-inset"] footer')).toHaveCount(
+    0,
+  )
+  await expect(page.getByText(/Full Stack FastAPI/)).toHaveCount(0)
+  await expect(page.getByTestId("theme-button")).toContainText("外观")
+  const collapse = page.getByRole("button", { name: "收起侧栏", exact: true })
+  await expect(collapse).toBeVisible()
+  await collapse.click()
+  await expect(
+    page.getByRole("button", { name: "展开侧栏", exact: true }),
+  ).toBeVisible()
+  await page.getByRole("button", { name: "展开侧栏", exact: true }).click()
 })

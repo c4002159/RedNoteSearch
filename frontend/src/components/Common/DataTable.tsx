@@ -13,7 +13,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react"
-
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -30,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { SHELL_TEXT } from "@/lib/zh"
 
 const dataTableFeatures = tableFeatures({
   rowPaginationFeature,
@@ -91,7 +91,7 @@ export function DataTable<TData extends RowData>({
                 colSpan={columns.length}
                 className="h-32 text-center text-muted-foreground"
               >
-                No results found.
+                {SHELL_TEXT.noResults}
               </TableCell>
             </TableRow>
           )}
@@ -102,22 +102,24 @@ export function DataTable<TData extends RowData>({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border-t bg-muted/20">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="text-sm text-muted-foreground">
-              Showing{" "}
+              {SHELL_TEXT.showing}{" "}
               {table.state.pagination.pageIndex *
                 table.state.pagination.pageSize +
                 1}{" "}
-              to{" "}
+              {SHELL_TEXT.rangeTo}{" "}
               {Math.min(
                 (table.state.pagination.pageIndex + 1) *
                   table.state.pagination.pageSize,
                 data.length,
               )}{" "}
-              of{" "}
+              {SHELL_TEXT.rangeOf}{" "}
               <span className="font-medium text-foreground">{data.length}</span>{" "}
-              entries
+              {SHELL_TEXT.entries}
             </div>
             <div className="flex items-center gap-x-2">
-              <p className="text-sm text-muted-foreground">Rows per page</p>
+              <p className="text-sm text-muted-foreground">
+                {SHELL_TEXT.rowsPerPage}
+              </p>
               <Select
                 value={`${table.state.pagination.pageSize}`}
                 onValueChange={(value) => {
@@ -140,11 +142,11 @@ export function DataTable<TData extends RowData>({
 
           <div className="flex items-center gap-x-6">
             <div className="flex items-center gap-x-1 text-sm text-muted-foreground">
-              <span>Page</span>
+              <span>{SHELL_TEXT.page}</span>
               <span className="font-medium text-foreground">
                 {table.state.pagination.pageIndex + 1}
               </span>
-              <span>of</span>
+              <span>{SHELL_TEXT.rangeOf}</span>
               <span className="font-medium text-foreground">
                 {table.getPageCount()}
               </span>
@@ -158,7 +160,7 @@ export function DataTable<TData extends RowData>({
                 onClick={() => table.setPageIndex(0)}
                 disabled={!table.getCanPreviousPage()}
               >
-                <span className="sr-only">Go to first page</span>
+                <span className="sr-only">{SHELL_TEXT.firstPage}</span>
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
               <Button
@@ -168,7 +170,7 @@ export function DataTable<TData extends RowData>({
                 onClick={() => table.previousPage()}
                 disabled={!table.getCanPreviousPage()}
               >
-                <span className="sr-only">Go to previous page</span>
+                <span className="sr-only">{SHELL_TEXT.previousPage}</span>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
@@ -178,7 +180,7 @@ export function DataTable<TData extends RowData>({
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
               >
-                <span className="sr-only">Go to next page</span>
+                <span className="sr-only">{SHELL_TEXT.nextPage}</span>
                 <ChevronRight className="h-4 w-4" />
               </Button>
               <Button
@@ -188,7 +190,7 @@ export function DataTable<TData extends RowData>({
                 onClick={() => table.setPageIndex(table.getPageCount() - 1)}
                 disabled={!table.getCanNextPage()}
               >
-                <span className="sr-only">Go to last page</span>
+                <span className="sr-only">{SHELL_TEXT.lastPage}</span>
                 <ChevronsRight className="h-4 w-4" />
               </Button>
             </div>
