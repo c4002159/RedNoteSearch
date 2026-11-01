@@ -2,11 +2,14 @@ import {
   BarChart3,
   Building2,
   FlaskConical,
+  ClipboardCheck,
   History,
+  Library,
   type LucideIcon,
   Settings,
   ShieldCheck,
   Sparkles,
+  TrendingUp,
   Users,
 } from "lucide-react"
 
@@ -71,10 +74,38 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    title: "知识库",
+    items: [
+      {
+        title: "资料列表与上传",
+        path: "/knowledge",
+        icon: Library,
+        access: "member",
+      },
+      {
+        title: "待审队列",
+        path: "/knowledge/review",
+        icon: ClipboardCheck,
+        access: "admin",
+      },
+    ],
+  },
+  {
     title: "系统",
     items: [
       { title: "用户设置", path: "/settings", icon: Settings, access: "all" },
       { title: "用户管理", path: "/admin", icon: Users, access: "platform" },
+    ],
+  },
+  {
+    title: "增强",
+    items: [
+      {
+        title: "爆款结构分析",
+        path: "/viral-samples",
+        icon: TrendingUp,
+        access: "member",
+      },
     ],
   },
 ]
