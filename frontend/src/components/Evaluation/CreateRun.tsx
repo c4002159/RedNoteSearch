@@ -17,7 +17,13 @@ import {
 import { LoadingButton } from "@/components/ui/loading-button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { parseApiError } from "@/lib/apiError"
-import { EVAL_KIND_LABEL, label, EVAL_TEXT as T } from "@/lib/zh"
+import {
+  EVAL_KIND_LABEL,
+  EVAL_RUN_COPY,
+  evaluationSystemLabel,
+  label,
+  EVAL_TEXT as T,
+} from "@/lib/zh"
 import { EvaluationError } from "./shared"
 
 type Values = { dataset_id: string; model_ids: string[] }
@@ -160,9 +166,9 @@ export function CreateRun({
             {selected && (
               <p className="rounded-lg bg-surface p-3 text-sm">
                 {selected.kind === "compliance"
-                  ? T.baselineCompliance
+                  ? `${EVAL_RUN_COPY.includes}${evaluationSystemLabel("baseline:lexicon_only")}${EVAL_RUN_COPY.withoutModel}`
                   : selected.kind === "factcheck"
-                    ? T.baselineFactcheck
+                    ? `${EVAL_RUN_COPY.includes}${evaluationSystemLabel("baseline:no_verification")}${EVAL_RUN_COPY.asReference}`
                     : T.baselineNone}
               </p>
             )}
