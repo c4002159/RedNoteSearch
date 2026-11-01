@@ -1,142 +1,126 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   createFileRoute,
-  Link as RouterLink,
+  Link,
   redirect,
+  useNavigate,
 } from "@tanstack/react-router"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-
-import type { Body_login_login_access_token as AccessToken } from "@/client"
+import { LoginService } from "@/client"
 import { AuthLayout } from "@/components/Common/AuthLayout"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
+import { ErrorBanner } from "@/components/Common/ErrorBanner"
+import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { PasswordInput } from "@/components/ui/password-input"
-import useAuth, { isLoggedIn } from "@/hooks/useAuth"
+import { isLoggedIn } from "@/hooks/useAuth"
+import { parseApiError } from "@/lib/apiError"
+import { SETTINGS_TEXT as T } from "@/lib/zh"
 
-const formSchema = z.object({
-  username: z.email({ message: "Invalid email address" }),
-  password: z
-    .string()
-    .min(1, { message: "Password is required" })
-    .min(8, { message: "Password must be at least 8 characters" }),
-}) satisfies z.ZodType<AccessToken>
-
-type FormData = z.infer<typeof formSchema>
-
+const schema = z.object({
+  username: z.string().trim().pipe(z.email(T.invalidEmail)),
+  password: z.string().min(1, T.passwordRequired),
+})
 export const Route = createFileRoute("/login")({
   component: Login,
-  beforeLoad: async () => {
-    if (isLoggedIn()) {
-      throw redirect({
-        to: "/",
-      })
-    }
+  beforeLoad: () => {
+    if (isLoggedIn()) throw redirect({ to: "/" })
   },
-  head: () => ({
-    meta: [
-      {
-        title: "Log In - FastAPI Template",
-      },
-    ],
-  }),
+  head: () => ({ meta: [{ title: `${T.login} - RedNoteSearch` }] }),
 })
-
 function Login() {
-  const { loginMutation } = useAuth()
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+  const cache = useQueryClient(),
+    navigate = useNavigate()
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+    defaultValues: { username: "", password: "" },
     mode: "onBlur",
-    criteriaMode: "all",
-    defaultValues: {
-      username: "",
-      password: "",
+  })
+  const mutation = useMutation({
+    mutationFn: async (body: z.infer<typeof schema>) => {
+      // Invalid credentials belong to this public form, not the authenticated session error handler.
+      try {
+        return {
+          token: (await LoginService.loginAccessToken({ body })).data
+            .access_token,
+        }
+      } catch (error) {
+        const info = parseApiError(error)
+        return {
+          error:
+            info.status === 400 || info.status === 401
+              ? { ...info, message: T.invalidCredentials }
+              : info,
+        }
+      }
+    },
+    onSuccess: (result) => {
+      if (result.token) {
+        cache.clear()
+        localStorage.setItem("access_token", result.token)
+        void navigate({ to: "/" })
+      }
     },
   })
-
-  const onSubmit = (data: FormData) => {
-    if (loginMutation.isPending) return
-    loginMutation.mutate(data)
-  }
-
+  const error = mutation.data?.error
   return (
     <AuthLayout>
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="flex flex-col gap-6"
-        >
-          <div className="flex flex-col items-center gap-2 text-center">
-            <h1 className="text-2xl font-bold">Login to your account</h1>
-          </div>
-
-          <div className="grid gap-4">
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      data-testid="email-input"
-                      placeholder="user@example.com"
-                      type="email"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
+      <form
+        noValidate
+        className="flex flex-col gap-5"
+        onSubmit={form.handleSubmit((v) => {
+          if (!mutation.isPending) mutation.mutate(v)
+        })}
+      >
+        <h1 className="text-center text-2xl font-bold">{T.loginTitle}</h1>
+        <fieldset disabled={mutation.isPending} className="space-y-4">
+          <legend className="sr-only">{T.login}</legend>
+          <div>
+            <label htmlFor="login-email">{T.loginEmail}</label>
+            <Input
+              id="login-email"
+              data-testid="email-input"
+              type="email"
+              autoComplete="username"
+              {...form.register("username")}
             />
-
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center">
-                    <FormLabel>Password</FormLabel>
-                    <RouterLink
-                      to="/recover-password"
-                      className="ml-auto text-sm underline-offset-4 hover:underline"
-                    >
-                      Forgot your password?
-                    </RouterLink>
-                  </div>
-                  <FormControl>
-                    <PasswordInput
-                      data-testid="password-input"
-                      placeholder="Password"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
+            <p className="text-xs text-destructive">
+              {form.formState.errors.username?.message}
+            </p>
+          </div>
+          <div>
+            <label htmlFor="login-password">{T.loginPassword}</label>
+            <PasswordInput
+              id="login-password"
+              data-testid="password-input"
+              autoComplete="current-password"
+              {...form.register("password")}
             />
-
-            <LoadingButton type="submit" loading={loginMutation.isPending}>
-              Log In
-            </LoadingButton>
+            <p className="text-xs text-destructive">
+              {form.formState.errors.password?.message}
+            </p>
           </div>
-
-          <div className="text-center text-sm">
-            Don't have an account yet?{" "}
-            <RouterLink to="/signup" className="underline underline-offset-4">
-              Sign up
-            </RouterLink>
+        </fieldset>
+        {error && (
+          <div className="[&_span.inline-flex]:flex-wrap [&_code]:break-all [&_code]:whitespace-normal [&_button]:shrink-0">
+            <ErrorBanner error={error} />
+            {error.status === 403 && (
+              <ForbiddenPage requestId={error.requestId} />
+            )}
           </div>
-        </form>
-      </Form>
+        )}
+        <LoadingButton type="submit" loading={mutation.isPending}>
+          {mutation.isPending ? T.loading : T.login}
+        </LoadingButton>
+        <Link to="/recover-password" className="text-center text-sm text-link">
+          {T.recover}
+        </Link>
+        <p className="text-center text-xs text-muted-foreground">
+          {T.noSignup}
+        </p>
+      </form>
     </AuthLayout>
   )
 }
