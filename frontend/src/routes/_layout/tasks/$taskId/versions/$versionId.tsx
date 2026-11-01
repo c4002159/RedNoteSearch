@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -42,7 +42,7 @@ import {
   titleWeight,
 } from "@/lib/count"
 import { formatTime } from "@/lib/format"
-import { LAYER_LABEL, label, ORIGIN_LABEL } from "@/lib/zh"
+import { COUNT_LABEL, LAYER_LABEL, label, ORIGIN_LABEL } from "@/lib/zh"
 
 export const Route = createFileRoute(
   "/_layout/tasks/$taskId/versions/$versionId",
@@ -52,6 +52,9 @@ export const Route = createFileRoute(
 })
 
 const CONFIRMABLE = ["checks_completed", "needs_human_review"]
+// 这些状态下后台还在跑，页面要轮询；结论性文案先不显示
+const IN_PROGRESS = ["queued", "generating", "checking"]
+const POLL_MS = 1500
 
 type Version = GenerationVersionPublic
 
@@ -267,7 +270,7 @@ function ConstraintPanel({ version }: { version: Version }) {
         <p className="text-xs text-muted-foreground">
           计数：
           {Object.entries(counts)
-            .map(([k, v]) => `${k} ${v}`)
+            .map(([k, v]) => `${label(COUNT_LABEL, k, "count")} ${v}`)
             .join("，")}
         </p>
       )}
@@ -283,10 +286,12 @@ function ConstraintPanel({ version }: { version: Version }) {
 function EvidencePanel({
   items,
   editable,
+  busyText,
   onDecide,
 }: {
   items: ClaimEvidencePublic[]
   editable: boolean
+  busyText: string | null
   onDecide: (item: ClaimEvidencePublic, ok: boolean) => void
 }) {
   return (
@@ -296,7 +301,9 @@ function EvidencePanel({
         “系统判定支持”只表示资料与断言匹配，不是事实保证。没有系统依据的断言需要你逐条判断。
       </p>
       {items.length === 0 && (
-        <p className="text-sm text-muted-foreground">没有需要核对的断言。</p>
+        <p className="text-sm text-muted-foreground">
+          {busyText ?? "没有需要核对的断言。"}
+        </p>
       )}
       <ul className="space-y-3">
         {items.map((e) => {
@@ -362,10 +369,12 @@ function EvidencePanel({
 function RiskPanel({
   items,
   editable,
+  busyText,
   onResolve,
 }: {
   items: ComplianceCheckPublic[]
   editable: boolean
+  busyText: string | null
   onResolve: (item: ComplianceCheckPublic) => void
 }) {
   return (
@@ -376,7 +385,7 @@ function RiskPanel({
       </p>
       {items.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          没有发现需要提示的内容。
+          {busyText ?? "没有发现需要提示的内容。"}
         </p>
       )}
       <ul className="space-y-3">
@@ -564,7 +573,28 @@ function ResultPage() {
     queryFn: async () =>
       (await TasksService.readVersion({ path: { version_id: versionId } }))
         .data,
+    // 重新检查在后台进行：进行中时轮询，完成后再刷新事实依据与风险提示
+    refetchInterval: (query) =>
+      IN_PROGRESS.includes(query.state.data?.flow_status ?? "")
+        ? POLL_MS
+        : false,
   })
+  const flowStatus = version.data?.flow_status
+  const inProgress = IN_PROGRESS.includes(flowStatus ?? "")
+  const busyText = !inProgress
+    ? null
+    : flowStatus === "checking"
+      ? "正在重新检查…"
+      : "正在生成，完成后会自动显示…"
+  const previousStatus = useRef(flowStatus)
+  useEffect(() => {
+    if (
+      IN_PROGRESS.includes(previousStatus.current ?? "") &&
+      !IN_PROGRESS.includes(flowStatus ?? "")
+    )
+      void refresh()
+    previousStatus.current = flowStatus
+  }, [flowStatus, refresh])
   const task = useQuery({
     queryKey: ["task", taskId],
     queryFn: async () =>
@@ -578,6 +608,7 @@ function ResultPage() {
           path: { version_id: versionId },
         })
       ).data.items,
+    refetchInterval: inProgress ? POLL_MS : false,
   })
   const compliance = useQuery({
     queryKey: ["compliance", versionId],
@@ -587,6 +618,7 @@ function ResultPage() {
           path: { version_id: versionId },
         })
       ).data,
+    refetchInterval: inProgress ? POLL_MS : false,
   })
 
   const goTo = async (v: Version) => {
@@ -666,17 +698,17 @@ function ResultPage() {
   const rejected = items.filter((e) => e.human_confirmed === false)
   const openBlocks = compliance.data?.unresolved_block ?? 0
   const blockers: string[] = []
-  if (!CONFIRMABLE.includes(v.flow_status))
+  if (!inProgress && !CONFIRMABLE.includes(v.flow_status))
     blockers.push(
       v.flow_status === "edited_pending_recheck"
         ? "文字已编辑，请先重新检查"
         : "当前状态还不能确认",
     )
-  if (openBlocks > 0)
+  if (!inProgress && openBlocks > 0)
     blockers.push(`还有 ${openBlocks} 条“必须修改”的风险提示未处理`)
-  if (undecided.length > 0)
+  if (!inProgress && undecided.length > 0)
     blockers.push(`还有 ${undecided.length} 条断言没有人工判断`)
-  if (rejected.length > 0)
+  if (!inProgress && rejected.length > 0)
     blockers.push(`有 ${rejected.length} 条断言被判为不成立`)
   if (!isLatest) blockers.push("只有最新版本可以确认")
   const confirmError = confirm.isError ? parseApiError(confirm.error) : null
@@ -813,28 +845,36 @@ function ResultPage() {
                 )}
               </>
             )}
-            {editable && v.flow_status !== "edited_pending_recheck" && (
+            {inProgress && (
               <>
-                {blockers.length > 0 && (
-                  <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                    {blockers.map((b) => (
-                      <li key={b}>{b}</li>
-                    ))}
-                  </ul>
-                )}
-                <LoadingButton
-                  loading={confirm.isPending}
-                  disabled={blockers.length > 0}
-                  onClick={() => confirm.mutate(chosen)}
-                >
-                  确认可复制
-                </LoadingButton>
-                <p className="text-xs text-muted-foreground">
-                  “可复制”只表示运营确认了这份文字，不代表合规或事实保证。
-                </p>
-                {confirmError && <ErrorBanner error={confirmError} />}
+                <p className="text-sm">{busyText}</p>
+                <Button disabled>确认可复制</Button>
               </>
             )}
+            {editable &&
+              !inProgress &&
+              v.flow_status !== "edited_pending_recheck" && (
+                <>
+                  {blockers.length > 0 && (
+                    <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                      {blockers.map((b) => (
+                        <li key={b}>{b}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <LoadingButton
+                    loading={confirm.isPending}
+                    disabled={blockers.length > 0}
+                    onClick={() => confirm.mutate(chosen)}
+                  >
+                    确认可复制
+                  </LoadingButton>
+                  <p className="text-xs text-muted-foreground">
+                    “可复制”只表示运营确认了这份文字，不代表合规或事实保证。
+                  </p>
+                  {confirmError && <ErrorBanner error={confirmError} />}
+                </>
+              )}
             {ready && <p className="text-sm">运营已确认，可在左侧下方复制。</p>}
             {!editable &&
               !ready &&
@@ -858,6 +898,7 @@ function ResultPage() {
             <EvidencePanel
               items={items}
               editable={editable}
+              busyText={busyText}
               onDecide={(item, ok) => setDialog({ kind: "evidence", item, ok })}
             />
           )}
@@ -872,6 +913,7 @@ function ResultPage() {
             <RiskPanel
               items={compliance.data?.items ?? []}
               editable={editable}
+              busyText={busyText}
               onResolve={(item) => setDialog({ kind: "risk", item })}
             />
           )}

@@ -23,7 +23,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { useBrand } from "@/hooks/useBrand"
 import { type ApiErrorInfo, parseApiError } from "@/lib/apiError"
-import { EMOJI_LABEL, LENGTH_LABEL, PERSON_LABEL } from "@/lib/zh"
+import {
+  EMOJI_LABEL,
+  LENGTH_LABEL,
+  label,
+  PERSON_LABEL,
+  TASK_ERROR_LABEL,
+} from "@/lib/zh"
 
 export const Route = createFileRoute("/_layout/generate")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -34,6 +40,8 @@ export const Route = createFileRoute("/_layout/generate")({
 })
 
 const MAX_MATERIALS = 5
+const MAX_BRIEF = 2000
+const MAX_TERMS = 20
 const ACCEPT = ".pdf,.docx,.md,.txt,.csv"
 
 function Field({
@@ -174,7 +182,14 @@ function NewTaskForm() {
     )
   }
 
-  const ready = !!productId && !!scenarioId && materialCount <= MAX_MATERIALS
+  const briefLength = [...brief].length
+  const termCount = splitTerms(terms).length
+  const ready =
+    !!productId &&
+    !!scenarioId &&
+    materialCount <= MAX_MATERIALS &&
+    briefLength <= MAX_BRIEF &&
+    termCount <= MAX_TERMS
   const go = (start: boolean) => {
     setError(null)
     submit.mutate(start)
@@ -344,14 +359,28 @@ function NewTaskForm() {
         </div>
       </section>
 
-      <Field title="创作要求" hint="写下这篇笔记想表达的重点、读者与限制。">
+      <Field
+        title="创作要求"
+        hint={
+          briefLength > MAX_BRIEF
+            ? `已超过 ${MAX_BRIEF} 字（${briefLength} / ${MAX_BRIEF}），请缩短后再提交。`
+            : `写下这篇笔记想表达的重点、读者与限制。${briefLength} / ${MAX_BRIEF}`
+        }
+      >
         <Textarea
           value={brief}
           onChange={(e) => setBrief(e.target.value)}
           rows={4}
         />
       </Field>
-      <Field title="必须包含的词" hint="用逗号或换行分隔。">
+      <Field
+        title="必须包含的词"
+        hint={
+          termCount > MAX_TERMS
+            ? `最多 ${MAX_TERMS} 个词（现在 ${termCount} 个），请删减后再提交。`
+            : `用逗号或换行分隔，最多 ${MAX_TERMS} 个。`
+        }
+      >
         <Textarea
           value={terms}
           onChange={(e) => setTerms(e.target.value)}
@@ -614,7 +643,7 @@ function TaskRun({ taskId }: { taskId: string }) {
         )}
         {t.last_error && (
           <p role="alert" className="text-sm text-destructive">
-            {t.last_error}
+            {label(TASK_ERROR_LABEL, t.last_error, "task_error")}
           </p>
         )}
         {generate.isError && (

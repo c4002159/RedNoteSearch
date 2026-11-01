@@ -1,4 +1,5 @@
 import { AxiosError } from "axios"
+import { SHELL_TEXT } from "@/lib/zh"
 
 function extractErrorMessage(err: Error): string {
   if (err instanceof AxiosError) {
@@ -12,7 +13,7 @@ function extractErrorMessage(err: Error): string {
           ? firstError
           : envelope.message
       return envelope.request_id
-        ? `${text} (request_id: ${envelope.request_id})`
+        ? `${text}（${SHELL_TEXT.requestId}：${envelope.request_id}）`
         : text
     }
     const errDetail = data?.detail
@@ -24,7 +25,7 @@ function extractErrorMessage(err: Error): string {
     }
     return err.message
   }
-  return "Something went wrong."
+  return SHELL_TEXT.fallbackError
 }
 
 export const handleError = function (this: (msg: string) => void, err: Error) {
