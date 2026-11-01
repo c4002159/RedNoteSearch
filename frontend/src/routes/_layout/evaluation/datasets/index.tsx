@@ -23,6 +23,7 @@ import {
 import { useBrand } from "@/hooks/useBrand"
 import { formatTime } from "@/lib/format"
 import {
+  EVAL_CASE_COUNT_LABEL,
   EVAL_DATASETS_DESCRIPTION,
   EVAL_DESIGN_TEXT,
   EVAL_KIND_LABEL,
@@ -116,7 +117,7 @@ function DatasetsPage() {
                     T.kind,
                     T.scope,
                     T.version,
-                    T.cases,
+                    EVAL_CASE_COUNT_LABEL,
                     T.created,
                     EVAL_LIST_TEXT.actions,
                   ].map((heading) => (

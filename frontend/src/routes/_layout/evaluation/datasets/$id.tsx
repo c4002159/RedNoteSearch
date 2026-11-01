@@ -16,7 +16,12 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useBrand } from "@/hooks/useBrand"
 import { formatTime } from "@/lib/format"
-import { EVAL_DESIGN_TEXT, EVAL_KIND_LABEL, label, EVAL_TEXT as T } from "@/lib/zh"
+import {
+  EVAL_DESIGN_TEXT,
+  EVAL_KIND_LABEL,
+  label,
+  EVAL_TEXT as T,
+} from "@/lib/zh"
 export const Route = createFileRoute("/_layout/evaluation/datasets/$id")({
   component: () => (
     <EvaluationGuard>
@@ -82,7 +87,13 @@ function DatasetPage() {
             [T.group, dataset.group_id],
             [T.hash, dataset.content_hash],
             [T.created, formatTime(dataset.created_at)],
-            [T.scope, dataset.brand_id === null ? T.global : brand.brands.find((b) => b.id === dataset.brand_id)?.name ?? EVAL_DESIGN_TEXT.otherBrand],
+            [
+              T.scope,
+              dataset.brand_id === null
+                ? T.global
+                : (brand.brands.find((b) => b.id === dataset.brand_id)?.name ??
+                  EVAL_DESIGN_TEXT.otherBrand),
+            ],
           ].map(([k, v]) => (
             <div key={k} className="min-w-0">
               <dt className="text-muted-foreground">{k}</dt>

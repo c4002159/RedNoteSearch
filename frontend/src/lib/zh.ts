@@ -849,3 +849,5 @@ export const EVAL_LIST_TEXT = {
 
 export const EVAL_DATASETS_DESCRIPTION =
   "评测集创建后内容固定；修改会产生新版本，旧版本保留。"
+
+export const EVAL_CASE_COUNT_LABEL = "样本数"
