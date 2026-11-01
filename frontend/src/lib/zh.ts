@@ -807,3 +807,41 @@ export const COUNT_LABEL = {
 export const SHELL_AUDIT_TEXT = {
   notFoundTitle: "页面未找到 - RedNoteSearch",
 } as const
+
+export const PAGE_ERROR_TEXT = {
+  lastAdmin: "不能移除或降级最后一位品牌管理员，请先添加另一位管理员。",
+  failed: "操作失败，请重试；如仍失败，请联系管理员并提供请求编号。",
+  status: {
+    400: "请求内容有误，请检查后重试。",
+    403: "你没有执行此操作的权限。",
+    404: "未找到该记录，记录可能已移除或无权访问。",
+    409: "记录状态发生冲突，请刷新后重试。",
+    422: "填写内容不符合要求，请检查后重试。",
+    500: "服务暂时异常，请稍后重试。",
+    503: "服务暂时不可用，请稍后重试。",
+  } as Record<number, string>,
+} as const
+
+export const RULE_ERROR_TEXT = {
+  rows: "文件行号：",
+  ids: "规则编号列表：",
+  otherField: "文件内容",
+  invalidValue: "字段值不符合要求，请参照下载模板填写。",
+  fields: {
+    id: "规则编号",
+    layer: "层级",
+    rule_type: "类型",
+    pattern: "规则内容",
+    severity: "严重度",
+    source_name: "来源",
+    source_url: "来源链接",
+    source_clause: "出处条款",
+    region_scope: "适用地区",
+    enabled: "启用状态",
+    effective_from: "生效日期",
+    effective_to: "失效日期",
+    header: "表头",
+  } as Record<string, string>,
+} as const
+
+export const PAGE_LOADING_TEXT = { loading: "正在加载，请稍候…" } as const
