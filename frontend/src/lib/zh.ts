@@ -643,7 +643,8 @@ export const CATALOG_TEXT = {
   personaRequired: "请填写品牌人设",
   personaLimit: "品牌人设最多 2000 字",
   tooMany: "条目超过上限",
-  listHint: "输入一项后点“添加”；每条内容按纯文本保存。",
+  listHint: "输入后按回车或逗号添加；点标签上的 × 删除；每条内容按纯文本保存。",
+  listPlaceholder: "输入后按回车添加",
 } as const
 export const PRODUCT_STATUS_LABEL = {
   active: "在用",
