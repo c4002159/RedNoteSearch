@@ -23,7 +23,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { useBrand } from "@/hooks/useBrand"
 import { type ApiErrorInfo, parseApiError } from "@/lib/apiError"
-import { EMOJI_LABEL, LENGTH_LABEL, PERSON_LABEL } from "@/lib/zh"
+import {
+  EMOJI_LABEL,
+  LENGTH_LABEL,
+  label,
+  PERSON_LABEL,
+  TASK_ERROR_LABEL,
+} from "@/lib/zh"
 
 export const Route = createFileRoute("/_layout/generate")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -614,7 +620,7 @@ function TaskRun({ taskId }: { taskId: string }) {
         )}
         {t.last_error && (
           <p role="alert" className="text-sm text-destructive">
-            {t.last_error}
+            {label(TASK_ERROR_LABEL, t.last_error, "task_error")}
           </p>
         )}
         {generate.isError && (
