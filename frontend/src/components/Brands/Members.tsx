@@ -3,8 +3,8 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { BrandsService, type MemberPublic, type MemberRole } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { LoadingState } from "@/components/Common/LoadingState"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import { label, ROLE_LABEL, BRAND_PAGE_TEXT as T } from "@/lib/zh"
 import { AddMember } from "./AddMember"
 import { BrandConfirm, BrandError } from "./Feedback"
@@ -61,7 +61,7 @@ export function Members({ brandId }: { brandId: string }) {
           }}
         />
       )}
-      {query.isLoading && <Skeleton className="h-32 w-full" />}
+      {query.isLoading && <LoadingState className="h-32 w-full" />}
       {query.isError && (
         <BrandError error={query.error} retry={() => query.refetch()} />
       )}
