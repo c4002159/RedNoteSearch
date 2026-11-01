@@ -1085,12 +1085,18 @@ export type MarkdownExport = {
 
 /**
  * MemberCreate
+ *
+ * Identify the user by `user_id` or by `email` (exactly one of them).
  */
 export type MemberCreate = {
     /**
      * User Id
      */
-    user_id: string;
+    user_id?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
     role: MemberRole;
 };
 

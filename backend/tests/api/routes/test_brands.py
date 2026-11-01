@@ -299,3 +299,57 @@ def test_brand_access_dependencies(
     with pytest.raises(HTTPException) as no_bypass:
         get_brand_access(uuid.UUID(other["id"]), db, superuser)
     assert no_bypass.value.status_code == 403
+
+
+def test_add_member_by_email(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
+    brand = _create_brand(client, superuser_token_headers)
+    admin, admin_headers = _make_user(client, db)
+    editor, editor_headers = _make_user(client, db)
+    newcomer, _ = _make_user(client, db)
+    _add_member(client, superuser_token_headers, brand["id"], admin, "admin")
+    _add_member(client, superuser_token_headers, brand["id"], editor, "editor")
+    url = f"{API}/brands/{brand['id']}/members"
+
+    # a brand admin (not a platform admin) can add by email, case and spaces ignored
+    ok = client.post(
+        url,
+        headers=admin_headers,
+        json={"email": f"  {newcomer.email.upper()} ", "role": "editor"},
+    )
+    assert ok.status_code == 201
+    assert ok.json()["user_id"] == str(newcomer.id)
+    assert ok.json()["email"] == newcomer.email
+
+    again = client.post(
+        url, headers=admin_headers, json={"email": newcomer.email, "role": "editor"}
+    )
+    assert again.status_code == 409
+    unknown = client.post(
+        url,
+        headers=admin_headers,
+        json={"email": "nobody-here@example.com", "role": "editor"},
+    )
+    assert unknown.status_code == 404
+    by_editor = client.post(
+        url, headers=editor_headers, json={"email": newcomer.email, "role": "admin"}
+    )
+    assert by_editor.status_code == 403
+
+
+def test_add_member_needs_exactly_one_identifier(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
+    brand = _create_brand(client, superuser_token_headers)
+    user, _ = _make_user(client, db)
+    url = f"{API}/brands/{brand['id']}/members"
+    for body in (
+        {"role": "editor"},
+        {"user_id": str(user.id), "email": user.email, "role": "editor"},
+        {"email": "", "role": "editor"},
+    ):
+        assert (
+            client.post(url, headers=superuser_token_headers, json=body).status_code
+            == 422
+        )
