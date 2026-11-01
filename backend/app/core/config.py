@@ -78,6 +78,9 @@ class Settings(BaseSettings):
     DEEPSEEK_PRICE_IN_PER_1K: float | None = None
     DEEPSEEK_PRICE_OUT_PER_1K: float | None = None
     LLM_PRICE_VERSION: str | None = None
+    # "demo_fake" answers task generation and checks by text matching, for walking through the flow
+    # without a key. Off by default; its results carry the model name "demo-fake".
+    LLM_MODE: Literal["real", "demo_fake"] = "real"
     OPENAI_API_KEY: str | None = None
     LLM_TIMEOUT_SECONDS: float = 60.0
     LLM_MAX_RETRIES: int = 2
