@@ -40,6 +40,7 @@ export const Route = createFileRoute("/_layout/generate")({
 })
 
 const MAX_MATERIALS = 5
+const MAX_MATERIAL_CHARS = 50000
 const MAX_BRIEF = 2000
 const MAX_TERMS = 20
 const ACCEPT = ".pdf,.docx,.md,.txt,.csv"
@@ -184,10 +185,12 @@ function NewTaskForm() {
 
   const briefLength = [...brief].length
   const termCount = splitTerms(terms).length
+  const pastedLength = [...pasted].length
   const ready =
     !!productId &&
     !!scenarioId &&
     materialCount <= MAX_MATERIALS &&
+    pastedLength <= MAX_MATERIAL_CHARS &&
     briefLength <= MAX_BRIEF &&
     termCount <= MAX_TERMS
   const go = (start: boolean) => {
@@ -446,6 +449,12 @@ function NewTaskForm() {
             已添加 {materialCount} / {MAX_MATERIALS} 份
           </span>
         </div>
+        {pastedLength > MAX_MATERIAL_CHARS && (
+          <p role="alert" className="text-sm text-destructive">
+            粘贴的资料已超过 {MAX_MATERIAL_CHARS} 字（{pastedLength}
+            ），请缩短后再提交。
+          </p>
+        )}
         {materialCount > MAX_MATERIALS && (
           <p role="alert" className="text-sm text-destructive">
             资料最多 {MAX_MATERIALS} 份，请移除多余的。
