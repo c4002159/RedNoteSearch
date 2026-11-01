@@ -26,7 +26,7 @@
 
 ## 区域与字段
 **样本列表**（`GET /brands/{brand_id}/viral-samples`，排序 `±created_at`）：摘要（`excerpt`，前 200 字）、字数 `char_count`、添加时间；列表不含全文。**形式是卡片行，不是表格**：每行一张卡片，摘要在上，下面一行“n 字 · 时间”；整行可点进入详情，不需要“查看”按钮（2026-11-02 订正，以实现为准；图 01 的表格与“查看”按钮以本文为准）。
-**添加样本**（`POST …/viral-samples`）：文本 1–5000 字（显示字数计数）；备注选填 ≤1000；来源链接选填 ≤2000，须 http 或 https。
+**添加样本**（`POST …/viral-samples`）：窗口的确认按钮写“保存样本”（2026-11-02 订正，以实现为准；图 01 里写的“添加”以本文为准）。文本 1–5000 字（显示字数计数）；备注选填 ≤1000；来源链接选填 ≤2000，须 http 或 https。
 **样本详情**（`GET /viral-samples/{id}`）：全文、备注、来源链接。**来源链接只作纯文字显示，不做成可点击链接。** 已分析的结构列表来自 `GET …/patterns`。
 **分析**（`POST /viral-samples/{id}/analyze`，体 `{model_id}`，同步，成功 201）：通常 20–90 秒，前端超时设置 ≥120 秒，所以必须有等待状态：显示已等待秒数、按钮不可点、不提供取消。网络层超时后，界面**先提示去读取结构列表核对**，没有新结果再重试，避免重复分析。
 **结构详情**（`GET /viral-patterns/{id}`）：`title_pattern`、`hook_type`、`tone`、`emoji_usage`、`hashtag_usage`、`paragraph_structure`（1–20 段，按有序列表显示）、`abstract_template`（≤5000，**按纯文本段落显示，不渲染占位符、不当可填充模板**）、`model_id`、`prompt_version`、`checker_version`。
