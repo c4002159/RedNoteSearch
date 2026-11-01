@@ -21,8 +21,10 @@ from sqlmodel import Session
 from app.api.brand_deps import BrandAccess, BrandAccessDep, get_brand_access
 from app.api.deps import CurrentUser, SessionDep
 from app.api.routes.knowledge import EmbedderDep
+from app.core.config import settings
 from app.core.db import engine
 from app.domain.flow import FlowStatus
+from app.fakes.demo_llm import DemoLlmClient
 from app.infra.openai_compat import deepseek_client
 from app.models import (
     BrandMember,
@@ -69,6 +71,8 @@ def get_llm_factory() -> LlmFactory:
     """
 
     def build(brand_id: uuid.UUID, task_id: uuid.UUID) -> LlmClient:
+        if settings.LLM_MODE == "demo_fake":
+            return DemoLlmClient()
         recorder = DbLlmCallRecorder(
             lambda: Session(engine), brand_id=brand_id, task_id=task_id
         )
