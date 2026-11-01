@@ -18,7 +18,9 @@ import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutBrandsRouteImport } from './routes/_layout/brands'
 import { Route as LayoutGenerateRouteImport } from './routes/_layout/generate'
+import { Route as LayoutProductsRouteImport } from './routes/_layout/products'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
+import { Route as LayoutVoiceProfileRouteImport } from './routes/_layout/voice-profile'
 import { Route as LayoutComplianceRulesRouteImport } from './routes/_layout/compliance/rules'
 import { Route as LayoutKnowledgeIndexRouteImport } from './routes/_layout/knowledge/index'
 import { Route as LayoutKnowledgeIdRouteImport } from './routes/_layout/knowledge/$id'
@@ -79,9 +81,19 @@ const LayoutGenerateRoute = LayoutGenerateRouteImport.update({
   path: '/generate',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutProductsRoute = LayoutProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutVoiceProfileRoute = LayoutVoiceProfileRouteImport.update({
+  id: '/voice-profile',
+  path: '/voice-profile',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutComplianceRulesRoute = LayoutComplianceRulesRouteImport.update({
@@ -174,7 +186,9 @@ export interface FileRoutesByFullPath {
   '/admin': typeof LayoutAdminRoute
   '/brands': typeof LayoutBrandsRoute
   '/generate': typeof LayoutGenerateRoute
+  '/products': typeof LayoutProductsRoute
   '/settings': typeof LayoutSettingsRoute
+  '/voice-profile': typeof LayoutVoiceProfileRoute
   '/compliance/rules': typeof LayoutComplianceRulesRoute
   '/knowledge/$id': typeof LayoutKnowledgeIdRoute
   '/knowledge/review': typeof LayoutKnowledgeReviewRoute
@@ -199,7 +213,9 @@ export interface FileRoutesByTo {
   '/admin': typeof LayoutAdminRoute
   '/brands': typeof LayoutBrandsRoute
   '/generate': typeof LayoutGenerateRoute
+  '/products': typeof LayoutProductsRoute
   '/settings': typeof LayoutSettingsRoute
+  '/voice-profile': typeof LayoutVoiceProfileRoute
   '/': typeof LayoutIndexRoute
   '/compliance/rules': typeof LayoutComplianceRulesRoute
   '/knowledge/$id': typeof LayoutKnowledgeIdRoute
@@ -227,7 +243,9 @@ export interface FileRoutesById {
   '/_layout/admin': typeof LayoutAdminRoute
   '/_layout/brands': typeof LayoutBrandsRoute
   '/_layout/generate': typeof LayoutGenerateRoute
+  '/_layout/products': typeof LayoutProductsRoute
   '/_layout/settings': typeof LayoutSettingsRoute
+  '/_layout/voice-profile': typeof LayoutVoiceProfileRoute
   '/_layout/': typeof LayoutIndexRoute
   '/_layout/compliance/rules': typeof LayoutComplianceRulesRoute
   '/_layout/knowledge/$id': typeof LayoutKnowledgeIdRoute
@@ -256,7 +274,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/brands'
     | '/generate'
+    | '/products'
     | '/settings'
+    | '/voice-profile'
     | '/compliance/rules'
     | '/knowledge/$id'
     | '/knowledge/review'
@@ -281,7 +301,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/brands'
     | '/generate'
+    | '/products'
     | '/settings'
+    | '/voice-profile'
     | '/'
     | '/compliance/rules'
     | '/knowledge/$id'
@@ -308,7 +330,9 @@ export interface FileRouteTypes {
     | '/_layout/admin'
     | '/_layout/brands'
     | '/_layout/generate'
+    | '/_layout/products'
     | '/_layout/settings'
+    | '/_layout/voice-profile'
     | '/_layout/'
     | '/_layout/compliance/rules'
     | '/_layout/knowledge/$id'
@@ -400,11 +424,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutGenerateRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/products': {
+      id: '/_layout/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof LayoutProductsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/settings': {
       id: '/_layout/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof LayoutSettingsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/voice-profile': {
+      id: '/_layout/voice-profile'
+      path: '/voice-profile'
+      fullPath: '/voice-profile'
+      preLoaderRoute: typeof LayoutVoiceProfileRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/compliance/rules': {
@@ -519,7 +557,9 @@ interface LayoutRouteChildren {
   LayoutAdminRoute: typeof LayoutAdminRoute
   LayoutBrandsRoute: typeof LayoutBrandsRoute
   LayoutGenerateRoute: typeof LayoutGenerateRoute
+  LayoutProductsRoute: typeof LayoutProductsRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
+  LayoutVoiceProfileRoute: typeof LayoutVoiceProfileRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
   LayoutComplianceRulesRoute: typeof LayoutComplianceRulesRoute
   LayoutKnowledgeIdRoute: typeof LayoutKnowledgeIdRoute
@@ -542,7 +582,9 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAdminRoute: LayoutAdminRoute,
   LayoutBrandsRoute: LayoutBrandsRoute,
   LayoutGenerateRoute: LayoutGenerateRoute,
+  LayoutProductsRoute: LayoutProductsRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
+  LayoutVoiceProfileRoute: LayoutVoiceProfileRoute,
   LayoutIndexRoute: LayoutIndexRoute,
   LayoutComplianceRulesRoute: LayoutComplianceRulesRoute,
   LayoutKnowledgeIdRoute: LayoutKnowledgeIdRoute,
