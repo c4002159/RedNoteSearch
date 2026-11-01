@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { parseApiError } from "@/lib/apiError"
-import { BRAND_PAGE_TEXT as T } from "@/lib/zh"
+import { PAGE_ERROR_TEXT, BRAND_PAGE_TEXT as T } from "@/lib/zh"
 
 export function BrandError({
   error,
@@ -23,10 +23,17 @@ export function BrandError({
   message?: string
 }) {
   const info = parseApiError(error)
+  const localized =
+    info.status === 409 &&
+    info.message === "A brand must keep at least one admin"
+      ? PAGE_ERROR_TEXT.lastAdmin
+      : /[\u3400-\u9fff]/.test(info.message)
+        ? info.message
+        : (PAGE_ERROR_TEXT.status[info.status ?? 0] ?? PAGE_ERROR_TEXT.failed)
   return (
     <div className="space-y-3">
       <ErrorBanner
-        error={message ? { ...info, message } : info}
+        error={{ ...info, message: message ?? localized }}
         onRetry={retry}
       />
       {info.status === 403 && <ForbiddenPage requestId={info.requestId} />}
