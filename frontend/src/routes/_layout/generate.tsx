@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import {
+  KnowledgeService,
   type ProductPublic,
   ProductsService,
   type ScenarioPublic,
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/_layout/generate")({
 })
 
 const MAX_MATERIALS = 5
+const MAX_MATERIAL_CHARS = 50000
 const MAX_BRIEF = 2000
 const MAX_TERMS = 20
 const ACCEPT = ".pdf,.docx,.md,.txt,.csv"
@@ -68,6 +70,27 @@ function Field({
 const selectClass =
   "h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
 
+// 文件资料上传失败时，说明是哪份、为什么、任务现在是什么状态
+function uploadFailureMessage(
+  fileName: string,
+  err: unknown,
+  skipped: number,
+): string {
+  const info = parseApiError(err)
+  const reason =
+    info.code === "MATERIAL_TOO_LONG"
+      ? "内容超过 50000 字"
+      : info.code === "FILE_TOO_LARGE"
+        ? "文件太大"
+        : info.code === "UNSUPPORTED_FILE_TYPE"
+          ? "文件类型不支持"
+          : info.code === "PARSE_FAILED"
+            ? "没有读到可用的文字"
+            : info.message
+  const rest = skipped > 0 ? `，后面的 ${skipped} 份也没有上传` : ""
+  return `任务已创建，但「${fileName}」${reason}，这份资料没有加入${rest}，也没有自动开始生成。可以缩短或换一份文件，到任务页重新上传后再生成。`
+}
+
 function splitTerms(text: string): string[] {
   return text
     .split(/[,，\n]/)
@@ -92,6 +115,21 @@ function NewTaskForm() {
       ).data.items,
     enabled: !!brandId,
   })
+  // 只用来决定是否显示提示：有已入库、当前版本、已建好索引的资料才可能被检索到
+  const approvedDocs = useQuery({
+    queryKey: ["knowledge-approved", brandId],
+    queryFn: async () =>
+      (
+        await KnowledgeService.readDocuments({
+          path: { brand_id: brandId },
+          query: { status: "approved", page_size: 100 },
+        })
+      ).data.items,
+    enabled: !!brandId,
+  })
+  const noRetrievableDocs =
+    approvedDocs.isSuccess &&
+    !approvedDocs.data.some((d) => d.is_current && d.index_status === "ready")
   const scenarios = useQuery({
     queryKey: ["scenarios"],
     queryFn: async () => (await TasksService.readScenarios()).data.items,
@@ -142,7 +180,8 @@ function NewTaskForm() {
         })
       ).data
       let uploadError: unknown = null
-      for (const file of files) {
+      let uploadFailure = ""
+      for (const [index, file] of files.entries()) {
         try {
           await TasksService.uploadTaskMaterial({
             path: { task_id: created.id },
@@ -150,6 +189,11 @@ function NewTaskForm() {
           })
         } catch (e) {
           uploadError = e
+          uploadFailure = uploadFailureMessage(
+            file.name,
+            e,
+            files.length - index - 1,
+          )
           break
         }
       }
@@ -159,14 +203,12 @@ function NewTaskForm() {
           headers: { "idempotency-key": crypto.randomUUID() },
         })
       }
-      return { id: created.id, uploadError }
+      return { id: created.id, uploadError, uploadFailure }
     },
-    onSuccess: async ({ id, uploadError }) => {
+    onSuccess: async ({ id, uploadError, uploadFailure }) => {
       await queryClient.invalidateQueries({ queryKey: ["tasks"] })
       if (uploadError) {
-        toast.error(
-          `任务已创建，但资料上传失败：${parseApiError(uploadError).message}`,
-        )
+        toast.error(uploadFailure, { duration: 12000 })
       }
       void navigate({ to: "/generate", search: { task: id } })
     },
@@ -184,10 +226,12 @@ function NewTaskForm() {
 
   const briefLength = [...brief].length
   const termCount = splitTerms(terms).length
+  const pastedLength = [...pasted].length
   const ready =
     !!productId &&
     !!scenarioId &&
     materialCount <= MAX_MATERIALS &&
+    pastedLength <= MAX_MATERIAL_CHARS &&
     briefLength <= MAX_BRIEF &&
     termCount <= MAX_TERMS
   const go = (start: boolean) => {
@@ -257,6 +301,15 @@ function NewTaskForm() {
           title="这个品牌还没有商品"
           description="请先让品牌管理员添加商品，再回来创建任务。"
         />
+      )}
+
+      {noRetrievableDocs && (
+        <p
+          role="status"
+          className="rounded-md bg-tone-warn-bg px-3 py-2 text-sm text-tone-warn"
+        >
+          这个品牌还没有已审核的资料，生成的内容可能没有事实依据；请先到知识库上传并审核资料。
+        </p>
       )}
 
       <section className="space-y-3 rounded-xl border bg-card p-4">
@@ -446,6 +499,12 @@ function NewTaskForm() {
             已添加 {materialCount} / {MAX_MATERIALS} 份
           </span>
         </div>
+        {pastedLength > MAX_MATERIAL_CHARS && (
+          <p role="alert" className="text-sm text-destructive">
+            粘贴的资料已超过 {MAX_MATERIAL_CHARS} 字（{pastedLength}
+            ），请缩短后再提交。
+          </p>
+        )}
         {materialCount > MAX_MATERIALS && (
           <p role="alert" className="text-sm text-destructive">
             资料最多 {MAX_MATERIALS} 份，请移除多余的。
