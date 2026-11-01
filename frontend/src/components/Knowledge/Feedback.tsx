@@ -1,5 +1,5 @@
-import { ErrorBanner } from "@/components/Common/ErrorBanner"
-import { ForbiddenPage, MissingPage } from "@/components/Common/ForbiddenPage"
+import { BrandError } from "@/components/Brands/Feedback"
+import { MissingPage } from "@/components/Common/ForbiddenPage"
 import { Pill } from "@/components/Common/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { parseApiError } from "@/lib/apiError"
@@ -16,10 +16,7 @@ export function KnowledgeError({
   return info.status === 404 ? (
     <MissingPage requestId={info.requestId} />
   ) : (
-    <div className="space-y-3">
-      <ErrorBanner error={info} onRetry={retry} />
-      {info.status === 403 && <ForbiddenPage requestId={info.requestId} />}
-    </div>
+    <BrandError error={error} retry={retry} />
   )
 }
 export function IndexBadge({
