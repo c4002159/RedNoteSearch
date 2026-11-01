@@ -12,7 +12,7 @@ export async function signUpNewUser(
   await page.getByTestId("email-input").fill(email)
   await page.getByTestId("password-input").fill(password)
   await page.getByTestId("confirm-password-input").fill(password)
-  await page.getByRole("button", { name: "Sign Up" }).click()
+  await page.getByRole("button", { name: "注册" }).click()
   await page.goto("/login")
 }
 
@@ -23,9 +23,7 @@ export async function logInUser(page: Page, email: string, password: string) {
   await page.getByTestId("password-input").fill(password)
   await page.getByRole("button", { name: "登录", exact: true }).click()
   await page.waitForURL("/")
-  await expect(
-    page.getByText("Welcome back, nice to see you again!"),
-  ).toBeVisible()
+  await expect(page.getByText("欢迎回来，很高兴再次见到你！")).toBeVisible()
 }
 
 export async function logOutUser(page: Page) {

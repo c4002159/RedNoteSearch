@@ -4,7 +4,6 @@ import { Pencil } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-
 import { type UserPublic, UsersService } from "@/client"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -29,15 +28,16 @@ import {
 import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
 import useCustomToast from "@/hooks/useCustomToast"
+import { SHELL_TEXT } from "@/lib/zh"
 import { handleError } from "@/utils"
 
 const formSchema = z
   .object({
-    email: z.email({ message: "Invalid email address" }),
+    email: z.email({ message: SHELL_TEXT.invalidEmail }),
     full_name: z.string().optional(),
     password: z
       .string()
-      .min(8, { message: "Password must be at least 8 characters" })
+      .min(8, { message: SHELL_TEXT.passwordMin })
       .optional()
       .or(z.literal("")),
     confirm_password: z.string().optional(),
@@ -45,7 +45,7 @@ const formSchema = z
     is_active: z.boolean().optional(),
   })
   .refine((data) => !data.password || data.password === data.confirm_password, {
-    message: "The passwords don't match",
+    message: SHELL_TEXT.passwordMismatch,
     path: ["confirm_password"],
   })
 
@@ -77,7 +77,7 @@ const EditUser = ({ user, onSuccess }: EditUserProps) => {
     mutationFn: (data: FormData) =>
       UsersService.updateUser({ path: { user_id: user.id }, body: data }),
     onSuccess: () => {
-      showSuccessToast("User updated successfully")
+      showSuccessToast(SHELL_TEXT.userUpdated)
       setIsOpen(false)
       onSuccess()
     },
@@ -103,16 +103,14 @@ const EditUser = ({ user, onSuccess }: EditUserProps) => {
         onClick={() => setIsOpen(true)}
       >
         <Pencil />
-        Edit User
+        {SHELL_TEXT.editUser}
       </DropdownMenuItem>
       <DialogContent className="sm:max-w-md">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
-              <DialogTitle>Edit User</DialogTitle>
-              <DialogDescription>
-                Update the user details below.
-              </DialogDescription>
+              <DialogTitle>{SHELL_TEXT.editUser}</DialogTitle>
+              <DialogDescription>{SHELL_TEXT.editUserHint}</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <FormField
@@ -121,11 +119,12 @@ const EditUser = ({ user, onSuccess }: EditUserProps) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Email <span className="text-destructive">*</span>
+                      {SHELL_TEXT.email}{" "}
+                      <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Email"
+                        placeholder={SHELL_TEXT.email}
                         type="email"
                         {...field}
                         required
@@ -141,9 +140,13 @@ const EditUser = ({ user, onSuccess }: EditUserProps) => {
                 name="full_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>{SHELL_TEXT.fullName}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Full name" type="text" {...field} />
+                      <Input
+                        placeholder={SHELL_TEXT.fullNamePlaceholder}
+                        type="text"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -155,10 +158,10 @@ const EditUser = ({ user, onSuccess }: EditUserProps) => {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Set Password</FormLabel>
+                    <FormLabel>{SHELL_TEXT.setPassword}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Password"
+                        placeholder={SHELL_TEXT.password}
                         type="password"
                         {...field}
                       />
@@ -173,10 +176,10 @@ const EditUser = ({ user, onSuccess }: EditUserProps) => {
                 name="confirm_password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
+                    <FormLabel>{SHELL_TEXT.confirmPassword}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Password"
+                        placeholder={SHELL_TEXT.password}
                         type="password"
                         {...field}
                       />
@@ -197,7 +200,9 @@ const EditUser = ({ user, onSuccess }: EditUserProps) => {
                         onCheckedChange={field.onChange}
                       />
                     </FormControl>
-                    <FormLabel className="font-normal">Is superuser?</FormLabel>
+                    <FormLabel className="font-normal">
+                      {SHELL_TEXT.isSuperuser}
+                    </FormLabel>
                   </FormItem>
                 )}
               />
@@ -213,7 +218,9 @@ const EditUser = ({ user, onSuccess }: EditUserProps) => {
                         onCheckedChange={field.onChange}
                       />
                     </FormControl>
-                    <FormLabel className="font-normal">Is active?</FormLabel>
+                    <FormLabel className="font-normal">
+                      {SHELL_TEXT.isActive}
+                    </FormLabel>
                   </FormItem>
                 )}
               />
@@ -222,11 +229,11 @@ const EditUser = ({ user, onSuccess }: EditUserProps) => {
             <DialogFooter>
               <DialogClose asChild>
                 <Button variant="outline" disabled={mutation.isPending}>
-                  Cancel
+                  {SHELL_TEXT.cancel}
                 </Button>
               </DialogClose>
               <LoadingButton type="submit" loading={mutation.isPending}>
-                Save
+                {SHELL_TEXT.save}
               </LoadingButton>
             </DialogFooter>
           </form>

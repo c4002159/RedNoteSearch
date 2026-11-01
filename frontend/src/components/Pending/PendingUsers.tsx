@@ -7,17 +7,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { SHELL_TEXT } from "@/lib/zh"
 
 const PendingUsers = () => (
   <Table>
     <TableHeader>
       <TableRow>
-        <TableHead>Full Name</TableHead>
-        <TableHead>Email</TableHead>
-        <TableHead>Role</TableHead>
-        <TableHead>Status</TableHead>
+        <TableHead>{SHELL_TEXT.fullName}</TableHead>
+        <TableHead>{SHELL_TEXT.email}</TableHead>
+        <TableHead>{SHELL_TEXT.role}</TableHead>
+        <TableHead>{SHELL_TEXT.status}</TableHead>
         <TableHead>
-          <span className="sr-only">Actions</span>
+          <span className="sr-only">{SHELL_TEXT.actions}</span>
         </TableHead>
       </TableRow>
     </TableHeader>
