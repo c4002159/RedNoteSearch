@@ -42,7 +42,7 @@ import {
   titleWeight,
 } from "@/lib/count"
 import { formatTime } from "@/lib/format"
-import { LAYER_LABEL, label, ORIGIN_LABEL } from "@/lib/zh"
+import { COUNT_LABEL, LAYER_LABEL, label, ORIGIN_LABEL } from "@/lib/zh"
 
 export const Route = createFileRoute(
   "/_layout/tasks/$taskId/versions/$versionId",
@@ -267,7 +267,7 @@ function ConstraintPanel({ version }: { version: Version }) {
         <p className="text-xs text-muted-foreground">
           计数：
           {Object.entries(counts)
-            .map(([k, v]) => `${k} ${v}`)
+            .map(([k, v]) => `${label(COUNT_LABEL, k, "count")} ${v}`)
             .join("，")}
         </p>
       )}
