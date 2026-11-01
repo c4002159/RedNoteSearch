@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Trash2 } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
-
 import { UsersService } from "@/client"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,6 +16,7 @@ import {
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { LoadingButton } from "@/components/ui/loading-button"
 import useCustomToast from "@/hooks/useCustomToast"
+import { SHELL_TEXT } from "@/lib/zh"
 import { handleError } from "@/utils"
 
 interface DeleteUserProps {
@@ -37,7 +37,7 @@ const DeleteUser = ({ id, onSuccess }: DeleteUserProps) => {
   const mutation = useMutation({
     mutationFn: deleteUser,
     onSuccess: () => {
-      showSuccessToast("The user was deleted successfully")
+      showSuccessToast(SHELL_TEXT.userDeleted)
       setIsOpen(false)
       onSuccess()
     },
@@ -59,23 +59,23 @@ const DeleteUser = ({ id, onSuccess }: DeleteUserProps) => {
         onClick={() => setIsOpen(true)}
       >
         <Trash2 />
-        Delete User
+        {SHELL_TEXT.deleteUser}
       </DropdownMenuItem>
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>Delete User</DialogTitle>
+            <DialogTitle>{SHELL_TEXT.deleteUser}</DialogTitle>
             <DialogDescription>
-              All items associated with this user will also be{" "}
-              <strong>permanently deleted.</strong> Are you sure? You will not
-              be able to undo this action.
+              {SHELL_TEXT.deleteLinkedHint}{" "}
+              <strong>{SHELL_TEXT.permanent}</strong>{" "}
+              {SHELL_TEXT.deleteQuestion}
             </DialogDescription>
           </DialogHeader>
 
           <DialogFooter className="mt-4">
             <DialogClose asChild>
               <Button variant="outline" disabled={mutation.isPending}>
-                Cancel
+                {SHELL_TEXT.cancel}
               </Button>
             </DialogClose>
             <LoadingButton
@@ -83,7 +83,7 @@ const DeleteUser = ({ id, onSuccess }: DeleteUserProps) => {
               type="submit"
               loading={mutation.isPending}
             >
-              Delete
+              {SHELL_TEXT.delete}
             </LoadingButton>
           </DialogFooter>
         </form>
