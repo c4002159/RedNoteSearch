@@ -12,6 +12,7 @@ import { CatalogGuard } from "@/components/Catalog/Fields"
 import { ProductForm } from "@/components/Catalog/ProductForm"
 import { SourceReference } from "@/components/Catalog/Sources"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { FilterSelect } from "@/components/Common/FilterSelect"
 import { LoadingState } from "@/components/Common/LoadingState"
 import { Pager } from "@/components/Knowledge/Feedback"
 import { Button } from "@/components/ui/button"
@@ -74,26 +75,26 @@ function ProductsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{T.products}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold">{T.products}</h1>
+            <FilterSelect
+              title="状态"
+              value={status}
+              onChange={(v) => {
+                setStatus(v as ProductStatus)
+                setPage(1)
+              }}
+              options={(["active", "archived"] as const).map((value) => ({
+                value,
+                label: label(PRODUCT_STATUS_LABEL, value),
+              }))}
+            />
+          </div>
           <p className="text-sm text-muted-foreground">{T.productHint}</p>
         </div>
         {brand.isAdmin && (
           <Button onClick={() => setEditing("new")}>{T.newProduct}</Button>
         )}
-      </div>
-      <div className="flex gap-2 rounded-xl bg-card p-6 shadow-sm">
-        {(["active", "archived"] as const).map((s) => (
-          <Button
-            key={s}
-            variant={status === s ? "default" : "outline"}
-            onClick={() => {
-              setStatus(s)
-              setPage(1)
-            }}
-          >
-            {label(PRODUCT_STATUS_LABEL, s)}
-          </Button>
-        ))}
       </div>
       {query.isLoading && <LoadingState className="h-40 w-full" />}
       {query.isError && (

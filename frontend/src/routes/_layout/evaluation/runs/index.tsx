@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { EvaluationService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { FilterSelect } from "@/components/Common/FilterSelect"
 import { CreateRun } from "@/components/Evaluation/CreateRun"
 import {
   EvalPager,
@@ -59,22 +60,23 @@ function RunsPage() {
           <Button onClick={() => setCreating(true)}>{T.newRun}</Button>
         </div>
       </div>
-      <select
-        aria-label={T.selectDataset}
-        className="h-10 max-w-full rounded-lg border border-transparent bg-surface-low px-3 text-sm"
-        value={dataset}
-        onChange={(e) => {
-          setDataset(e.target.value)
-          setPage(1)
-        }}
-      >
-        <option value="">{T.allDatasets}</option>
-        {datasets.data?.map((d) => (
-          <option key={d.id} value={d.id}>
-            {d.name} · v{d.version}
-          </option>
-        ))}
-      </select>
+      <div>
+        <FilterSelect
+          title={T.selectDataset}
+          value={dataset}
+          onChange={(v) => {
+            setDataset(v)
+            setPage(1)
+          }}
+          options={[
+            { value: "", label: T.allDatasets },
+            ...(datasets.data ?? []).map((d) => ({
+              value: d.id,
+              label: `${d.name} · v${d.version}`,
+            })),
+          ]}
+        />
+      </div>
       {datasets.isError && (
         <EvaluationError
           error={datasets.error}

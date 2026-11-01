@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { Download, Plus, Upload } from "lucide-react"
+import { ChevronDown, MoreHorizontal } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
+import { FilterSelect } from "@/components/Common/FilterSelect"
 import { MissingPage } from "@/components/Common/ForbiddenPage"
 import { LoadingState } from "@/components/Common/LoadingState"
 import { ReasonDialog } from "@/components/Common/ReasonDialog"
@@ -37,6 +38,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -171,9 +174,15 @@ function ScopedRules({
   const [detail, setDetail] = useState<string | null>(null)
   const [reasonTarget, setReasonTarget] = useState<RulePublic | null>(null)
   const [importing, setImporting] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(true)
   const target = scope === "brand" ? brandId : null
   const canEdit = scope === "global" ? isPlatform : !!brandId && isAdmin
   const canTemplate = isPlatform || anyBrandAdmin
+  const createScopes = [
+    ...(brandId && isAdmin ? (["brand"] as const) : []),
+    ...(isPlatform ? (["global"] as const) : []),
+  ]
+  const activeFilters = [layer, type, severity].filter(Boolean).length
   const rules = useQuery({
     queryKey: ["compliance-rules", brandId, scope, layer, type, severity, page],
     queryFn: async ({ signal }) =>
@@ -255,31 +264,6 @@ function ScopedRules({
     },
     onSuccess: () => toast.success("下载已开始"),
   })
-  const downloadMenu = (template: boolean) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" disabled={download.isPending}>
-          <Download />
-          {download.isPending && download.variables?.template === template
-            ? "正在下载…"
-            : template
-              ? "下载模板"
-              : "导出规则"}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {(["csv", "json"] as const).map((format) => (
-          <DropdownMenuItem
-            key={format}
-            onClick={() => download.mutate({ format, template })}
-          >
-            {template ? "下载" : "导出为"} {format.toUpperCase()}
-            {template ? " 模板" : ""}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
   return (
     <div className="min-w-0 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -289,232 +273,276 @@ function ScopedRules({
             命中后给出风险提示，供人工复核；不是法律依据，不代表文字合规。
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {canTemplate && downloadMenu(true)}
-          {canEdit && (
-            <>
-              {downloadMenu(false)}
+        {(createScopes.length > 0 || canTemplate || canEdit) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                onClick={() => {
-                  download.reset()
-                  setImporting(true)
-                }}
+                size="icon"
+                aria-label="更多操作"
+                disabled={download.isPending}
               >
-                <Upload />
-                导入规则
+                <MoreHorizontal />
               </Button>
-              <Button onClick={() => setEditing("new")}>
-                <Plus />
-                新建规则
-              </Button>
-            </>
-          )}
-        </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-48">
+              {createScopes.length > 0 && (
+                <DropdownMenuItem onClick={() => setEditing("new")}>
+                  新建规则
+                </DropdownMenuItem>
+              )}
+              {canEdit && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    download.reset()
+                    setImporting(true)
+                  }}
+                >
+                  导入规则
+                </DropdownMenuItem>
+              )}
+              {canTemplate && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>下载模板</DropdownMenuLabel>
+                  {(["csv", "json"] as const).map((format) => (
+                    <DropdownMenuItem
+                      key={`t-${format}`}
+                      onClick={() =>
+                        download.mutate({ format, template: true })
+                      }
+                    >
+                      模板 {format.toUpperCase()}
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
+              {canEdit && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>导出规则</DropdownMenuLabel>
+                  {(["csv", "json"] as const).map((format) => (
+                    <DropdownMenuItem
+                      key={`e-${format}`}
+                      onClick={() =>
+                        download.mutate({ format, template: false })
+                      }
+                    >
+                      导出为 {format.toUpperCase()}
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
-      <fieldset
-        className="flex gap-2 border-b border-surface pb-2"
-        aria-label="规则范围"
-      >
-        {(
-          ["global", ...(brandId ? ["brand"] : [])] as ("global" | "brand")[]
-        ).map((value) => (
-          <Button
-            key={value}
-            variant={scope === value ? "secondary" : "ghost"}
-            aria-pressed={scope === value}
-            onClick={() => {
-              setScope(value)
-              setPage(1)
-              toggle.reset()
-              download.reset()
-            }}
-          >
-            {value === "global" ? "全局规则" : "品牌规则"}
-          </Button>
-        ))}
-      </fieldset>
       <p className="text-xs text-muted-foreground">
         {scope === "brand"
           ? "当前品牌规则；导入和导出不包含全局规则。"
           : "全局规则；只有平台管理员可以维护。"}
         {!canEdit && " 当前范围只读。"}列表包含已停用规则。
       </p>
-      <div className="flex flex-wrap items-end gap-3 rounded-xl bg-card p-6 shadow-sm">
-        {(
-          [
-            [
-              "layer",
-              "层级",
-              layer,
-              LAYER_LABEL,
-              (v: string) => setLayer(v as Layer | ""),
-            ],
-            [
-              "type",
-              "类型",
-              type,
-              RULE_TYPE_LABEL,
-              (v: string) => setType(v as RuleType | ""),
-            ],
-            [
-              "severity",
-              "严重度",
-              severity,
-              SEVERITY_LABEL,
-              (v: string) => setSeverity(v as Severity | ""),
-            ],
-          ] as const
-        ).map(([key, title, value, options, setValue]) => (
-          <div key={key} className="min-w-32 space-y-1">
-            <label
-              htmlFor={`filter-${key}`}
-              className="text-xs text-muted-foreground"
-            >
-              {title}
-            </label>
-            <select
-              id={`filter-${key}`}
-              className="h-10 w-full rounded-lg border-0 bg-surface-low px-3 text-sm focus-visible:outline-ring"
-              value={value}
-              onChange={(e) => {
-                setValue(e.target.value)
-                setPage(1)
-              }}
-            >
-              <option value="">全部{title}</option>
-              {Object.entries(options).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
+      <div className="min-w-0 overflow-hidden rounded-xl bg-card shadow-sm">
+        <div className="border-b border-border/40">
+          <button
+            type="button"
+            aria-expanded={filtersOpen}
+            className="flex w-full items-center gap-2 px-6 py-3 text-sm font-semibold"
+            onClick={() => setFiltersOpen(!filtersOpen)}
+          >
+            筛选
+            {activeFilters > 0 && (
+              <span className="rounded-full bg-accent px-2 text-xs text-link">
+                {activeFilters}
+              </span>
+            )}
+            <ChevronDown
+              className={`ml-auto size-4 text-muted-foreground transition-transform ${filtersOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+          {filtersOpen && (
+            <div className="flex flex-wrap items-center gap-3 px-6 pb-4">
+              <FilterSelect
+                title="规则范围"
+                value={scope}
+                onChange={(v) => {
+                  setScope(v as "global" | "brand")
+                  setPage(1)
+                  toggle.reset()
+                  download.reset()
+                }}
+                options={[
+                  { value: "global", label: "全局规则" },
+                  ...(brandId ? [{ value: "brand", label: "品牌规则" }] : []),
+                ]}
+              />
+              {(
+                [
+                  [
+                    "层级",
+                    layer,
+                    LAYER_LABEL,
+                    (v: string) => setLayer(v as Layer | ""),
+                  ],
+                  [
+                    "类型",
+                    type,
+                    RULE_TYPE_LABEL,
+                    (v: string) => setType(v as RuleType | ""),
+                  ],
+                  [
+                    "严重度",
+                    severity,
+                    SEVERITY_LABEL,
+                    (v: string) => setSeverity(v as Severity | ""),
+                  ],
+                ] as const
+              ).map(([title, value, options, setValue]) => (
+                <FilterSelect
+                  key={title}
+                  title={title}
+                  value={value}
+                  onChange={(v) => {
+                    setValue(v)
+                    setPage(1)
+                  }}
+                  options={[
+                    { value: "", label: "全部" },
+                    ...Object.entries(options).map(([k, v]) => ({
+                      value: k,
+                      label: v,
+                    })),
+                  ]}
+                />
               ))}
-            </select>
-          </div>
-        ))}
-        <Button
-          variant="ghost"
-          onClick={() => {
-            setLayer("")
-            setType("")
-            setSeverity("")
-            setPage(1)
-          }}
-        >
-          清除筛选
-        </Button>
-      </div>
-      {download.isError && !importing && (
-        <RuleErrors error={parseApiError(download.error)} />
-      )}
-      {toggle.isError && <RuleErrors error={parseApiError(toggle.error)} />}
-      {rules.isLoading && <LoadingState className="h-64 w-full" />}
-      {rules.isError && (
-        <RuleErrors
-          error={parseApiError(rules.error)}
-          onRetry={() => rules.refetch()}
-        />
-      )}
-      {!rules.isLoading && !rules.isError && shown.length === 0 && (
-        <EmptyState
-          title={
-            layer || type || severity
-              ? "没有符合条件的规则"
-              : "当前范围还没有规则"
-          }
-          description={
-            layer || type || severity
-              ? "调整或清除筛选后再试。"
-              : canEdit
-                ? "可以新建规则，或下载模板后批量导入。"
-                : "请联系管理员维护规则。"
-          }
-        />
-      )}
-      {!rules.isError && shown.length > 0 && (
-        <div className="min-w-0 overflow-hidden rounded-xl bg-card shadow-sm">
-          <Table className="w-full table-fixed">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-2/5">规则内容与来源</TableHead>
-                <TableHead>严重度</TableHead>
-                <TableHead>版本 / 状态</TableHead>
-                <TableHead className="w-1/4 text-right">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {shown.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="whitespace-normal [overflow-wrap:anywhere]">
-                    <button
-                      type="button"
-                      className="text-left font-medium text-link hover:underline"
-                      onClick={() => setDetail(row.id)}
-                    >
-                      {row.pattern}
-                    </button>
-                    {row.is_regex && <Pill className="ml-2">正则</Pill>}
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {label(RULE_TYPE_LABEL, row.rule_type)} ·{" "}
-                      {label(LAYER_LABEL, row.layer)}
-                    </p>
-                    <div className="mt-2 flex flex-wrap items-start gap-1 text-xs text-muted-foreground">
-                      {row.is_sample && <Pill tone="warn">示例</Pill>}
-                      <span>{sourceText(row)}</span>
-                    </div>
-                    {row.source_clause && (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {row.source_clause}
-                      </p>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <SeverityBadge severity={row.severity} />
-                  </TableCell>
-                  <TableCell>
-                    <span className="block text-sm">v{row.rule_version}</span>
-                    <Pill tone={row.enabled ? "ok" : "gray"}>
-                      {row.enabled ? "启用" : "已停用"}
-                    </Pill>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap justify-end gap-1">
-                      {canEdit && row.layer !== "context" ? (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditing(row)}
-                            className="text-link"
-                          >
-                            编辑
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              toggle.reset()
-                              setReasonTarget(row)
-                            }}
-                            className={
-                              row.enabled ? "text-tone-err" : "text-link"
-                            }
-                          >
-                            {row.enabled ? "停用" : "启用"}
-                          </Button>
-                        </>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">
-                          只读
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setLayer("")
+                  setType("")
+                  setSeverity("")
+                  setPage(1)
+                }}
+              >
+                清除
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+        {download.isError && !importing && (
+          <RuleErrors error={parseApiError(download.error)} />
+        )}
+        {toggle.isError && <RuleErrors error={parseApiError(toggle.error)} />}
+        {rules.isLoading && <LoadingState className="h-64 w-full" />}
+        {rules.isError && (
+          <RuleErrors
+            error={parseApiError(rules.error)}
+            onRetry={() => rules.refetch()}
+          />
+        )}
+        {!rules.isLoading && !rules.isError && shown.length === 0 && (
+          <EmptyState
+            title={
+              layer || type || severity
+                ? "没有符合条件的规则"
+                : "当前范围还没有规则"
+            }
+            description={
+              layer || type || severity
+                ? "调整或清除筛选后再试。"
+                : canEdit
+                  ? "可以新建规则，或下载模板后批量导入。"
+                  : "请联系管理员维护规则。"
+            }
+          />
+        )}
+        {!rules.isError && shown.length > 0 && (
+          <div className="min-w-0 overflow-hidden">
+            <Table className="w-full table-fixed">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-2/5">规则内容与来源</TableHead>
+                  <TableHead>严重度</TableHead>
+                  <TableHead>版本 / 状态</TableHead>
+                  <TableHead className="w-1/4 text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shown.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="whitespace-normal [overflow-wrap:anywhere]">
+                      <button
+                        type="button"
+                        className="text-left font-medium text-link hover:underline"
+                        onClick={() => setDetail(row.id)}
+                      >
+                        {row.pattern}
+                      </button>
+                      {row.is_regex && <Pill className="ml-2">正则</Pill>}
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {label(RULE_TYPE_LABEL, row.rule_type)} ·{" "}
+                        {label(LAYER_LABEL, row.layer)}
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-start gap-1 text-xs text-muted-foreground">
+                        {row.is_sample && <Pill tone="warn">示例</Pill>}
+                        <span>{sourceText(row)}</span>
+                      </div>
+                      {row.source_clause && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {row.source_clause}
+                        </p>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <SeverityBadge severity={row.severity} />
+                    </TableCell>
+                    <TableCell>
+                      <span className="block text-sm">v{row.rule_version}</span>
+                      <Pill tone={row.enabled ? "ok" : "gray"}>
+                        {row.enabled ? "启用" : "已停用"}
+                      </Pill>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap justify-end gap-1">
+                        {canEdit && row.layer !== "context" ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditing(row)}
+                              className="text-link"
+                            >
+                              编辑
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                toggle.reset()
+                                setReasonTarget(row)
+                              }}
+                              className={
+                                row.enabled ? "text-tone-err" : "text-link"
+                              }
+                            >
+                              {row.enabled ? "停用" : "启用"}
+                            </Button>
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            只读
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
       {rules.data && !rules.isError && (
         <div className="flex flex-wrap items-center justify-end gap-3 rounded-xl bg-card p-6 text-sm shadow-sm">
           <span className="text-muted-foreground">
@@ -543,7 +571,9 @@ function ScopedRules({
         <RuleForm
           key={editing === "new" ? "new" : editing.id}
           row={editing === "new" ? undefined : editing}
-          brandId={target}
+          brandId={brandId}
+          scopes={createScopes}
+          defaultScope={scope}
           onClose={() => setEditing(null)}
           onSaved={saved}
         />

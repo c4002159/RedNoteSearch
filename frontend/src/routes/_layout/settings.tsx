@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { UsersService } from "@/client"
 import ChangePassword from "@/components/UserSettings/ChangePassword"
 import { SettingsError } from "@/components/UserSettings/Feedback"
+import ModelConfig from "@/components/UserSettings/ModelConfig"
 import UserInformation from "@/components/UserSettings/UserInformation"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -47,6 +48,12 @@ function SettingsPage() {
             >
               {T.passwordTab}
             </TabsTrigger>
+            <TabsTrigger
+              className="flex-none rounded-none border-0 border-b-2 border-transparent px-0 py-3 text-base font-semibold data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-link data-[state=active]:shadow-none"
+              value="models"
+            >
+              模型与密钥
+            </TabsTrigger>
           </TabsList>
           <div className="grid items-start gap-6 xl:grid-cols-2">
             <TabsContent
@@ -62,6 +69,9 @@ function SettingsPage() {
               value="password"
             >
               <ChangePassword />
+            </TabsContent>
+            <TabsContent className="m-0 xl:col-span-2" value="models">
+              <ModelConfig />
             </TabsContent>
           </div>
         </Tabs>

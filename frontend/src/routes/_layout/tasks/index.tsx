@@ -6,6 +6,7 @@ import { Fragment, useState } from "react"
 import { type FlowStatus, TasksService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
+import { FilterSelect } from "@/components/Common/FilterSelect"
 import { FlowStatusBadge } from "@/components/Common/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -213,34 +214,33 @@ function TasksPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <select
-          aria-label="按状态筛选"
-          className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
+        <FilterSelect
+          title="状态"
           value={status}
-          onChange={(e) => {
-            setStatus(e.target.value as FlowStatus | "")
+          onChange={(v) => {
+            setStatus(v as FlowStatus | "")
             setPage(1)
           }}
-        >
-          <option value="">全部状态</option>
-          {Object.entries(FLOW_STATUS_LABEL).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="排序"
-          className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
+          options={[
+            { value: "", label: "全部" },
+            ...Object.entries(FLOW_STATUS_LABEL).map(([value, label]) => ({
+              value,
+              label,
+            })),
+          ]}
+        />
+        <FilterSelect
+          title="创建时间"
           value={sort}
-          onChange={(e) => {
-            setSort(e.target.value)
+          onChange={(v) => {
+            setSort(v)
             setPage(1)
           }}
-        >
-          <option value="-created_at">最新创建在前</option>
-          <option value="created_at">最早创建在前</option>
-        </select>
+          options={[
+            { value: "-created_at", label: "最新在前" },
+            { value: "created_at", label: "最早在前" },
+          ]}
+        />
       </div>
 
       {!current && (

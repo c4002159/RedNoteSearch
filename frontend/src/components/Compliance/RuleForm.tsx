@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "@tanstack/react-query"
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import {
@@ -54,14 +55,22 @@ type Values = z.infer<typeof base>
 export function RuleForm({
   row,
   brandId,
+  scopes,
+  defaultScope,
   onClose,
   onSaved,
 }: {
   row?: RulePublic
   brandId: string | null
+  scopes: readonly ("global" | "brand")[]
+  defaultScope: "global" | "brand"
   onClose: () => void
   onSaved: () => void
 }) {
+  const [ruleScope, setRuleScope] = useState<"global" | "brand">(
+    scopes.includes(defaultScope) ? defaultScope : (scopes[0] ?? "global"),
+  )
+  const targetBrand = ruleScope === "brand" ? brandId : null
   const schema = base.superRefine((v, ctx) => {
     if (!v.source_name.trim() && row?.source_name !== "")
       ctx.addIssue({
@@ -120,10 +129,10 @@ export function RuleForm({
           })
         ).data
       }
-      return brandId
+      return targetBrand
         ? (
             await ComplianceService.createBrandRule({
-              path: { brand_id: brandId },
+              path: { brand_id: targetBrand },
               body,
             })
           ).data
@@ -189,7 +198,13 @@ export function RuleForm({
         <DialogHeader>
           <DialogTitle>{row ? "编辑规则" : "新建规则"}</DialogTitle>
           <DialogDescription>
-            {brandId ? "只维护当前品牌规则。" : "维护全局规则。"}
+            {row
+              ? row.brand_id
+                ? "这是品牌规则。"
+                : "这是全局规则。"
+              : targetBrand
+                ? "新规则只在当前品牌生效。"
+                : "新规则对所有品牌生效。"}
             规则用于风险提示，供人工复核。
           </DialogDescription>
         </DialogHeader>
@@ -207,6 +222,35 @@ export function RuleForm({
             className="grid min-w-0 gap-3 sm:grid-cols-2"
           >
             <legend className="sr-only">规则字段</legend>
+            <div className="space-y-1 sm:col-span-2">
+              <label htmlFor="rule-scope" className="text-sm font-medium">
+                规则范围
+              </label>
+              {row ? (
+                <p className="rounded-lg bg-surface-low px-3 py-2 text-sm">
+                  {row.brand_id ? "品牌规则" : "全局规则"}
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    创建后不能更改范围；要换范围请在目标范围新建一条。
+                  </span>
+                </p>
+              ) : (
+                <select
+                  id="rule-scope"
+                  className={selectClass}
+                  value={ruleScope}
+                  onChange={(e) =>
+                    setRuleScope(e.target.value as "global" | "brand")
+                  }
+                >
+                  {scopes.includes("brand") && (
+                    <option value="brand">品牌规则（只在当前品牌生效）</option>
+                  )}
+                  {scopes.includes("global") && (
+                    <option value="global">全局规则（所有品牌都生效）</option>
+                  )}
+                </select>
+              )}
+            </div>
             {(
               [
                 ["layer", "层级", EDITABLE_LAYER_LABEL],
@@ -231,15 +275,29 @@ export function RuleForm({
                 </select>
               </div>
             ))}
-            <div className="flex items-center gap-2">
-              <input
-                id="rule-regex"
-                type="checkbox"
-                {...form.register("is_regex")}
-              />
-              <label htmlFor="rule-regex" className="text-sm">
-                规则内容为正则表达式
-              </label>
+            <div className="space-y-1 sm:col-span-2">
+              <div className="flex items-center gap-2">
+                <input
+                  id="rule-regex"
+                  type="checkbox"
+                  className="size-4 accent-primary"
+                  {...form.register("is_regex")}
+                />
+                <label htmlFor="rule-regex" className="text-sm font-medium">
+                  用“匹配模式”（正则表达式）书写规则内容
+                </label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                不勾选：规则内容就是要查找的词，文案里出现这个词就提示。勾选后：规则内容是一种“匹配模式”，可以一次匹配一类写法，例如
+                <code className="mx-1 rounded bg-surface-low px-1">
+                  第[一二三]名
+                </code>
+                能同时命中“第一名”“第二名”“第三名”；
+                <code className="mx-1 rounded bg-surface-low px-1">
+                  100%(有效|见效)
+                </code>
+                能命中“100%有效”和“100%见效”。不确定时不要勾选，直接写要提示的词即可；写错的模式会在保存时提示。
+              </p>
             </div>
             {textFields.map(({ key, title, max, area }) => (
               <div

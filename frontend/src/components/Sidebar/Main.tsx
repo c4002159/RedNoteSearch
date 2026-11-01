@@ -33,6 +33,12 @@ export function Main({ groups }: { groups: NavGroup[] }) {
   const { isMobile, setOpenMobile } = useSidebar()
   const currentPath = useRouterState().location.pathname
 
+  // 只高亮最长匹配的一项，避免 /knowledge 与 /knowledge/review 同时亮
+  const activePath = groups
+    .flatMap((g) => g.items.map((i) => i.path))
+    .filter((p) => currentPath === p || currentPath.startsWith(`${p}/`))
+    .sort((x, y) => y.length - x.length)[0]
+
   const handleMenuClick = () => {
     if (isMobile) {
       setOpenMobile(false)
@@ -47,9 +53,7 @@ export function Main({ groups }: { groups: NavGroup[] }) {
           <SidebarGroupContent>
             <SidebarMenu>
               {group.items.map((item) => {
-                const isActive =
-                  currentPath === item.path ||
-                  currentPath.startsWith(`${item.path}/`)
+                const isActive = item.path === activePath
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
