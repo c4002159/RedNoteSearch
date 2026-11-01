@@ -25,6 +25,7 @@ import {
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { MissingPage } from "@/components/Common/ForbiddenPage"
+import { type DockStep, ProgressDock } from "@/components/Common/ProgressDock"
 import { StageProgress } from "@/components/Common/StageProgress"
 import { FlowStatusBadge } from "@/components/Common/StatusBadge"
 import { Button } from "@/components/ui/button"
@@ -395,13 +396,13 @@ function NewTaskForm() {
 
   return (
     <form
-      className="grid items-start gap-6 lg:grid-cols-12"
+      className="mx-auto max-w-4xl"
       onSubmit={(e) => {
         e.preventDefault()
         if (ready) go(true)
       }}
     >
-      <div className="flex flex-col gap-6 lg:col-span-7">
+      <div className="flex flex-col gap-6">
         <section className="space-y-6 rounded-xl border border-border/40 bg-card p-6 shadow-sm">
           <Field title="选择推广商品" section>
             {products.isLoading ? (
@@ -696,29 +697,13 @@ function NewTaskForm() {
         </div>
       </div>
 
-      <aside className="rounded-xl border border-border/40 bg-card p-6 shadow-sm lg:sticky lg:top-24 lg:col-span-5">
-        <h2 className="text-base font-semibold">生成进度</h2>
-        <ol className="mt-6" aria-label="生成进度预览">
-          {PROGRESS_PREVIEW.map((text, i) => (
-            <li key={text} className="flex gap-3.5">
-              <div className="flex flex-col items-center">
-                <span className="flex size-7 items-center justify-center rounded-full bg-surface-high">
-                  <span className="size-2 rounded-full bg-outline/50" />
-                </span>
-                {i < PROGRESS_PREVIEW.length - 1 && (
-                  <span className="h-6 w-0.5 bg-border/60" />
-                )}
-              </div>
-              <span className="flex h-7 items-center text-[13px] text-muted-foreground">
-                {text}
-              </span>
-            </li>
-          ))}
-        </ol>
-        <p className="mt-6 text-xs text-muted-foreground">
-          创建任务后，进度会在这里显示。
-        </p>
-      </aside>
+      <ProgressDock
+        steps={PROGRESS_PREVIEW.map((text) => ({
+          text,
+          state: "pending" as const,
+        }))}
+        note="创建任务后，这里会显示进度。"
+      />
     </form>
   )
 }
@@ -858,6 +843,22 @@ function TaskRun({ taskId }: { taskId: string }) {
   if (!t) return null
   const stage = typeof t.progress?.stage === "string" ? t.progress.stage : null
   const running = RUNNING.includes(t.flow_status)
+  const stageIndex = ["queued", "generating", "checking"].indexOf(t.flow_status)
+  const dockSteps: DockStep[] = [
+    ...["排队", "生成中", "检查中"].map(
+      (text, i): DockStep => ({
+        text,
+        state: running
+          ? i < stageIndex
+            ? "done"
+            : i === stageIndex
+              ? "current"
+              : "pending"
+          : "done",
+      }),
+    ),
+    { text: "完成", state: running ? "pending" : "done" },
+  ]
   const canStart =
     t.flow_status === "queued" || t.flow_status === "constraint_failed"
 
@@ -916,6 +917,7 @@ function TaskRun({ taskId }: { taskId: string }) {
         </div>
       </section>
       <MaterialsPanel taskId={t.id} editable={t.flow_status === "queued"} />
+      <ProgressDock steps={dockSteps} busy={running} />
     </div>
   )
 }
