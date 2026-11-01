@@ -68,6 +68,12 @@
   --color-tone-err-bg: var(--tone-err-bg);
   --color-tone-ok: var(--tone-ok);
   --color-tone-ok-bg: var(--tone-ok-bg);
+  --color-scene-sky: var(--scene-sky);
+  --color-scene-blue: var(--scene-blue);
+  --color-scene-mint: var(--scene-mint);
+  --color-scene-yellow: var(--scene-yellow);
+  --color-scene-orange: var(--scene-orange);
+  --color-scene-pink: var(--scene-pink);
   --color-tone-note: var(--tone-note);
   --color-tone-note-bg: var(--tone-note-bg);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -137,6 +143,12 @@
   --tone-err-bg: #fee2e2;
   --tone-ok: #166534;
   --tone-ok-bg: #dcfce7;
+  --scene-sky: #e0f2fe;
+  --scene-blue: #dbeafe;
+  --scene-mint: #d1fae5;
+  --scene-yellow: #fef9c3;
+  --scene-orange: #ffedd5;
+  --scene-pink: #fce7f3;
   --tone-note: #854d0e;
   --tone-note-bg: #fef9c3;
 }
@@ -194,6 +206,12 @@
   --tone-err-bg: #4c1d1d;
   --tone-ok: #86efac;
   --tone-ok-bg: #14391f;
+  --scene-sky: #0f2f45;
+  --scene-blue: #16284d;
+  --scene-mint: #0f3a2c;
+  --scene-yellow: #3b3512;
+  --scene-orange: #40250f;
+  --scene-pink: #43192f;
   --tone-note: #fde68a;
   --tone-note-bg: #413413;
 }
