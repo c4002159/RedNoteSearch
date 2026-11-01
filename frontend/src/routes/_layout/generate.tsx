@@ -1,6 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { Paperclip, X } from "lucide-react"
+import {
+  BadgeCheck,
+  BookHeart,
+  BookOpen,
+  Leaf,
+  type LucideIcon,
+  Paperclip,
+  Sparkles,
+  Tag,
+  X,
+} from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -15,6 +25,7 @@ import {
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { MissingPage } from "@/components/Common/ForbiddenPage"
+import { type DockStep, ProgressDock } from "@/components/Common/ProgressDock"
 import { StageProgress } from "@/components/Common/StageProgress"
 import { FlowStatusBadge } from "@/components/Common/StatusBadge"
 import { Button } from "@/components/ui/button"
@@ -24,6 +35,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { useBrand } from "@/hooks/useBrand"
 import { type ApiErrorInfo, parseApiError } from "@/lib/apiError"
+import { cn } from "@/lib/utils"
 import {
   EMOJI_LABEL,
   LENGTH_LABEL,
@@ -49,16 +61,26 @@ const ACCEPT = ".pdf,.docx,.md,.txt,.csv"
 function Field({
   title,
   hint,
+  section,
   children,
 }: {
   title: string
   hint?: string
+  section?: boolean
   children: React.ReactNode
 }) {
   return (
     // biome-ignore lint/a11y/noLabelWithoutControl: the control is passed in as children
-    <label className="block space-y-1 text-sm">
-      <span className="font-medium">{title}</span>
+    <label className="block space-y-1.5 text-sm">
+      <span
+        className={cn(
+          section
+            ? "block text-base font-semibold"
+            : "block text-xs font-medium text-muted-foreground",
+        )}
+      >
+        {title}
+      </span>
       {children}
       {hint && (
         <span className="block text-xs text-muted-foreground">{hint}</span>
@@ -68,7 +90,140 @@ function Field({
 }
 
 const selectClass =
-  "h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+  "h-10 w-full rounded-lg border border-transparent bg-surface-low px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
+
+const SCENE_LOOK: Record<string, { icon: LucideIcon; bg: string; fg: string }> =
+  {
+    seeding: { icon: Leaf, bg: "bg-scene-sky", fg: "text-tone-info" },
+    review: {
+      icon: BadgeCheck,
+      bg: "bg-scene-blue",
+      fg: "text-tone-soft-blue",
+    },
+    tutorial: { icon: BookOpen, bg: "bg-scene-mint", fg: "text-tone-ok" },
+    launch: { icon: Sparkles, bg: "bg-scene-yellow", fg: "text-tone-note" },
+    promotion: { icon: Tag, bg: "bg-scene-orange", fg: "text-tone-warn" },
+    story: { icon: BookHeart, bg: "bg-scene-pink", fg: "text-tone-err" },
+  }
+
+function SceneCards({
+  scenarios,
+  value,
+  onChange,
+}: {
+  scenarios: ScenarioPublic[]
+  value: string
+  onChange: (id: string) => void
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="场景"
+      className="grid grid-cols-2 gap-2.5 sm:grid-cols-3"
+    >
+      {scenarios.map((s) => {
+        const look = SCENE_LOOK[s.scene] ?? SCENE_LOOK.seeding
+        const Icon = look.icon
+        const on = s.id === value
+        return (
+          <label key={s.id} className="cursor-pointer">
+            <input
+              type="radio"
+              name="scene"
+              className="peer sr-only"
+              checked={on}
+              onChange={() => onChange(s.id)}
+            />
+            <span
+              className={cn(
+                "flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
+                on
+                  ? "border-primary bg-accent shadow-[0_2px_8px_rgba(37,99,235,0.12)]"
+                  : "border-border/60 bg-card hover:bg-surface-low",
+              )}
+            >
+              <span
+                className={cn(
+                  "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                  look.bg,
+                  look.fg,
+                )}
+              >
+                <Icon className="size-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-[13px] font-semibold">
+                  {s.name}
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  模板版本 v{s.template_version}
+                </span>
+              </span>
+            </span>
+          </label>
+        )
+      })}
+    </div>
+  )
+}
+
+function TermsInput({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (next: string) => void
+}) {
+  const terms = splitTerms(value)
+  const [draft, setDraft] = useState("")
+  const add = () => {
+    const fresh = splitTerms(draft).filter((t) => !terms.includes(t))
+    if (fresh.length > 0) onChange([...terms, ...fresh].join("，"))
+    setDraft("")
+  }
+  return (
+    <div className="flex min-h-10 flex-wrap items-center gap-2 rounded-lg border border-transparent bg-surface-low px-2 py-1.5">
+      {terms.map((t) => (
+        <span
+          key={t}
+          className="inline-flex items-center gap-1 rounded-md bg-accent px-2 py-1 text-[13px] font-medium text-link"
+        >
+          {t}
+          <button
+            type="button"
+            aria-label={`移除 ${t}`}
+            onClick={() => onChange(terms.filter((x) => x !== t).join("，"))}
+          >
+            <X className="size-3" />
+          </button>
+        </span>
+      ))}
+      <input
+        aria-label="添加必须包含的词"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === "," || e.key === "，") {
+            e.preventDefault()
+            add()
+          }
+        }}
+        onBlur={add}
+        placeholder="+ 添加词"
+        className="min-w-24 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-outline"
+      />
+    </div>
+  )
+}
+
+const PROGRESS_PREVIEW = [
+  "检索资料",
+  "生成",
+  "约束检查",
+  "事实证据",
+  "风险提示",
+  "完成",
+]
 
 // 文件资料上传失败时，说明是哪份、为什么、任务现在是什么状态
 function uploadFailureMessage(
@@ -241,308 +396,314 @@ function NewTaskForm() {
 
   return (
     <form
-      className="space-y-6"
+      className="w-full"
       onSubmit={(e) => {
         e.preventDefault()
         if (ready) go(true)
       }}
     >
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field title="商品">
-          {products.isLoading ? (
-            <Skeleton className="h-9 w-full" />
-          ) : (
-            <select
-              className={selectClass}
-              value={productId}
-              onChange={(e) => setProductId(e.target.value)}
-              required
-            >
-              <option value="">请选择商品</option>
-              {(products.data ?? []).map((p: ProductPublic) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-        <Field title="场景">
-          {scenarios.isLoading ? (
-            <Skeleton className="h-9 w-full" />
-          ) : (
-            <select
-              className={selectClass}
-              value={scenarioId}
-              onChange={(e) => setScenarioId(e.target.value)}
-              required
-            >
-              <option value="">请选择场景</option>
-              {brandScenarios.map((s: ScenarioPublic) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
-      </div>
-      {(products.isError || scenarios.isError) && (
-        <ErrorBanner
-          error={parseApiError(products.error ?? scenarios.error)}
-          onRetry={() => {
-            void products.refetch()
-            void scenarios.refetch()
-          }}
-        />
-      )}
-      {products.isSuccess && products.data.length === 0 && (
-        <EmptyState
-          title="这个品牌还没有商品"
-          description="请先让品牌管理员添加商品，再回来创建任务。"
-        />
-      )}
-
-      {noRetrievableDocs && (
-        <p
-          role="status"
-          className="rounded-md bg-tone-warn-bg px-3 py-2 text-sm text-tone-warn"
-        >
-          这个品牌还没有已审核的资料，生成的内容可能没有事实依据；请先到知识库上传并审核资料。
-        </p>
-      )}
-
-      <section className="space-y-3 rounded-xl border bg-card p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">风格</h2>
-          {(presets.data ?? []).length > 0 && (
-            <select
-              className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-              defaultValue=""
-              aria-label="套用风格预设"
-              onChange={(e) => {
-                const p = presets.data?.find((x) => x.id === e.target.value)
-                if (p) setStyle({ ...style, ...p.params })
-              }}
-            >
-              <option value="">套用风格预设</option>
-              {presets.data?.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-        <div className="grid gap-3 md:grid-cols-5">
-          <Field title="语气">
-            <Input
-              value={style.tone ?? ""}
-              onChange={(e) =>
-                setStyle({ ...style, tone: e.target.value || null })
-              }
-              placeholder="如：亲切、克制"
-            />
-          </Field>
-          <Field title="篇幅">
-            <select
-              className={selectClass}
-              value={style.length}
-              onChange={(e) =>
-                setStyle({
-                  ...style,
-                  length: e.target.value as StyleParams["length"],
-                })
-              }
-            >
-              {Object.entries(LENGTH_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field title="人称">
-            <select
-              className={selectClass}
-              value={style.person}
-              onChange={(e) =>
-                setStyle({
-                  ...style,
-                  person: e.target.value as StyleParams["person"],
-                })
-              }
-            >
-              {Object.entries(PERSON_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field title="表情密度">
-            <select
-              className={selectClass}
-              value={style.emoji_density}
-              onChange={(e) =>
-                setStyle({
-                  ...style,
-                  emoji_density: e.target.value as StyleParams["emoji_density"],
-                })
-              }
-            >
-              {Object.entries(EMOJI_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field title="话题数量" hint="最多 10 个">
-            <Input
-              type="number"
-              min={0}
-              max={10}
-              value={style.hashtag_count ?? 0}
-              onChange={(e) =>
-                setStyle({ ...style, hashtag_count: Number(e.target.value) })
-              }
-            />
-          </Field>
-        </div>
-      </section>
-
-      <Field
-        title="创作要求"
-        hint={
-          briefLength > MAX_BRIEF
-            ? `已超过 ${MAX_BRIEF} 字（${briefLength} / ${MAX_BRIEF}），请缩短后再提交。`
-            : `写下这篇笔记想表达的重点、读者与限制。${briefLength} / ${MAX_BRIEF}`
-        }
-      >
-        <Textarea
-          value={brief}
-          onChange={(e) => setBrief(e.target.value)}
-          rows={4}
-        />
-      </Field>
-      <Field
-        title="必须包含的词"
-        hint={
-          termCount > MAX_TERMS
-            ? `最多 ${MAX_TERMS} 个词（现在 ${termCount} 个），请删减后再提交。`
-            : `用逗号或换行分隔，最多 ${MAX_TERMS} 个。`
-        }
-      >
-        <Textarea
-          value={terms}
-          onChange={(e) => setTerms(e.target.value)}
-          rows={2}
-        />
-      </Field>
-
-      <section className="space-y-3 rounded-xl border bg-card p-4">
-        <div>
-          <h2 className="text-base font-semibold">本次任务资料（可选）</h2>
-          <p className="text-xs text-muted-foreground">
-            任务资料只用于这一个任务，未经过知识库审核，生成结果里会标注为“任务内资料（未审核）”。
-            最多 {MAX_MATERIALS} 份（含粘贴的文本），每份不超过 50000 字；支持
-            PDF、DOCX、MD、TXT、CSV。
-          </p>
-        </div>
-        <Textarea
-          value={pasted}
-          onChange={(e) => setPasted(e.target.value)}
-          rows={4}
-          placeholder="直接粘贴一段资料文字"
-          aria-label="粘贴资料文字"
-        />
-        <ul className="space-y-1">
-          {files.map((f, i) => (
-            <li
-              key={`${f.name}-${i}`}
-              className="flex items-center gap-2 rounded-md bg-surface-low px-3 py-1.5 text-sm"
-            >
-              <Paperclip className="size-4 text-muted-foreground" />
-              <span className="min-w-0 flex-1 truncate">{f.name}</span>
-              <button
-                type="button"
-                aria-label={`移除 ${f.name}`}
-                onClick={() => setFiles(files.filter((_, j) => j !== i))}
+      <div className="flex flex-col gap-6">
+        <section className="space-y-6 rounded-xl border border-border/40 bg-card p-6 shadow-sm">
+          <Field title="选择推广商品" section>
+            {products.isLoading ? (
+              <Skeleton className="h-11 w-full" />
+            ) : (
+              <select
+                className={cn(selectClass, "h-11")}
+                value={productId}
+                onChange={(e) => setProductId(e.target.value)}
+                required
               >
-                <X className="size-4" />
-              </button>
-            </li>
-          ))}
-        </ul>
-        <input
-          ref={fileInput}
-          type="file"
-          accept={ACCEPT}
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            setFiles([...files, ...Array.from(e.target.files ?? [])])
-            e.target.value = ""
-          }}
-        />
-        <div className="flex items-center gap-3">
+                <option value="">请选择商品</option>
+                {(products.data ?? []).map((p: ProductPublic) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
+          {(products.isError || scenarios.isError) && (
+            <ErrorBanner
+              error={parseApiError(products.error ?? scenarios.error)}
+              onRetry={() => {
+                void products.refetch()
+                void scenarios.refetch()
+              }}
+            />
+          )}
+          {products.isSuccess && products.data.length === 0 && (
+            <EmptyState
+              title="这个品牌还没有商品"
+              description="请先让品牌管理员添加商品，再回来创建任务。"
+            />
+          )}
+          {noRetrievableDocs && (
+            <p
+              role="status"
+              className="rounded-lg bg-tone-warn-bg px-3 py-2 text-sm text-tone-warn"
+            >
+              这个品牌还没有已审核的资料，生成的内容可能没有事实依据；请先到知识库上传并审核资料。
+            </p>
+          )}
+
+          <div className="space-y-1.5">
+            <span className="block text-base font-semibold">创作场景</span>
+            {scenarios.isLoading ? (
+              <Skeleton className="h-20 w-full" />
+            ) : (
+              <SceneCards
+                scenarios={brandScenarios}
+                value={scenarioId}
+                onChange={setScenarioId}
+              />
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-base font-semibold">文案风格（选填）</span>
+              {(presets.data ?? []).length > 0 && (
+                <select
+                  className="h-8 rounded-lg border border-transparent bg-surface-low px-2 text-sm"
+                  defaultValue=""
+                  aria-label="套用风格预设"
+                  onChange={(e) => {
+                    const p = presets.data?.find((x) => x.id === e.target.value)
+                    if (p) setStyle({ ...style, ...p.params })
+                  }}
+                >
+                  <option value="">套用风格预设</option>
+                  {presets.data?.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field title="语气">
+                <Input
+                  value={style.tone ?? ""}
+                  onChange={(e) =>
+                    setStyle({ ...style, tone: e.target.value || null })
+                  }
+                  placeholder="如：亲切、克制"
+                />
+              </Field>
+              <Field title="篇幅">
+                <select
+                  className={selectClass}
+                  value={style.length}
+                  onChange={(e) =>
+                    setStyle({
+                      ...style,
+                      length: e.target.value as StyleParams["length"],
+                    })
+                  }
+                >
+                  {Object.entries(LENGTH_LABEL).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field title="人称">
+                <select
+                  className={selectClass}
+                  value={style.person}
+                  onChange={(e) =>
+                    setStyle({
+                      ...style,
+                      person: e.target.value as StyleParams["person"],
+                    })
+                  }
+                >
+                  {Object.entries(PERSON_LABEL).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field title="表情密度">
+                <select
+                  className={selectClass}
+                  value={style.emoji_density}
+                  onChange={(e) =>
+                    setStyle({
+                      ...style,
+                      emoji_density: e.target
+                        .value as StyleParams["emoji_density"],
+                    })
+                  }
+                >
+                  {Object.entries(EMOJI_LABEL).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <label className="block space-y-1.5 text-sm">
+              <span className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+                话题数量（0 到 10）
+                <span className="text-link">{style.hashtag_count ?? 0}</span>
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={10}
+                value={style.hashtag_count ?? 0}
+                onChange={(e) =>
+                  setStyle({ ...style, hashtag_count: Number(e.target.value) })
+                }
+                className="w-full accent-primary"
+              />
+            </label>
+          </div>
+
+          <Field
+            title="创作要求（选填）"
+            section
+            hint={
+              briefLength > MAX_BRIEF
+                ? `已超过 ${MAX_BRIEF} 字（${briefLength} / ${MAX_BRIEF}），请缩短后再提交。`
+                : `写下这篇笔记想表达的重点、读者与限制。${briefLength} / ${MAX_BRIEF}`
+            }
+          >
+            <Textarea
+              value={brief}
+              onChange={(e) => setBrief(e.target.value)}
+              rows={4}
+            />
+          </Field>
+
+          <div className="space-y-1.5">
+            <span className="block text-base font-semibold">必须包含的词</span>
+            <TermsInput value={terms} onChange={setTerms} />
+            <span className="block text-xs text-muted-foreground">
+              {termCount > MAX_TERMS
+                ? `最多 ${MAX_TERMS} 个词（现在 ${termCount} 个），请删减后再提交。`
+                : `输入后按回车或逗号添加，最多 ${MAX_TERMS} 个。${termCount} / ${MAX_TERMS}`}
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <h2 className="text-base font-semibold">本次任务资料（可选）</h2>
+              <p className="text-xs text-muted-foreground">
+                任务资料只用于这一个任务，未经过知识库审核，生成结果里会标注为“任务内资料（未审核）”。
+                最多 {MAX_MATERIALS} 份（含粘贴的文本），每份不超过 50000
+                字；支持 PDF、DOCX、MD、TXT、CSV。
+              </p>
+            </div>
+            <Textarea
+              value={pasted}
+              onChange={(e) => setPasted(e.target.value)}
+              rows={4}
+              placeholder="直接粘贴一段资料文字"
+              aria-label="粘贴资料文字"
+            />
+            <ul className="space-y-1">
+              {files.map((f, i) => (
+                <li
+                  key={`${f.name}-${i}`}
+                  className="flex items-center gap-2 rounded-lg bg-surface-low px-3 py-1.5 text-sm"
+                >
+                  <Paperclip className="size-4 text-muted-foreground" />
+                  <span className="min-w-0 flex-1 truncate">{f.name}</span>
+                  <button
+                    type="button"
+                    aria-label={`移除 ${f.name}`}
+                    onClick={() => setFiles(files.filter((_, j) => j !== i))}
+                  >
+                    <X className="size-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <input
+              ref={fileInput}
+              type="file"
+              accept={ACCEPT}
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                setFiles([...files, ...Array.from(e.target.files ?? [])])
+                e.target.value = ""
+              }}
+            />
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInput.current?.click()}
+              >
+                选择文件
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                已添加 {materialCount} / {MAX_MATERIALS} 份
+              </span>
+            </div>
+            {pastedLength > MAX_MATERIAL_CHARS && (
+              <p role="alert" className="text-sm text-destructive">
+                粘贴的资料已超过 {MAX_MATERIAL_CHARS} 字（{pastedLength}
+                ），请缩短后再提交。
+              </p>
+            )}
+            {materialCount > MAX_MATERIALS && (
+              <p role="alert" className="text-sm text-destructive">
+                资料最多 {MAX_MATERIALS} 份，请移除多余的。
+              </p>
+            )}
+          </div>
+        </section>
+
+        {error && (
+          <ErrorBanner
+            error={
+              error.code === "MODEL_UNAVAILABLE"
+                ? {
+                    ...error,
+                    message:
+                      "模型暂时不可用，请稍后重试。任务没有丢，可以再提交一次。",
+                  }
+                : error
+            }
+          />
+        )}
+
+        <div className="flex flex-wrap items-center justify-end gap-3">
           <Button
             type="button"
             variant="outline"
-            size="sm"
-            onClick={() => fileInput.current?.click()}
+            disabled={!ready || submit.isPending}
+            onClick={() => go(false)}
           >
-            选择文件
+            仅创建，稍后添加资料
           </Button>
-          <span className="text-xs text-muted-foreground">
-            已添加 {materialCount} / {MAX_MATERIALS} 份
-          </span>
+          <LoadingButton
+            type="submit"
+            loading={submit.isPending}
+            disabled={!ready}
+          >
+            创建并开始生成
+          </LoadingButton>
         </div>
-        {pastedLength > MAX_MATERIAL_CHARS && (
-          <p role="alert" className="text-sm text-destructive">
-            粘贴的资料已超过 {MAX_MATERIAL_CHARS} 字（{pastedLength}
-            ），请缩短后再提交。
-          </p>
-        )}
-        {materialCount > MAX_MATERIALS && (
-          <p role="alert" className="text-sm text-destructive">
-            资料最多 {MAX_MATERIALS} 份，请移除多余的。
-          </p>
-        )}
-      </section>
-
-      {error && (
-        <ErrorBanner
-          error={
-            error.code === "MODEL_UNAVAILABLE"
-              ? {
-                  ...error,
-                  message:
-                    "模型暂时不可用，请稍后重试。任务没有丢，可以再提交一次。",
-                }
-              : error
-          }
-        />
-      )}
-
-      <div className="flex flex-wrap items-center gap-3">
-        <LoadingButton
-          type="submit"
-          loading={submit.isPending}
-          disabled={!ready}
-        >
-          创建并开始生成
-        </LoadingButton>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={!ready || submit.isPending}
-          onClick={() => go(false)}
-        >
-          仅创建，稍后添加资料
-        </Button>
       </div>
+
+      <ProgressDock
+        steps={PROGRESS_PREVIEW.map((text) => ({
+          text,
+          state: "pending" as const,
+        }))}
+        note="创建任务后，这里会显示进度。"
+      />
     </form>
   )
 }
@@ -682,6 +843,22 @@ function TaskRun({ taskId }: { taskId: string }) {
   if (!t) return null
   const stage = typeof t.progress?.stage === "string" ? t.progress.stage : null
   const running = RUNNING.includes(t.flow_status)
+  const stageIndex = ["queued", "generating", "checking"].indexOf(t.flow_status)
+  const dockSteps: DockStep[] = [
+    ...["排队", "生成中", "检查中"].map(
+      (text, i): DockStep => ({
+        text,
+        state: running
+          ? i < stageIndex
+            ? "done"
+            : i === stageIndex
+              ? "current"
+              : "pending"
+          : "done",
+      }),
+    ),
+    { text: "完成", state: running ? "pending" : "done" },
+  ]
   const canStart =
     t.flow_status === "queued" || t.flow_status === "constraint_failed"
 
@@ -740,6 +917,7 @@ function TaskRun({ taskId }: { taskId: string }) {
         </div>
       </section>
       <MaterialsPanel taskId={t.id} editable={t.flow_status === "queued"} />
+      <ProgressDock steps={dockSteps} busy={running} />
     </div>
   )
 }

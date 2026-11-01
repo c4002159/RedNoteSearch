@@ -82,7 +82,7 @@ function DatasetsPage() {
         <select
           aria-label={T.kind}
           value={kind}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
           onChange={(e) => setKind(e.target.value as EvalKind | "")}
         >
           <option value="">{T.allKinds}</option>

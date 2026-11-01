@@ -87,7 +87,7 @@ export function Members({ brandId }: { brandId: string }) {
                 <select
                   aria-label={`${T.role}：${m.email}`}
                   value={m.role}
-                  className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                  className="h-10 rounded-lg border border-transparent bg-surface-low px-2 text-sm"
                   disabled={mutation.isPending}
                   onChange={(e) => {
                     mutation.reset()
