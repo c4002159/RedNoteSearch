@@ -1,11 +1,13 @@
 import {
   BarChart3,
+  BookUser,
   Building2,
   ClipboardCheck,
   FlaskConical,
   History,
   Library,
   type LucideIcon,
+  Package,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -48,6 +50,13 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "品牌与商品",
     items: [
       { title: "品牌与切换", path: "/brands", icon: Building2, access: "all" },
+      { title: "商品管理", path: "/products", icon: Package, access: "member" },
+      {
+        title: "品牌档案",
+        path: "/voice-profile",
+        icon: BookUser,
+        access: "member",
+      },
     ],
   },
   {
