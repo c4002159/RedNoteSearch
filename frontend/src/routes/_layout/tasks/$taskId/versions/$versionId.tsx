@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -564,7 +564,17 @@ function ResultPage() {
     queryFn: async () =>
       (await TasksService.readVersion({ path: { version_id: versionId } }))
         .data,
+    // 重新检查在后台进行：检查中时每 2 秒重新读取，完成后再刷新事实依据与风险提示
+    refetchInterval: (query) =>
+      query.state.data?.flow_status === "checking" ? 2000 : false,
   })
+  const flowStatus = version.data?.flow_status
+  const previousStatus = useRef(flowStatus)
+  useEffect(() => {
+    if (previousStatus.current === "checking" && flowStatus !== "checking")
+      void refresh()
+    previousStatus.current = flowStatus
+  }, [flowStatus, refresh])
   const task = useQuery({
     queryKey: ["task", taskId],
     queryFn: async () =>
