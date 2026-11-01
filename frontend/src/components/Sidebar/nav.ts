@@ -1,8 +1,8 @@
 import {
   BarChart3,
   Building2,
-  FlaskConical,
   ClipboardCheck,
+  FlaskConical,
   History,
   Library,
   type LucideIcon,
