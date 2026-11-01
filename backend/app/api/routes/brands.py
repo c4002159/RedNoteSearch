@@ -73,7 +73,11 @@ def add_member(
     brand: BrandManagerDep, session: SessionDep, body: MemberCreate
 ) -> MemberPublic:
     member, user = brand_service.add_member(
-        session=session, brand_id=brand.id, user_id=body.user_id, role=body.role
+        session=session,
+        brand_id=brand.id,
+        user_id=body.user_id,
+        email=body.email,
+        role=body.role,
     )
     return MemberPublic(
         user_id=user.id, email=user.email, full_name=user.full_name, role=member.role
