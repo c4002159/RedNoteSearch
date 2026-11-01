@@ -804,6 +804,10 @@ export const COUNT_LABEL = {
   body_budget_used: "正文预算已用",
 } as const
 
+export const SHELL_AUDIT_TEXT = {
+  notFoundTitle: "页面未找到 - RedNoteSearch",
+} as const
+
 export const PAGE_ERROR_TEXT = {
   lastAdmin: "不能移除或降级最后一位品牌管理员，请先添加另一位管理员。",
   failed: "操作失败，请重试；如仍失败，请联系管理员并提供请求编号。",
