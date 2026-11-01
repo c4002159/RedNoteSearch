@@ -14,7 +14,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatTime } from "@/lib/format"
-import { EVAL_KIND_LABEL, label, EVAL_TEXT as T } from "@/lib/zh"
+import {
+  EVAL_KIND_LABEL,
+  evaluationSystemLabel,
+  label,
+  EVAL_TEXT as T,
+} from "@/lib/zh"
 export const Route = createFileRoute("/_layout/evaluation/runs/$id")({
   component: () => (
     <EvaluationGuard>
@@ -35,7 +40,8 @@ function RunPage() {
   })
   const datasets = useQuery({
     queryKey: ["evaluation-datasets", "all"],
-    queryFn: async ({ signal }) => (await EvaluationService.readDatasets({ signal })).data.items,
+    queryFn: async ({ signal }) =>
+      (await EvaluationService.readDatasets({ signal })).data.items,
     enabled: !!query.data,
   })
   if (query.isLoading) return <Skeleton className="h-48 w-full" />
@@ -68,16 +74,28 @@ function RunPage() {
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div className="min-w-0">
             <dt className="text-muted-foreground">{T.datasets}</dt>
-            <dd><Link className="text-link hover:underline" to="/evaluation/datasets/$id" params={{ id: run.dataset_id }}>{datasets.data?.find((d) => d.id === run.dataset_id)?.name ?? T.datasets}</Link></dd>
+            <dd>
+              <Link
+                className="text-link hover:underline"
+                to="/evaluation/datasets/$id"
+                params={{ id: run.dataset_id }}
+              >
+                {datasets.data?.find((d) => d.id === run.dataset_id)?.name ??
+                  T.datasets}
+              </Link>
+            </dd>
           </div>
           {[
-
             [T.version, `v${run.versions.dataset_version}`],
             [T.prompt, run.versions.prompt_version ?? "—"],
             [T.checker, run.versions.checker_version ?? "—"],
             [T.rubric, run.versions.rubric_version ?? "—"],
             [T.models, run.versions.models.join("、") || "—"],
-            [T.baselines, run.versions.baselines.join("、") || "—"],
+            [
+              T.baselines,
+              run.versions.baselines.map(evaluationSystemLabel).join("、") ||
+                "—",
+            ],
             [T.finished, formatTime(run.finished_at)],
           ].map(([k, v]) => (
             <div key={k} className="min-w-0">

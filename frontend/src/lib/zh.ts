@@ -825,3 +825,17 @@ export const PAGE_ERROR_TEXT = {
 export const EVAL_DESIGN_TEXT = {
   otherBrand: "其他品牌",
 } as const
+
+export const EVAL_SYSTEM_LABEL: Record<string, string> = {
+  full: "完整系统",
+  "baseline:lexicon_only": "基线：仅词表匹配",
+  "baseline:no_verification": "基线：不做依据核对",
+  lexicon_only: "基线：仅词表匹配",
+  no_verification: "基线：不做依据核对",
+}
+export function evaluationSystemLabel(system: string): string {
+  return (
+    EVAL_SYSTEM_LABEL[system] ??
+    (system.startsWith("model:") ? `模型：${system.slice(6)}` : system)
+  )
+}
