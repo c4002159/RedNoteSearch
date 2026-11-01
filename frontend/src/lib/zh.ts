@@ -817,3 +817,27 @@ export const PAGE_ERROR_TEXT = {
     503: "服务暂时不可用，请稍后重试。",
   } as Record<number, string>,
 } as const
+
+export const RULE_ERROR_TEXT = {
+  rows: "文件行号：",
+  ids: "规则编号列表：",
+  otherField: "文件内容",
+  invalidValue: "字段值不符合要求，请参照下载模板填写。",
+  fields: {
+    id: "规则编号",
+    layer: "层级",
+    rule_type: "类型",
+    pattern: "规则内容",
+    severity: "严重度",
+    source_name: "来源",
+    source_url: "来源链接",
+    source_clause: "出处条款",
+    region_scope: "适用地区",
+    enabled: "启用状态",
+    effective_from: "生效日期",
+    effective_to: "失效日期",
+    header: "表头",
+  } as Record<string, string>,
+} as const
+
+export const PAGE_LOADING_TEXT = { loading: "正在加载，请稍候…" } as const
