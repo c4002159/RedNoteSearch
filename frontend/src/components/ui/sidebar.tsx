@@ -99,6 +99,13 @@ function SidebarProvider({
     [setOpenProp, open],
   )
 
+  React.useEffect(() => {
+    const media = window.matchMedia("(min-width: 1280px)")
+    const onChange = () => setOpen(media.matches)
+    media.addEventListener("change", onChange)
+    return () => media.removeEventListener("change", onChange)
+  }, [setOpen])
+
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
