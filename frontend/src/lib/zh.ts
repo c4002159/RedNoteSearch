@@ -114,7 +114,6 @@ export const REJECT_CODE_LABEL: Record<string, string> = {
   not_latest_version: "只有最新版本可以确认",
 }
 
-<<<<<<< HEAD
 export const SCENE_LABEL = {
   seeding: "种草",
   review: "测评",
@@ -197,7 +196,13 @@ export const VIRAL_TEXT = {
   nameRequired: "请填写名称",
   converted: "场景模板已创建",
   templateVersion: "模板版本",
-=======
+  previous: "上一页",
+  next: "下一页",
+  page: "页",
+  total: "共",
+  items: "条",
+} as const
+
 export const DOCUMENT_TYPE_LABEL = {
   brand_story: "品牌故事",
   product_spec: "商品规格",
@@ -254,14 +259,11 @@ export const KB_TEXT = {
   noPending: "暂无待审资料",
   emptyHint: "可以提交资料，或调整筛选条件。",
   back: "返回资料列表",
->>>>>>> origin/main
   previous: "上一页",
   next: "下一页",
   page: "页",
   total: "共",
   items: "条",
-<<<<<<< HEAD
-=======
   retry: "重试",
   file: "选择文件",
   fileHint: "PDF、DOCX ≤50 MB；MD、TXT、CSV ≤5 MB。PDF 需要有文字，不做 OCR。",
@@ -310,5 +312,4 @@ export const KB_TEXT = {
   brandError: "品牌列表加载失败",
   savedError: "操作失败，请查看请求编号",
   detailMissing: "请先切换到该资料所属的品牌。",
->>>>>>> origin/main
 } as const
