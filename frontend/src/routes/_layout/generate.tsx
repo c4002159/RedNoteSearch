@@ -70,6 +70,27 @@ function Field({
 const selectClass =
   "h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
 
+// 文件资料上传失败时，说明是哪份、为什么、任务现在是什么状态
+function uploadFailureMessage(
+  fileName: string,
+  err: unknown,
+  skipped: number,
+): string {
+  const info = parseApiError(err)
+  const reason =
+    info.code === "MATERIAL_TOO_LONG"
+      ? "内容超过 50000 字"
+      : info.code === "FILE_TOO_LARGE"
+        ? "文件太大"
+        : info.code === "UNSUPPORTED_FILE_TYPE"
+          ? "文件类型不支持"
+          : info.code === "PARSE_FAILED"
+            ? "没有读到可用的文字"
+            : info.message
+  const rest = skipped > 0 ? `，后面的 ${skipped} 份也没有上传` : ""
+  return `任务已创建，但「${fileName}」${reason}，这份资料没有加入${rest}，也没有自动开始生成。可以缩短或换一份文件，到任务页重新上传后再生成。`
+}
+
 function splitTerms(text: string): string[] {
   return text
     .split(/[,，\n]/)
@@ -159,7 +180,8 @@ function NewTaskForm() {
         })
       ).data
       let uploadError: unknown = null
-      for (const file of files) {
+      let uploadFailure = ""
+      for (const [index, file] of files.entries()) {
         try {
           await TasksService.uploadTaskMaterial({
             path: { task_id: created.id },
@@ -167,6 +189,11 @@ function NewTaskForm() {
           })
         } catch (e) {
           uploadError = e
+          uploadFailure = uploadFailureMessage(
+            file.name,
+            e,
+            files.length - index - 1,
+          )
           break
         }
       }
@@ -176,14 +203,12 @@ function NewTaskForm() {
           headers: { "idempotency-key": crypto.randomUUID() },
         })
       }
-      return { id: created.id, uploadError }
+      return { id: created.id, uploadError, uploadFailure }
     },
-    onSuccess: async ({ id, uploadError }) => {
+    onSuccess: async ({ id, uploadError, uploadFailure }) => {
       await queryClient.invalidateQueries({ queryKey: ["tasks"] })
       if (uploadError) {
-        toast.error(
-          `任务已创建，但资料上传失败：${parseApiError(uploadError).message}`,
-        )
+        toast.error(uploadFailure, { duration: 12000 })
       }
       void navigate({ to: "/generate", search: { task: id } })
     },
