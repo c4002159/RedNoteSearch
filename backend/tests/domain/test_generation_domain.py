@@ -146,7 +146,7 @@ def test_prompt_separates_verified_facts_from_unverified_points() -> None:
     )
     assert "第二人称" in user and "标签 3 个" in user and "语气：克制" in user
     assert "合规通过" not in system + user  # the prompt never claims compliance
-    assert PROMPT_VERSION == "gen-v3"
+    assert PROMPT_VERSION == "gen-v4"
 
 
 def test_prompt_handles_missing_context_and_adds_problems_on_retry() -> None:
@@ -168,3 +168,16 @@ def test_body_budget_leaves_room_for_the_tags() -> None:
     assert body_budget({"hashtag_count": 0}) == 1000
     assert body_budget({"hashtag_count": 5}) == 960
     assert body_budget({}) == 960  # default of five tags
+
+
+def test_prompt_forbids_inventing_the_writers_own_experience() -> None:
+    from app.domain.generation.prompt import SYSTEM_PROMPT
+
+    for phrase in (
+        "我一直",
+        "我最近",
+        "我自己",
+        "对我来说",
+        "不要说“我最近在用某某品牌”",
+    ):
+        assert phrase in SYSTEM_PROMPT

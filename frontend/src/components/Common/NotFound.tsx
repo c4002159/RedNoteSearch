@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
-import { SHELL_TEXT } from "@/lib/zh"
+import { SHELL_AUDIT_TEXT, SHELL_TEXT } from "@/lib/zh"
 
 const NotFound = () => {
   return (
@@ -8,6 +8,7 @@ const NotFound = () => {
       className="flex min-h-screen items-center justify-center flex-col p-4"
       data-testid="not-found"
     >
+      <title>{SHELL_AUDIT_TEXT.notFoundTitle}</title>
       <div className="flex items-center z-10">
         <div className="flex flex-col ml-4 items-center justify-center p-4">
           <span className="text-6xl md:text-8xl font-bold leading-none mb-4">
