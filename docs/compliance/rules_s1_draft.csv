@@ -27,4 +27,4 @@ efficacy_basis,efficacy_claim,warn,美白,false,属于需要依据的功效宣�
 efficacy_basis,efficacy_claim,warn,祛斑,false,属于需要依据的功效宣称，请确认有注册备案或评价依据，没有依据请删除,《上海市化妆品行业广告宣传合规指引》,https://www.shanghai.gov.cn/gwk/search/content/2c984a728e07910f018e12e7a4f26c49,第十五条、第十七条、第十八条,上海市,2024-03-06,,true
 efficacy_basis,efficacy_claim,warn,祛痘,false,属于需要依据的功效宣称，请确认有注册备案或评价依据，没有依据请删除,《上海市化妆品行业广告宣传合规指引》,https://www.shanghai.gov.cn/gwk/search/content/2c984a728e07910f018e12e7a4f26c49,第十五条、第十七条、第十八条,上海市,2024-03-06,,true
 efficacy_basis,efficacy_claim,warn,防脱发,false,属于需要依据的功效宣称，请确认有注册备案或评价依据，没有依据请删除,《上海市化妆品行业广告宣传合规指引》,https://www.shanghai.gov.cn/gwk/search/content/2c984a728e07910f018e12e7a4f26c49,第十五条、第十七条、第十八条,上海市,2024-03-06,,true
-efficacy_basis,efficacy_claim,warn,育发,false,属于需要依据的功效宣称，请确认有注册备案或评价依据，没有依据请删除,《上海市化妆品行业广告宣传合规指引》,https://www.shanghai.gov.cn/gwk/search/content/2c984a728e07910f018e12e7a4f26c49,第十五条、第十七条、第十八条,上海市,2024-03-06,,true
+efficacy_basis,efficacy_claim,block,育发,false,第十七条明确限制防脱发类产品作育发宣称，请删除该表述,《上海市化妆品行业广告宣传合规指引》,https://www.shanghai.gov.cn/gwk/search/content/2c984a728e07910f018e12e7a4f26c49,第十五条、第十七条、第十八条,上海市,2024-03-06,,true

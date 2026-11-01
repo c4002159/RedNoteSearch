@@ -4,6 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { TasksService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
+import { MissingPage } from "@/components/Common/ForbiddenPage"
 import { FlowStatusBadge } from "@/components/Common/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -81,12 +82,15 @@ function ComparePage() {
         </Button>
       </div>
       {versions.isLoading && <Skeleton className="h-48 w-full" />}
-      {versions.isError && (
-        <ErrorBanner
-          error={parseApiError(versions.error)}
-          onRetry={() => versions.refetch()}
-        />
-      )}
+      {versions.isError &&
+        (parseApiError(versions.error).status === 404 ? (
+          <MissingPage />
+        ) : (
+          <ErrorBanner
+            error={parseApiError(versions.error)}
+            onRetry={() => versions.refetch()}
+          />
+        ))}
       {versions.isSuccess && (!a || !b || a.id === b.id) && (
         <EmptyState
           title="请选择两个不同的版本"
