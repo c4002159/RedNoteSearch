@@ -821,3 +821,7 @@ export const PAGE_ERROR_TEXT = {
     503: "服务暂时不可用，请稍后重试。",
   } as Record<number, string>,
 } as const
+
+export const EVAL_DESIGN_TEXT = {
+  otherBrand: "其他品牌",
+} as const
