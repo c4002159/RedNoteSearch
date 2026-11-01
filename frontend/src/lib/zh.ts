@@ -803,3 +803,7 @@ export const COUNT_LABEL = {
   tags_count: "话题数",
   body_budget_used: "正文预算已用",
 } as const
+
+export const SHELL_AUDIT_TEXT = {
+  notFoundTitle: "页面未找到 - RedNoteSearch",
+} as const
