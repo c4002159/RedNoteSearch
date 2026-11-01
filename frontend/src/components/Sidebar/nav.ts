@@ -1,6 +1,8 @@
 import {
   Building2,
+  ClipboardCheck,
   History,
+  Library,
   type LucideIcon,
   Settings,
   ShieldCheck,
@@ -54,6 +56,23 @@ export const NAV_GROUPS: NavGroup[] = [
         path: "/compliance/rules",
         icon: ShieldCheck,
         access: "all",
+      },
+    ],
+  },
+  {
+    title: "知识库",
+    items: [
+      {
+        title: "资料列表与上传",
+        path: "/knowledge",
+        icon: Library,
+        access: "member",
+      },
+      {
+        title: "待审队列",
+        path: "/knowledge/review",
+        icon: ClipboardCheck,
+        access: "admin",
       },
     ],
   },
