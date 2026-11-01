@@ -104,3 +104,12 @@ def test_the_mode_switch_selects_the_demo_model(
     assert isinstance(get_llm_factory()(uuid.uuid4(), uuid.uuid4()), DemoLlmClient)
     monkeypatch.setattr(settings, "LLM_MODE", "real")
     assert not isinstance(get_llm_factory()(uuid.uuid4(), uuid.uuid4()), DemoLlmClient)
+
+
+def test_demo_fake_mode_also_uses_the_fake_embedder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "LLM_MODE", "demo_fake")
+    assert isinstance(get_embedder(), FakeEmbeddingProvider)
+    monkeypatch.setattr(settings, "LLM_MODE", "real")
+    assert not isinstance(get_embedder(), FakeEmbeddingProvider)
