@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { ChevronRight } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -29,6 +30,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { parseApiError } from "@/lib/apiError"
 import {
@@ -42,6 +44,7 @@ import {
   titleWeight,
 } from "@/lib/count"
 import { formatTime } from "@/lib/format"
+import { cn } from "@/lib/utils"
 import { COUNT_LABEL, LAYER_LABEL, label, ORIGIN_LABEL } from "@/lib/zh"
 
 export const Route = createFileRoute(
@@ -51,6 +54,7 @@ export const Route = createFileRoute(
   head: () => ({ meta: [{ title: "结果页 - RedNoteSearch" }] }),
 })
 
+const CARD = "rounded-xl border border-border/40 bg-card p-6 shadow-sm"
 const CONFIRMABLE = ["checks_completed", "needs_human_review"]
 // 这些状态下后台还在跑，页面要轮询；结论性文案先不显示
 const IN_PROGRESS = ["queued", "generating", "checking"]
@@ -241,7 +245,13 @@ type ConstraintReport = {
   note?: { counts?: Record<string, number>; issues?: Issue[] }
 }
 
-function ConstraintPanel({ version }: { version: Version }) {
+function ConstraintPanel({
+  version,
+  bare = false,
+}: {
+  version: Version
+  bare?: boolean
+}) {
   const report = version.constraint_checks as ConstraintReport
   if (report.passed === undefined) return null
   const issues = [
@@ -252,9 +262,11 @@ function ConstraintPanel({ version }: { version: Version }) {
   ]
   const counts = report.note?.counts ?? {}
   return (
-    <section className="space-y-2 rounded-xl border bg-card p-4">
+    <section
+      className={cn("space-y-2", !bare && "rounded-xl border bg-card p-4")}
+    >
       <div className="flex items-center gap-2">
-        <h2 className="text-base font-semibold">字数与格式检查</h2>
+        {!bare && <h2 className="text-base font-semibold">字数与格式检查</h2>}
         <Pill tone={report.passed ? "neutral" : "err"}>
           {report.passed ? "符合字数与格式要求" : "有未满足的要求"}
         </Pill>
@@ -288,15 +300,21 @@ function EvidencePanel({
   editable,
   busyText,
   onDecide,
+  bare = false,
 }: {
   items: ClaimEvidencePublic[]
   editable: boolean
   busyText: string | null
   onDecide: (item: ClaimEvidencePublic, ok: boolean) => void
+  bare?: boolean
 }) {
   return (
-    <section className="space-y-3 rounded-xl border bg-card p-4">
-      <h2 className="text-base font-semibold">事实依据（{items.length}）</h2>
+    <section
+      className={cn("space-y-3", !bare && "rounded-xl border bg-card p-4")}
+    >
+      {!bare && (
+        <h2 className="text-base font-semibold">事实依据（{items.length}）</h2>
+      )}
       <p className="text-xs text-muted-foreground">
         “系统判定支持”只表示资料与断言匹配，不是事实保证。没有系统依据的断言需要你逐条判断。
       </p>
@@ -371,15 +389,21 @@ function RiskPanel({
   editable,
   busyText,
   onResolve,
+  bare = false,
 }: {
   items: ComplianceCheckPublic[]
   editable: boolean
   busyText: string | null
   onResolve: (item: ComplianceCheckPublic) => void
+  bare?: boolean
 }) {
   return (
-    <section className="space-y-3 rounded-xl border bg-card p-4">
-      <h2 className="text-base font-semibold">风险提示（{items.length}）</h2>
+    <section
+      className={cn("space-y-3", !bare && "rounded-xl border bg-card p-4")}
+    >
+      {!bare && (
+        <h2 className="text-base font-semibold">风险提示（{items.length}）</h2>
+      )}
       <p className="text-xs text-muted-foreground">
         这些是基于规则的提示，不是合规结论，不能替代人工和法务判断。
       </p>
@@ -567,6 +591,7 @@ function ResultPage() {
   const [dialog, setDialog] = useState<Dialog>(null)
   const [titleIndex, setTitleIndex] = useState<number | null>(null)
   const [coverIndex, setCoverIndex] = useState<number | null>(null)
+  const [tab, setTab] = useState("evidence")
 
   const version = useQuery({
     queryKey: ["version", versionId],
@@ -715,6 +740,18 @@ function ResultPage() {
 
   return (
     <div className="space-y-6">
+      <nav
+        aria-label="位置"
+        className="flex items-center gap-1.5 text-sm text-muted-foreground"
+      >
+        <Link to="/tasks" className="hover:text-foreground">
+          任务与版本历史
+        </Link>
+        <ChevronRight className="size-4" />
+        <span className="font-semibold text-foreground">
+          版本 {v.version_no}
+        </span>
+      </nav>
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold tracking-tight">
           第 {v.version_no} 版 · {label(ORIGIN_LABEL, v.origin, "origin")}
@@ -737,88 +774,137 @@ function ResultPage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="space-y-6">
-          <section className="space-y-4 rounded-xl border bg-card p-4">
-            {editing ? (
+          {editing ? (
+            <section className={CARD}>
               <EditForm
                 version={v}
                 onCancel={() => setEditing(false)}
                 onSaved={goTo}
               />
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <h2 className="text-base font-semibold">候选标题</h2>
-                  <ul className="space-y-1">
-                    {v.title_candidates.map((t, i) => (
-                      <li key={`${i}-${t}`}>
-                        <label className="flex items-start gap-2 rounded-md p-2 hover:bg-surface-low">
-                          <input
-                            type="radio"
-                            name="title"
-                            className="mt-1"
-                            checked={chosen === i}
-                            disabled={!editable}
-                            onChange={() => setTitleIndex(i)}
-                          />
-                          <span className="min-w-0 flex-1 text-sm">{t}</span>
-                          <CharCounter
-                            value={titleWeight(t)}
-                            limit={TITLE_LIMIT}
-                          />
-                        </label>
+            </section>
+          ) : (
+            <>
+              <section className={CARD}>
+                <div className="flex items-baseline gap-3">
+                  <h2 className="text-lg font-semibold">标题候选</h2>
+                  <span className="text-xs text-muted-foreground">
+                    字数以系统检查结果为准
+                  </span>
+                </div>
+                <ul className="mt-4 space-y-3">
+                  {v.title_candidates.map((t, i) => (
+                    <li key={`${i}-${t}`}>
+                      <label
+                        className={cn(
+                          "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors",
+                          chosen === i
+                            ? "border-primary bg-accent"
+                            : "border-border/60 hover:bg-surface-low",
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="title"
+                          className="size-4 accent-primary"
+                          checked={chosen === i}
+                          disabled={!editable}
+                          onChange={() => setTitleIndex(i)}
+                        />
+                        <span className="min-w-0 flex-1">{t}</span>
+                        <CharCounter
+                          value={titleWeight(t)}
+                          limit={TITLE_LIMIT}
+                        />
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <section className={CARD}>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 className="text-lg font-semibold">正文内容</h2>
+                  <CharCounter
+                    value={bodyUnits(v.body) + tagsVisibleUnits(v.hashtags)}
+                    limit={BODY_LIMIT}
+                    suffix="（含话题）"
+                  />
+                  {editable && (
+                    <Button
+                      className="ml-auto"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditing(true)}
+                    >
+                      编辑
+                    </Button>
+                  )}
+                </div>
+                <p className="mt-4 whitespace-pre-wrap rounded-xl bg-surface-low p-5 text-sm leading-7">
+                  {v.body}
+                </p>
+              </section>
+
+              {v.hashtags.length > 0 && (
+                <section className={CARD}>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold">推荐标签</h2>
+                    <span className="text-xs text-muted-foreground">
+                      已选 {v.hashtags.length} / 10
+                    </span>
+                  </div>
+                  <ul className="mt-4 flex flex-wrap gap-2">
+                    {v.hashtags.map((t) => (
+                      <li
+                        key={t}
+                        className="rounded-full bg-surface-low px-3.5 py-1.5 text-sm font-medium"
+                      >
+                        #{normalizeTag(t)}
                       </li>
                     ))}
                   </ul>
-                </div>
-                {v.cover_candidates.length > 0 && (
-                  <div className="space-y-2">
-                    <h2 className="text-base font-semibold">封面文字候选</h2>
-                    <ul className="space-y-1">
-                      {v.cover_candidates.map((c, i) => (
+                </section>
+              )}
+
+              {v.cover_candidates.length > 0 && (
+                <section className={CARD}>
+                  <div className="flex items-baseline gap-3">
+                    <h2 className="text-lg font-semibold">封面文案候选</h2>
+                    <span className="text-xs text-muted-foreground">
+                      封面文案不并入复制文本
+                    </span>
+                  </div>
+                  <ul className="mt-4 space-y-3">
+                    {v.cover_candidates.map((c, i) => {
+                      const on = (coverIndex ?? v.selected_cover_index) === i
+                      return (
                         <li key={`${i}-${c}`}>
-                          <label className="flex items-center gap-2 rounded-md p-2 text-sm hover:bg-surface-low">
+                          <label
+                            className={cn(
+                              "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors",
+                              on
+                                ? "border-primary bg-accent"
+                                : "border-border/60 hover:bg-surface-low",
+                            )}
+                          >
                             <input
                               type="radio"
                               name="cover"
-                              checked={
-                                (coverIndex ?? v.selected_cover_index) === i
-                              }
+                              className="size-4 accent-primary"
+                              checked={on}
                               disabled={!editable}
                               onChange={() => setCoverIndex(i)}
                             />
                             {c}
                           </label>
                         </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-semibold">正文</h2>
-                    <CharCounter
-                      value={bodyUnits(v.body) + tagsVisibleUnits(v.hashtags)}
-                      limit={BODY_LIMIT}
-                      suffix="（含话题）"
-                    />
-                  </div>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                    {v.body}
-                  </p>
-                </div>
-                {v.hashtags.length > 0 && (
-                  <p className="text-sm text-link">
-                    {v.hashtags.map((t) => `#${normalizeTag(t)}`).join(" ")}
-                  </p>
-                )}
-                {editable && (
-                  <Button variant="outline" onClick={() => setEditing(true)}>
-                    编辑
-                  </Button>
-                )}
-              </>
-            )}
-          </section>
+                      )
+                    })}
+                  </ul>
+                </section>
+              )}
+            </>
+          )}
 
           {editable && !editing && (
             <RewriteBar versionId={v.id} onDone={goTo} />
@@ -827,7 +913,7 @@ function ResultPage() {
         </div>
 
         <div className="space-y-6">
-          <section className="space-y-3 rounded-xl border bg-card p-4">
+          <section className={cn(CARD, "space-y-3 p-5")}>
             <h2 className="text-base font-semibold">下一步</h2>
             {v.flow_status === "edited_pending_recheck" && isLatest && (
               <>
@@ -886,37 +972,94 @@ function ResultPage() {
               )}
           </section>
 
-          <ConstraintPanel version={v} />
-          {evidence.isLoading ? (
-            <Skeleton className="h-24 w-full" />
-          ) : evidence.isError ? (
-            <ErrorBanner
-              error={parseApiError(evidence.error)}
-              onRetry={() => evidence.refetch()}
-            />
-          ) : (
-            <EvidencePanel
-              items={items}
-              editable={editable}
-              busyText={busyText}
-              onDecide={(item, ok) => setDialog({ kind: "evidence", item, ok })}
-            />
-          )}
-          {compliance.isLoading ? (
-            <Skeleton className="h-24 w-full" />
-          ) : compliance.isError ? (
-            <ErrorBanner
-              error={parseApiError(compliance.error)}
-              onRetry={() => compliance.refetch()}
-            />
-          ) : (
-            <RiskPanel
-              items={compliance.data?.items ?? []}
-              editable={editable}
-              busyText={busyText}
-              onResolve={(item) => setDialog({ kind: "risk", item })}
-            />
-          )}
+          <section className={cn(CARD, "overflow-hidden p-0")}>
+            <Tabs value={tab} onValueChange={setTab} className="gap-0">
+              <TabsList className="h-12 w-full justify-start gap-6 rounded-none border-b border-border/40 bg-transparent px-5 py-0">
+                {[
+                  {
+                    id: "constraints",
+                    text: "约束",
+                    dot: "bg-primary",
+                    n: null,
+                  },
+                  {
+                    id: "evidence",
+                    text: "证据",
+                    dot: "bg-tone-ok",
+                    n: items.length,
+                  },
+                  {
+                    id: "risk",
+                    text: "风险",
+                    dot: "bg-tone-warn",
+                    n: compliance.data?.items.length ?? null,
+                  },
+                ].map((x) => (
+                  <TabsTrigger
+                    key={x.id}
+                    value={x.id}
+                    className="h-full flex-none rounded-none border-0 border-b-2 border-transparent bg-transparent px-1 shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-link data-[state=active]:shadow-none"
+                  >
+                    <span className={cn("size-2 rounded-full", x.dot)} />
+                    {x.text}
+                    {x.n !== null && x.n > 0 && (
+                      <span className="rounded-full bg-surface-low px-1.5 text-xs">
+                        {x.n}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <TabsContent value="constraints" className="p-5">
+                {(v.constraint_checks as { passed?: boolean }).passed ===
+                undefined ? (
+                  <p className="text-sm text-muted-foreground">
+                    {busyText ?? "还没有字数与格式检查结果。"}
+                  </p>
+                ) : (
+                  <ConstraintPanel version={v} bare />
+                )}
+              </TabsContent>
+              <TabsContent value="evidence" className="p-5">
+                {evidence.isLoading ? (
+                  <Skeleton className="h-24 w-full" />
+                ) : evidence.isError ? (
+                  <ErrorBanner
+                    error={parseApiError(evidence.error)}
+                    onRetry={() => evidence.refetch()}
+                  />
+                ) : (
+                  <EvidencePanel
+                    bare
+                    items={items}
+                    editable={editable}
+                    busyText={busyText}
+                    onDecide={(item, ok) =>
+                      setDialog({ kind: "evidence", item, ok })
+                    }
+                  />
+                )}
+              </TabsContent>
+              <TabsContent value="risk" className="p-5">
+                {compliance.isLoading ? (
+                  <Skeleton className="h-24 w-full" />
+                ) : compliance.isError ? (
+                  <ErrorBanner
+                    error={parseApiError(compliance.error)}
+                    onRetry={() => compliance.refetch()}
+                  />
+                ) : (
+                  <RiskPanel
+                    bare
+                    items={compliance.data?.items ?? []}
+                    editable={editable}
+                    busyText={busyText}
+                    onResolve={(item) => setDialog({ kind: "risk", item })}
+                  />
+                )}
+              </TabsContent>
+            </Tabs>
+          </section>
         </div>
       </div>
 
