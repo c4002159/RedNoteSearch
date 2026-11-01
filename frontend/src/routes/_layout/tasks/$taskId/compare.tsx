@@ -44,7 +44,11 @@ function Rows({ title, rows }: { title: string; rows: DiffRow[] }) {
             </p>
             <p
               className={`whitespace-pre-wrap break-words rounded px-2 py-1 ${
-                r.right === null ? "" : r.same ? "" : "bg-tone-ok"
+                r.right === null
+                  ? ""
+                  : r.same
+                    ? ""
+                    : "bg-tone-soft-blue-bg text-tone-soft-blue"
               }`}
             >
               {r.right ?? ""}
