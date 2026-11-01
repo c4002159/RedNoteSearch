@@ -1,163 +1,205 @@
+import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { Check } from "lucide-react"
 import { useState } from "react"
+import { useForm } from "react-hook-form"
 import { toast } from "sonner"
-
-import { type BrandCategory, BrandsService } from "@/client"
+import { z } from "zod"
+import { BrandsService } from "@/client"
+import { BrandError } from "@/components/Brands/Feedback"
+import { Members } from "@/components/Brands/Members"
 import { EmptyState } from "@/components/Common/EmptyState"
-import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { Skeleton } from "@/components/ui/skeleton"
 import useAuth from "@/hooks/useAuth"
 import { useBrand } from "@/hooks/useBrand"
-import { parseApiError } from "@/lib/apiError"
-import { BRAND_CATEGORY_LABEL, label, ROLE_LABEL } from "@/lib/zh"
+import { codePointCount } from "@/lib/count"
+import {
+  BRAND_CATEGORY_LABEL,
+  label,
+  ROLE_LABEL,
+  BRAND_PAGE_TEXT as T,
+} from "@/lib/zh"
 
 export const Route = createFileRoute("/_layout/brands")({
   component: BrandsPage,
-  head: () => ({ meta: [{ title: "品牌与切换 - RedNoteSearch" }] }),
+  head: () => ({ meta: [{ title: `${T.title} - RedNoteSearch` }] }),
 })
-
-function CreateBrand({ onDone }: { onDone: (id: string) => void }) {
-  const queryClient = useQueryClient()
-  const [name, setName] = useState("")
-  const [category, setCategory] = useState<BrandCategory>("perfume")
+const schema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, T.nameRequired)
+    .refine((v) => codePointCount(v) <= 100, T.nameLimit),
+  category: z.enum([
+    "perfume",
+    "skincare",
+    "makeup",
+    "home_fragrance",
+    "other",
+  ]),
+})
+function CreateBrand({
+  onClose,
+  onDone,
+}: {
+  onClose: () => void
+  onDone: (id: string) => void
+}) {
+  const cache = useQueryClient()
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+    defaultValues: { name: "", category: "perfume" },
+  })
   const mutation = useMutation({
-    mutationFn: async () =>
-      (
-        await BrandsService.createBrand({
-          body: { name: name.trim(), category },
-        })
-      ).data,
-    onSuccess: async (brand) => {
-      toast.success("品牌已创建")
-      await queryClient.invalidateQueries({ queryKey: ["brands"] })
-      setName("")
-      onDone(brand.id)
+    mutationFn: async (body: z.infer<typeof schema>) =>
+      (await BrandsService.createBrand({ body })).data,
+    onSuccess: async (b) => {
+      toast.success(T.created)
+      await cache.invalidateQueries({ queryKey: ["brands"] })
+      onDone(b.id)
+      onClose()
     },
   })
-
   return (
-    <form
-      className="space-y-3 rounded-xl border bg-card p-4"
-      onSubmit={(e) => {
-        e.preventDefault()
-        if (name.trim()) mutation.mutate()
-      }}
-    >
-      <h2 className="text-base font-semibold">创建品牌</h2>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {/* biome-ignore lint/a11y/noLabelWithoutControl: the control is nested in the label */}
-        <label className="space-y-1 text-sm">
-          <span>品牌名称</span>
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={100}
-            required
-          />
-        </label>
-
-        <label className="space-y-1 text-sm">
-          <span>品类</span>
-          <select
-            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            value={category}
-            onChange={(e) => setCategory(e.target.value as BrandCategory)}
-          >
-            {(Object.keys(BRAND_CATEGORY_LABEL) as BrandCategory[]).map((k) => (
-              <option key={k} value={k}>
-                {label(BRAND_CATEGORY_LABEL, k, "brand_category")}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      {mutation.isError && (
-        <ErrorBanner error={parseApiError(mutation.error)} />
-      )}
-      <LoadingButton type="submit" loading={mutation.isPending}>
-        创建品牌
-      </LoadingButton>
-    </form>
+    <Dialog open onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
+      <DialogContent
+        showCloseButton={!mutation.isPending}
+        onEscapeKeyDown={(e) => mutation.isPending && e.preventDefault()}
+        onInteractOutside={(e) => mutation.isPending && e.preventDefault()}
+      >
+        <DialogHeader>
+          <DialogTitle>{T.create}</DialogTitle>
+          <DialogDescription>{T.description}</DialogDescription>
+        </DialogHeader>
+        <form
+          className="space-y-4"
+          onSubmit={form.handleSubmit((v) => mutation.mutate(v))}
+        >
+          <fieldset className="space-y-3" disabled={mutation.isPending}>
+            <legend className="sr-only">{T.create}</legend>
+            <div>
+              <label htmlFor="brand-name">{T.name}</label>
+              <Input id="brand-name" {...form.register("name")} />
+              <p className="text-xs text-destructive">
+                {form.formState.errors.name?.message}
+              </p>
+            </div>
+            <div>
+              <label htmlFor="brand-category">{T.category}</label>
+              <select
+                id="brand-category"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                {...form.register("category")}
+              >
+                {Object.entries(BRAND_CATEGORY_LABEL).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </fieldset>
+          {mutation.isError && <BrandError error={mutation.error} />}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={mutation.isPending}
+              onClick={onClose}
+            >
+              {T.cancel}
+            </Button>
+            <LoadingButton type="submit" loading={mutation.isPending}>
+              {T.create}
+            </LoadingButton>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
-
 function BrandsPage() {
-  const { user } = useAuth()
-  const { brands, current, isLoading, isError, refetch, select } = useBrand()
-
+  const { user } = useAuth(),
+    brand = useBrand(),
+    cache = useQueryClient()
+  const [creating, setCreating] = useState(false)
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">品牌与切换</h1>
-        <p className="text-sm text-muted-foreground">
-          选择当前要操作的品牌。你在每个品牌里的角色决定可以使用哪些功能。
-        </p>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{T.title}</h1>
+          <p className="text-sm text-muted-foreground">{T.description}</p>
+        </div>
+        {user?.is_superuser && (
+          <Button onClick={() => setCreating(true)}>{T.create}</Button>
+        )}
       </div>
-
-      {isLoading && <Skeleton className="h-24 w-full" />}
-      {isError && (
-        <ErrorBanner
-          error={{
-            status: 0,
-            code: "UNKNOWN",
-            message: "品牌列表加载失败",
-            details: {},
-            requestId: null,
-          }}
-          onRetry={refetch}
+      {brand.isLoading && <Skeleton className="h-32 w-full" />}
+      {brand.isError && (
+        <BrandError
+          error={cache.getQueryState(["brands"])?.error}
+          retry={brand.refetch}
         />
-      )}
-      {!isLoading && !isError && brands.length === 0 && (
+      )}{" "}
+      {!brand.isLoading && !brand.isError && brand.brands.length === 0 && (
         <EmptyState
-          title="你还没有加入任何品牌"
-          description={
-            user?.is_superuser
-              ? "可以在下方创建第一个品牌。"
-              : "请联系品牌管理员把你加入品牌。"
-          }
+          title={T.empty}
+          description={user?.is_superuser ? T.createHint : T.emptyHint}
         />
       )}
-
-      <ul className="grid gap-3 md:grid-cols-2">
-        {brands.map((b) => {
-          const active = b.id === current?.id
-          return (
-            <li
-              key={b.id}
-              className="flex items-center gap-3 rounded-xl border bg-card p-4"
-            >
-              <span className="size-4 shrink-0 rounded-sm bg-brand-swatch" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{b.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {label(BRAND_CATEGORY_LABEL, b.category, "brand_category")} ·{" "}
-                  {label(ROLE_LABEL, b.role, "role")}
-                </p>
-              </div>
-              {active ? (
-                <span className="flex items-center gap-1 text-sm text-primary">
-                  <Check className="size-4" /> 当前品牌
-                </span>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => select(b.id)}
-                >
-                  切换
-                </Button>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-
-      {user?.is_superuser && <CreateBrand onDone={select} />}
+      {!brand.isError && (
+        <div className="grid items-start gap-5 xl:grid-cols-2">
+          <ul className="space-y-3">
+            {brand.brands.map((b) => (
+              <li
+                key={b.id}
+                className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4"
+              >
+                <span className="size-4 shrink-0 rounded-sm bg-brand-swatch" />
+                <div className="min-w-0 flex-1">
+                  <p className="break-words font-medium">{b.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {label(BRAND_CATEGORY_LABEL, b.category, "brand_category")}{" "}
+                    · {label(ROLE_LABEL, b.role, "role")}
+                  </p>
+                </div>
+                {b.id === brand.current?.id ? (
+                  <span className="flex items-center gap-1 text-sm text-primary">
+                    <Check className="size-4" />
+                    {T.current}
+                  </span>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => brand.select(b.id)}
+                  >
+                    {T.switch}
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+          {brand.current && (brand.isAdmin || user?.is_superuser) && (
+            <Members key={brand.current.id} brandId={brand.current.id} />
+          )}
+        </div>
+      )}
+      {creating && user?.is_superuser && (
+        <CreateBrand onClose={() => setCreating(false)} onDone={brand.select} />
+      )}
     </div>
   )
 }
