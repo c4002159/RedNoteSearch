@@ -23,6 +23,7 @@ import {
 import { useBrand } from "@/hooks/useBrand"
 import { formatTime } from "@/lib/format"
 import {
+  EVAL_DATASETS_DESCRIPTION,
   EVAL_DESIGN_TEXT,
   EVAL_KIND_LABEL,
   EVAL_LIST_TEXT,
@@ -65,7 +66,9 @@ function DatasetsPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{T.datasets}</h1>
-          <p className="text-sm text-muted-foreground">{T.description}</p>
+          <p className="text-sm text-muted-foreground">
+            {EVAL_DATASETS_DESCRIPTION}
+          </p>
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline">
