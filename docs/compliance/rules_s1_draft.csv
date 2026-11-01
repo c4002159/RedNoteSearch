@@ -3,7 +3,7 @@ lexicon,medical_term,block,治疗,false,不得使用医疗用语或易与药品�
 lexicon,medical_term,block,根治,false,不得使用医疗用语或易与药品混淆的表述，请改为气味、质感的描述,《上海市化妆品行业广告宣传合规指引》,https://www.shanghai.gov.cn/gwk/search/content/2c984a728e07910f018e12e7a4f26c49,第二十二条,上海市,2024-03-06,,true
 lexicon,medical_term,block,消炎,false,不得使用医疗用语或易与药品混淆的表述，请改为气味、质感的描述,《上海市化妆品行业广告宣传合规指引》,https://www.shanghai.gov.cn/gwk/search/content/2c984a728e07910f018e12e7a4f26c49,第二十二条,上海市,2024-03-06,,true
 lexicon,medical_term,block,抗炎,false,不得使用医疗用语或易与药品混淆的表述，请改为气味、质感的描述,《上海市化妆品行业广告宣传合规指引》,https://www.shanghai.gov.cn/gwk/search/content/2c984a728e07910f018e12e7a4f26c49,第二十二条,上海市,2024-03-06,,true
-lexicon,medical_term,block,抗菌,false,不得使用医疗用语或易与药品混淆的表述，请改为气味、质感的描述,《上海市化妆品行业广告宣传合规指引》,https://www.shanghai.gov.cn/gwk/search/content/2c984a728e07910f018e12e7a4f26c49,第二十二条,上海市,2024-03-06,,true
+lexicon,medical_term,block,抗菌,false,不得使用医疗用语或易与药品混淆的表述，请改为气味、质感的描述,《上海市化妆品行业广告宣传合规指引》,https://www.shanghai.gov.cn/gwk/search/content/2c984a728e07910f018e12e7a4f26c49,第二十二条第（二）项,上海市,2024-03-06,,true
 lexicon,medical_term,block,杀菌,false,不得使用医疗用语或易与药品混淆的表述，请改为气味、质感的描述,《上海市化妆品行业广告宣传合规指引》,https://www.shanghai.gov.cn/gwk/search/content/2c984a728e07910f018e12e7a4f26c49,第二十二条,上海市,2024-03-06,,true
 lexicon,efficacy_claim,warn,立竿见影,false,夸大或无法验证的表述，请改为有依据的说法或删除,《上海市化妆品行业广告宣传合规指引》,https://www.shanghai.gov.cn/gwk/search/content/2c984a728e07910f018e12e7a4f26c49,第二十三条,上海市,2024-03-06,,true
 lexicon,efficacy_claim,warn,立刻见效,false,夸大或无法验证的表述，请改为有依据的说法或删除,《上海市化妆品行业广告宣传合规指引》,https://www.shanghai.gov.cn/gwk/search/content/2c984a728e07910f018e12e7a4f26c49,第二十三条,上海市,2024-03-06,,true
