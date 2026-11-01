@@ -26,6 +26,7 @@ import {
   DOCUMENT_TYPE_LABEL,
   label,
   KB_TEXT as T,
+  T5_VISUAL_TEXT as V,
 } from "@/lib/zh"
 import { IndexBadge, KnowledgeError, Pager } from "./Feedback"
 import { UploadDocument } from "./UploadDocument"
@@ -47,6 +48,7 @@ export function DocumentList({ review = false }: { review?: boolean }) {
     <BrandDocuments
       key={brand.current.id}
       brandId={brand.current.id}
+      brandName={brand.current.name}
       admin={brand.isAdmin}
       review={review}
     />
@@ -54,10 +56,12 @@ export function DocumentList({ review = false }: { review?: boolean }) {
 }
 function BrandDocuments({
   brandId,
+  brandName,
   admin,
   review,
 }: {
   brandId: string
+  brandName: string
   admin: boolean
   review: boolean
 }) {
@@ -95,7 +99,7 @@ function BrandDocuments({
     enabled: admin,
   })
   return (
-    <div className="min-w-0 space-y-5">
+    <div className="min-w-0 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">
@@ -127,41 +131,47 @@ function BrandDocuments({
           )}
         </div>
       </div>
-      <div className="flex flex-wrap gap-3 rounded-xl border bg-card p-3">
+      <div className="flex flex-wrap items-center gap-4 rounded-xl bg-card p-6 shadow-sm">
         {!review && (
+          <label className="flex items-center gap-2 text-sm">
+            {V.status}
+            <select
+              aria-label={T.status}
+              className="h-10 rounded-lg border-0 bg-surface-low px-3 text-sm focus-visible:outline-ring"
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value as DocumentStatus | "")
+                setPage(1)
+              }}
+            >
+              <option value="">{T.allStatus}</option>
+              {Object.entries(DOCUMENT_STATUS_LABEL).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <label className="flex items-center gap-2 text-sm">
+          {V.type}
           <select
-            aria-label={T.status}
+            aria-label={T.type}
             className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
-            value={status}
+            value={type}
             onChange={(e) => {
-              setStatus(e.target.value as DocumentStatus | "")
+              setType(e.target.value as DocumentType | "")
               setPage(1)
             }}
           >
-            <option value="">{T.allStatus}</option>
-            {Object.entries(DOCUMENT_STATUS_LABEL).map(([k, v]) => (
+            <option value="">{T.allTypes}</option>
+            {Object.entries(DOCUMENT_TYPE_LABEL).map(([k, v]) => (
               <option key={k} value={k}>
                 {v}
               </option>
             ))}
           </select>
-        )}
-        <select
-          aria-label={T.type}
-          className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
-          value={type}
-          onChange={(e) => {
-            setType(e.target.value as DocumentType | "")
-            setPage(1)
-          }}
-        >
-          <option value="">{T.allTypes}</option>
-          {Object.entries(DOCUMENT_TYPE_LABEL).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
-        </select>
+        </label>
         <Button
           variant="ghost"
           onClick={() => {
@@ -172,6 +182,10 @@ function BrandDocuments({
         >
           {T.clear}
         </Button>
+        <span className="ml-auto text-sm text-muted-foreground">
+          {V.workspace}
+          {brandName}
+        </span>
       </div>
       {documents.isLoading && <LoadingState className="h-48 w-full" />}
       {documents.isError && (
@@ -183,23 +197,47 @@ function BrandDocuments({
       {documents.data &&
         !documents.isError &&
         (documents.data.items.length === 0 ? (
-          <EmptyState
-            title={
-              review ? T.noPending : status || type ? T.filteredEmpty : T.empty
-            }
-            description={T.emptyHint}
-          />
+          <div className="rounded-xl bg-card p-6 shadow-sm [&>div]:border-0">
+            <EmptyState
+              title={
+                review
+                  ? T.noPending
+                  : status || type
+                    ? T.filteredEmpty
+                    : T.empty
+              }
+              description={T.emptyHint}
+            />
+          </div>
         ) : (
-          <div className="min-w-0 rounded-xl border bg-card">
+          <div className="min-w-0 overflow-hidden rounded-xl bg-card shadow-sm">
             <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-1/3">{T.documentTitle}</TableHead>
-                  <TableHead>{T.type}</TableHead>
-                  <TableHead>{review ? T.relation : T.status}</TableHead>
-                  <TableHead>{review ? T.version : T.index}</TableHead>
-                  <TableHead>{T.author}</TableHead>
-                  <TableHead>{T.created}</TableHead>
+                  <TableHead className="w-1/4">{V.documentTitle}</TableHead>
+                  <TableHead className="w-24 min-w-24 whitespace-nowrap">
+                    {V.typeColumn}
+                  </TableHead>
+                  <TableHead className="w-24 whitespace-nowrap">
+                    {review ? T.relation : V.documentStatus}
+                  </TableHead>
+                  {!review && (
+                    <TableHead className="w-24 whitespace-nowrap">
+                      {T.index}
+                    </TableHead>
+                  )}
+                  <TableHead className="w-16 whitespace-nowrap">
+                    {T.version}
+                  </TableHead>
+                  <TableHead className="w-36 min-w-32 whitespace-nowrap">
+                    {T.author}
+                  </TableHead>
+                  <TableHead className="w-32 whitespace-nowrap">
+                    {V.updated}
+                  </TableHead>
+                  <TableHead className="w-24 whitespace-nowrap text-right">
+                    {V.actions}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -213,19 +251,8 @@ function BrandDocuments({
                       >
                         {row.title}
                       </Link>
-                      <p className="text-xs text-muted-foreground">
-                        v{row.version} ·{" "}
-                        {row.is_current ? T.current : T.history}
-                      </p>
-                      {review && (
-                        <Button asChild variant="ghost" size="sm">
-                          <Link to="/knowledge/$id" params={{ id: row.id }}>
-                            {T.review}
-                          </Link>
-                        </Button>
-                      )}
                     </TableCell>
-                    <TableCell className="whitespace-normal">
+                    <TableCell className="whitespace-nowrap">
                       {label(DOCUMENT_TYPE_LABEL, row.doc_type)}
                     </TableCell>
                     <TableCell>
@@ -239,21 +266,39 @@ function BrandDocuments({
                         <DocumentStatusBadge status={row.status} />
                       )}
                     </TableCell>
-                    <TableCell>
-                      {review ? (
-                        `v${row.version}`
-                      ) : (
+                    {!review && (
+                      <TableCell>
                         <IndexBadge
                           documentStatus={row.status}
                           status={row.index_status}
                         />
+                      </TableCell>
+                    )}
+                    <TableCell className="text-sm">
+                      v{row.version}
+                      {row.is_current && (
+                        <p className="mt-1 text-xs text-tone-ok">{T.current}</p>
                       )}
                     </TableCell>
-                    <TableCell className="whitespace-normal [overflow-wrap:anywhere]">
-                      {row.submitted_by_name || T.unknown}
+                    <TableCell className="min-w-32">
+                      <span
+                        className="block truncate"
+                        title={row.submitted_by_name || T.unknown}
+                      >
+                        {row.submitted_by_name || T.unknown}
+                      </span>
                     </TableCell>
                     <TableCell className="whitespace-normal text-xs text-muted-foreground">
                       {formatTime(row.created_at)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Link
+                        className="whitespace-nowrap text-sm font-medium text-link hover:underline"
+                        to="/knowledge/$id"
+                        params={{ id: row.id }}
+                      >
+                        {review ? T.review : V.viewDetails}
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}
