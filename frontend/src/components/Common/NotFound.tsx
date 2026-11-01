@@ -1,29 +1,33 @@
 import { Link } from "@tanstack/react-router"
+import { SearchX } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SHELL_AUDIT_TEXT, SHELL_TEXT } from "@/lib/zh"
 
 const NotFound = () => {
   return (
     <div
-      className="flex min-h-screen items-center justify-center flex-col p-4"
+      className="flex min-h-screen flex-col items-center justify-center gap-5 bg-background px-6 py-16 text-center"
       data-testid="not-found"
     >
       <title>{SHELL_AUDIT_TEXT.notFoundTitle}</title>
-      <div className="flex items-center z-10">
-        <div className="flex flex-col ml-4 items-center justify-center p-4">
-          <span className="text-6xl md:text-8xl font-bold leading-none mb-4">
+      <div className="flex flex-col items-center gap-5">
+        <div className="relative flex items-center justify-center">
+          <span className="text-8xl font-bold leading-none tracking-widest text-surface md:text-9xl">
             404
           </span>
-          <span className="text-2xl font-bold mb-2">{SHELL_TEXT.notice}</span>
+          <SearchX className="absolute size-12 rounded-lg bg-card p-3 text-primary shadow-sm" />
         </div>
+        <span className="text-2xl font-semibold tracking-tight">
+          {SHELL_TEXT.notice}
+        </span>
       </div>
 
-      <p className="text-lg text-muted-foreground mb-4 text-center z-10">
+      <p className="max-w-md text-sm leading-6 text-muted-foreground">
         {SHELL_TEXT.notFound}
       </p>
-      <div className="z-10">
+      <div>
         <Link to="/">
-          <Button className="mt-4">{SHELL_TEXT.back}</Button>
+          <Button>{SHELL_TEXT.back}</Button>
         </Link>
       </div>
     </div>
