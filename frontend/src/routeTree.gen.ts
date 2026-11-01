@@ -27,6 +27,10 @@ import { Route as LayoutTasksIndexRouteImport } from './routes/_layout/tasks/ind
 import { Route as LayoutViralPatternsIdRouteImport } from './routes/_layout/viral-patterns/$id'
 import { Route as LayoutViralSamplesIndexRouteImport } from './routes/_layout/viral-samples/index'
 import { Route as LayoutViralSamplesIdRouteImport } from './routes/_layout/viral-samples/$id'
+import { Route as LayoutEvaluationDatasetsIndexRouteImport } from './routes/_layout/evaluation/datasets/index'
+import { Route as LayoutEvaluationDatasetsIdRouteImport } from './routes/_layout/evaluation/datasets/$id'
+import { Route as LayoutEvaluationRunsIndexRouteImport } from './routes/_layout/evaluation/runs/index'
+import { Route as LayoutEvaluationRunsIdRouteImport } from './routes/_layout/evaluation/runs/$id'
 import { Route as LayoutTasksTaskIdIndexRouteImport } from './routes/_layout/tasks/$taskId/index'
 import { Route as LayoutTasksTaskIdCompareRouteImport } from './routes/_layout/tasks/$taskId/compare'
 import { Route as LayoutTasksTaskIdVersionsVersionIdRouteImport } from './routes/_layout/tasks/$taskId/versions/$versionId'
@@ -120,6 +124,29 @@ const LayoutViralSamplesIdRoute = LayoutViralSamplesIdRouteImport.update({
   path: '/viral-samples/$id',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutEvaluationDatasetsIndexRoute =
+  LayoutEvaluationDatasetsIndexRouteImport.update({
+    id: '/evaluation/datasets/',
+    path: '/evaluation/datasets/',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+const LayoutEvaluationDatasetsIdRoute =
+  LayoutEvaluationDatasetsIdRouteImport.update({
+    id: '/evaluation/datasets/$id',
+    path: '/evaluation/datasets/$id',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+const LayoutEvaluationRunsIndexRoute =
+  LayoutEvaluationRunsIndexRouteImport.update({
+    id: '/evaluation/runs/',
+    path: '/evaluation/runs/',
+    getParentRoute: () => LayoutRoute,
+  } as any)
+const LayoutEvaluationRunsIdRoute = LayoutEvaluationRunsIdRouteImport.update({
+  id: '/evaluation/runs/$id',
+  path: '/evaluation/runs/$id',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutTasksTaskIdIndexRoute = LayoutTasksTaskIdIndexRouteImport.update({
   id: '/tasks/$taskId/',
   path: '/tasks/$taskId/',
@@ -156,7 +183,11 @@ export interface FileRoutesByFullPath {
   '/knowledge/': typeof LayoutKnowledgeIndexRoute
   '/tasks/': typeof LayoutTasksIndexRoute
   '/viral-samples/': typeof LayoutViralSamplesIndexRoute
+  '/evaluation/datasets/$id': typeof LayoutEvaluationDatasetsIdRoute
+  '/evaluation/runs/$id': typeof LayoutEvaluationRunsIdRoute
   '/tasks/$taskId/compare': typeof LayoutTasksTaskIdCompareRoute
+  '/evaluation/datasets/': typeof LayoutEvaluationDatasetsIndexRoute
+  '/evaluation/runs/': typeof LayoutEvaluationRunsIndexRoute
   '/tasks/$taskId/': typeof LayoutTasksTaskIdIndexRoute
   '/tasks/$taskId/versions/$versionId': typeof LayoutTasksTaskIdVersionsVersionIdRoute
 }
@@ -178,7 +209,11 @@ export interface FileRoutesByTo {
   '/knowledge': typeof LayoutKnowledgeIndexRoute
   '/tasks': typeof LayoutTasksIndexRoute
   '/viral-samples': typeof LayoutViralSamplesIndexRoute
+  '/evaluation/datasets/$id': typeof LayoutEvaluationDatasetsIdRoute
+  '/evaluation/runs/$id': typeof LayoutEvaluationRunsIdRoute
   '/tasks/$taskId/compare': typeof LayoutTasksTaskIdCompareRoute
+  '/evaluation/datasets': typeof LayoutEvaluationDatasetsIndexRoute
+  '/evaluation/runs': typeof LayoutEvaluationRunsIndexRoute
   '/tasks/$taskId': typeof LayoutTasksTaskIdIndexRoute
   '/tasks/$taskId/versions/$versionId': typeof LayoutTasksTaskIdVersionsVersionIdRoute
 }
@@ -202,7 +237,11 @@ export interface FileRoutesById {
   '/_layout/knowledge/': typeof LayoutKnowledgeIndexRoute
   '/_layout/tasks/': typeof LayoutTasksIndexRoute
   '/_layout/viral-samples/': typeof LayoutViralSamplesIndexRoute
+  '/_layout/evaluation/datasets/$id': typeof LayoutEvaluationDatasetsIdRoute
+  '/_layout/evaluation/runs/$id': typeof LayoutEvaluationRunsIdRoute
   '/_layout/tasks/$taskId/compare': typeof LayoutTasksTaskIdCompareRoute
+  '/_layout/evaluation/datasets/': typeof LayoutEvaluationDatasetsIndexRoute
+  '/_layout/evaluation/runs/': typeof LayoutEvaluationRunsIndexRoute
   '/_layout/tasks/$taskId/': typeof LayoutTasksTaskIdIndexRoute
   '/_layout/tasks/$taskId/versions/$versionId': typeof LayoutTasksTaskIdVersionsVersionIdRoute
 }
@@ -226,7 +265,11 @@ export interface FileRouteTypes {
     | '/knowledge/'
     | '/tasks/'
     | '/viral-samples/'
+    | '/evaluation/datasets/$id'
+    | '/evaluation/runs/$id'
     | '/tasks/$taskId/compare'
+    | '/evaluation/datasets/'
+    | '/evaluation/runs/'
     | '/tasks/$taskId/'
     | '/tasks/$taskId/versions/$versionId'
   fileRoutesByTo: FileRoutesByTo
@@ -248,7 +291,11 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/tasks'
     | '/viral-samples'
+    | '/evaluation/datasets/$id'
+    | '/evaluation/runs/$id'
     | '/tasks/$taskId/compare'
+    | '/evaluation/datasets'
+    | '/evaluation/runs'
     | '/tasks/$taskId'
     | '/tasks/$taskId/versions/$versionId'
   id:
@@ -271,7 +318,11 @@ export interface FileRouteTypes {
     | '/_layout/knowledge/'
     | '/_layout/tasks/'
     | '/_layout/viral-samples/'
+    | '/_layout/evaluation/datasets/$id'
+    | '/_layout/evaluation/runs/$id'
     | '/_layout/tasks/$taskId/compare'
+    | '/_layout/evaluation/datasets/'
+    | '/_layout/evaluation/runs/'
     | '/_layout/tasks/$taskId/'
     | '/_layout/tasks/$taskId/versions/$versionId'
   fileRoutesById: FileRoutesById
@@ -412,6 +463,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutViralSamplesIdRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/evaluation/datasets/': {
+      id: '/_layout/evaluation/datasets/'
+      path: '/evaluation/datasets'
+      fullPath: '/evaluation/datasets/'
+      preLoaderRoute: typeof LayoutEvaluationDatasetsIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/evaluation/datasets/$id': {
+      id: '/_layout/evaluation/datasets/$id'
+      path: '/evaluation/datasets/$id'
+      fullPath: '/evaluation/datasets/$id'
+      preLoaderRoute: typeof LayoutEvaluationDatasetsIdRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/evaluation/runs/': {
+      id: '/_layout/evaluation/runs/'
+      path: '/evaluation/runs'
+      fullPath: '/evaluation/runs/'
+      preLoaderRoute: typeof LayoutEvaluationRunsIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/evaluation/runs/$id': {
+      id: '/_layout/evaluation/runs/$id'
+      path: '/evaluation/runs/$id'
+      fullPath: '/evaluation/runs/$id'
+      preLoaderRoute: typeof LayoutEvaluationRunsIdRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/tasks/$taskId/': {
       id: '/_layout/tasks/$taskId/'
       path: '/tasks/$taskId'
@@ -450,7 +529,11 @@ interface LayoutRouteChildren {
   LayoutKnowledgeIndexRoute: typeof LayoutKnowledgeIndexRoute
   LayoutTasksIndexRoute: typeof LayoutTasksIndexRoute
   LayoutViralSamplesIndexRoute: typeof LayoutViralSamplesIndexRoute
+  LayoutEvaluationDatasetsIdRoute: typeof LayoutEvaluationDatasetsIdRoute
+  LayoutEvaluationRunsIdRoute: typeof LayoutEvaluationRunsIdRoute
   LayoutTasksTaskIdCompareRoute: typeof LayoutTasksTaskIdCompareRoute
+  LayoutEvaluationDatasetsIndexRoute: typeof LayoutEvaluationDatasetsIndexRoute
+  LayoutEvaluationRunsIndexRoute: typeof LayoutEvaluationRunsIndexRoute
   LayoutTasksTaskIdIndexRoute: typeof LayoutTasksTaskIdIndexRoute
   LayoutTasksTaskIdVersionsVersionIdRoute: typeof LayoutTasksTaskIdVersionsVersionIdRoute
 }
@@ -469,7 +552,11 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutKnowledgeIndexRoute: LayoutKnowledgeIndexRoute,
   LayoutTasksIndexRoute: LayoutTasksIndexRoute,
   LayoutViralSamplesIndexRoute: LayoutViralSamplesIndexRoute,
+  LayoutEvaluationDatasetsIdRoute: LayoutEvaluationDatasetsIdRoute,
+  LayoutEvaluationRunsIdRoute: LayoutEvaluationRunsIdRoute,
   LayoutTasksTaskIdCompareRoute: LayoutTasksTaskIdCompareRoute,
+  LayoutEvaluationDatasetsIndexRoute: LayoutEvaluationDatasetsIndexRoute,
+  LayoutEvaluationRunsIndexRoute: LayoutEvaluationRunsIndexRoute,
   LayoutTasksTaskIdIndexRoute: LayoutTasksTaskIdIndexRoute,
   LayoutTasksTaskIdVersionsVersionIdRoute:
     LayoutTasksTaskIdVersionsVersionIdRoute,
