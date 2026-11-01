@@ -845,3 +845,33 @@ export const RULE_ERROR_TEXT = {
 } as const
 
 export const PAGE_LOADING_TEXT = { loading: "正在加载，请稍候…" } as const
+
+export const EVAL_DESIGN_TEXT = {
+  otherBrand: "其他品牌",
+} as const
+
+export const EVAL_SYSTEM_LABEL: Record<string, string> = {
+  full: "完整系统",
+  "baseline:lexicon_only": "基线：仅词表匹配",
+  "baseline:no_verification": "基线：不做依据核对",
+  lexicon_only: "基线：仅词表匹配",
+  no_verification: "基线：不做依据核对",
+}
+export function evaluationSystemLabel(system: string): string {
+  return (
+    EVAL_SYSTEM_LABEL[system] ??
+    (system.startsWith("model:") ? `模型：${system.slice(6)}` : system)
+  )
+}
+
+export const EVAL_LIST_TEXT = {
+  name: "名称",
+  actions: "操作",
+  view: "查看",
+  clear: "清除筛选",
+} as const
+
+export const EVAL_DATASETS_DESCRIPTION =
+  "评测集创建后内容固定；修改会产生新版本，旧版本保留。"
+
+export const EVAL_CASE_COUNT_LABEL = "样本数"

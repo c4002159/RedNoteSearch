@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   EVAL_ERROR_LABEL,
   EVAL_METRIC_LABEL,
+  evaluationSystemLabel,
   label,
   EVAL_TEXT as T,
 } from "@/lib/zh"
@@ -52,7 +53,9 @@ export function Metrics({ run }: { run: RunPublic }) {
             )
           return (
             <div key={system} className="space-y-2">
-              <h3 className="break-all text-sm font-medium">{system}</h3>
+              <h3 className="break-all text-sm font-medium">
+                {evaluationSystemLabel(system)}
+              </h3>
               {rows.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   {T.metricInvalid}
@@ -133,7 +136,8 @@ export function Results({ run }: { run: RunPublic }) {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 space-y-1">
                     <h3 className="break-all text-sm font-medium">
-                      {T.sample} {r.case_index} · {r.system}
+                      {T.sample} {r.case_index} ·{" "}
+                      {evaluationSystemLabel(r.system)}
                     </h3>
                     {r.error ? (
                       <Pill tone="err">
