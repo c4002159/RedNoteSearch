@@ -1,7 +1,7 @@
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import type { ApiErrorInfo } from "@/lib/apiError"
-import { LAYER_LABEL, label } from "@/lib/zh"
+import { LAYER_LABEL, label, PAGE_ERROR_TEXT, RULE_ERROR_TEXT } from "@/lib/zh"
 import { RULE_TYPE_LABEL } from "./rules"
 
 const records = (value: unknown): Record<string, unknown>[] =>
@@ -25,7 +25,16 @@ export function RuleErrors({
   const errors = records(error.details.errors)
   return (
     <div className="min-w-0 space-y-3">
-      <ErrorBanner error={error} onRetry={onRetry} />
+      <ErrorBanner
+        error={{
+          ...error,
+          message: /[\u3400-\u9fff]/.test(error.message)
+            ? error.message
+            : (PAGE_ERROR_TEXT.status[error.status ?? 0] ??
+              PAGE_ERROR_TEXT.failed),
+        }}
+        onRetry={onRetry}
+      />
       {error.status === 403 && <ForbiddenPage requestId={error.requestId} />}
       {errors.length > 0 && (
         <section
@@ -44,12 +53,18 @@ export function RuleErrors({
             >
               <span>{text(e.row)}</span>
               <span>
-                {text(
-                  e.column ??
-                    (Array.isArray(e.loc) ? e.loc[e.loc.length - 1] : null),
-                )}
+                {RULE_ERROR_TEXT.fields[
+                  text(
+                    e.column ??
+                      (Array.isArray(e.loc) ? e.loc[e.loc.length - 1] : null),
+                  )
+                ] ?? RULE_ERROR_TEXT.otherField}
               </span>
-              <span>{text(e.msg)}</span>
+              <span>
+                {/[\u3400-\u9fff]/.test(text(e.msg))
+                  ? text(e.msg)
+                  : RULE_ERROR_TEXT.invalidValue}
+              </span>
             </div>
           ))}
         </section>
@@ -68,9 +83,8 @@ export function RuleErrors({
               <div>
                 <dt className="inline">层级 / 类型：</dt>
                 <dd className="inline">
-                  {label(LAYER_LABEL, text(c.layer))}（{text(c.layer)}） /{" "}
-                  {label(RULE_TYPE_LABEL, text(c.rule_type))}（
-                  {text(c.rule_type)}）
+                  {label(LAYER_LABEL, text(c.layer))} /{" "}
+                  {label(RULE_TYPE_LABEL, text(c.rule_type))}
                 </dd>
               </div>
               <div>
@@ -80,13 +94,13 @@ export function RuleErrors({
                 </dd>
               </div>
               <div>
-                <dt className="inline">文件行号 rows：</dt>
+                <dt className="inline">{RULE_ERROR_TEXT.rows}</dt>
                 <dd className="inline">
                   {Array.isArray(c.rows) ? c.rows.map(text).join("、") : "—"}
                 </dd>
               </div>
               <div>
-                <dt>规则 id 列表 rule_ids：</dt>
+                <dt>{RULE_ERROR_TEXT.ids}</dt>
                 <dd>
                   {Array.isArray(c.rule_ids)
                     ? c.rule_ids.map((id, j) => (

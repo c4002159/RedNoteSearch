@@ -475,7 +475,7 @@ RedNoteSearch/
 
 *表 9-1 必选检查（名称以实际 workflow 的 job 名为准）*
 
-## 9.3 模板自带 workflow 的处置（待 Phase 0 逐个核对）
+## 9.3 模板自带 workflow 的处置（已落实；`.github/workflows` 现有：contract、detect-conflicts、forbidden-wording、frontend-build、migrations、playwright、pre-commit、secrets-scan、test-backend、test-docker-compose、zizmor）
 
 - 保留并改造：pre-commit、test-backend、playwright、test-docker-compose、detect-conflicts、zizmor（workflow 安全检查）、guard-dependencies（核对用途后决定）。
 - 先禁用或删除（面向模板作者仓库，或需要未配置的密钥与服务）：add-to-project、bump-pre-commit-hooks、create-draft-release、prepare-release、deploy、deploy-docker-compose、issue-manager、smokeshow。
@@ -496,7 +496,9 @@ RedNoteSearch/
 
 *表 10-1 测试分层*
 
-## 10.2 用例清单（docs/TEST_CASES.csv，共 69 条）
+## 10.2 用例清单（docs/TEST_CASES.csv，当前共 230 条：P0 135、P1 95；以 CSV 为准）
+
+> 下表是 Phase 0 整理的前 69 条，之后新增的用例（TC-070 起，含 F12、F13、F14、批量导入、按邮箱添加成员 TC-186）只在 CSV 里，不在此表重复。
 
 由原 37 条整理而来：TC-037 已并入 TC-005（编号保留不再使用，共 69 条原用例）；TC-003 与 TC-012 按新的 403/404 策略与文件限制更新；新增 TC-038–048（契约补齐相关）、TC-F01–F10（前端）、TC-C01–C07（CI 与仓库）。
 
