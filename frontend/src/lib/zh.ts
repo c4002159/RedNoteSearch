@@ -528,3 +528,36 @@ export const KB_TEXT = {
   savedError: "操作失败，请查看请求编号",
   detailMissing: "请先切换到该资料所属的品牌。",
 } as const
+
+// Fourth batch: brands and member management.
+export const BRAND_PAGE_TEXT = {
+  title: "品牌与切换",
+  description: "选择当前要操作的品牌。每个品牌的角色决定可使用的功能。",
+  create: "新建品牌",
+  name: "品牌名称",
+  category: "类目",
+  created: "品牌已创建",
+  current: "当前品牌",
+  switch: "切换到此品牌",
+  empty: "你还不属于任何品牌",
+  emptyHint: "请联系平台管理员。",
+  createHint: "可以创建第一个品牌。",
+  members: "当前品牌成员",
+  noMembers: "暂无成员",
+  unknownUser: "未知用户",
+  role: "角色",
+  remove: "移除成员",
+  changeRole: "修改成员角色",
+  lastAdmin:
+    "不能移除或降级最后一位品牌管理员；操作失败时请查看错误和请求编号。",
+  removeHint: "移除后将无法访问该品牌，请确认。",
+  saved: "已保存",
+  cancel: "取消",
+  confirm: "确认",
+  nameRequired: "请填写品牌名称",
+  nameLimit: "品牌名称最多 100 字",
+  addMember: "添加成员",
+  email: "用户邮箱",
+  emailInvalid: "请填写有效邮箱",
+  addHint: "填写已由平台管理员创建的账号邮箱。",
+} as const
