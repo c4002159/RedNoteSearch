@@ -396,7 +396,7 @@ function NewTaskForm() {
 
   return (
     <form
-      className="mx-auto max-w-4xl"
+      className="w-full"
       onSubmit={(e) => {
         e.preventDefault()
         if (ready) go(true)
