@@ -8,9 +8,9 @@ import {
 } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
+import { LoadingState } from "@/components/Common/LoadingState"
 import { DocumentStatusBadge } from "@/components/Common/StatusBadge"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -33,7 +33,7 @@ import { UploadDocument } from "./UploadDocument"
 export function DocumentList({ review = false }: { review?: boolean }) {
   const brand = useBrand()
   const cache = useQueryClient()
-  if (brand.isLoading) return <Skeleton className="h-48 w-full" />
+  if (brand.isLoading) return <LoadingState className="h-48 w-full" />
   if (brand.isError)
     return (
       <KnowledgeError
@@ -173,7 +173,7 @@ function BrandDocuments({
           {T.clear}
         </Button>
       </div>
-      {documents.isLoading && <Skeleton className="h-48 w-full" />}
+      {documents.isLoading && <LoadingState className="h-48 w-full" />}
       {documents.isError && (
         <KnowledgeError
           error={documents.error}
