@@ -424,7 +424,19 @@ function NewTaskForm() {
         )}
       </section>
 
-      {error && <ErrorBanner error={error} />}
+      {error && (
+        <ErrorBanner
+          error={
+            error.code === "MODEL_UNAVAILABLE"
+              ? {
+                  ...error,
+                  message:
+                    "模型暂时不可用，请稍后重试。任务没有丢，可以再提交一次。",
+                }
+              : error
+          }
+        />
+      )}
 
       <div className="flex flex-wrap items-center gap-3">
         <LoadingButton
