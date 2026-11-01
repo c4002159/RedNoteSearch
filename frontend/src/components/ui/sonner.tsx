@@ -8,6 +8,7 @@ import {
   TriangleAlertIcon,
 } from "lucide-react"
 import { useTheme } from "@/components/theme-provider"
+import { SHELL_TEXT } from "@/lib/zh"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {
@@ -33,6 +34,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
         } as React.CSSProperties
       }
       {...props}
+      containerAriaLabel={props.containerAriaLabel ?? SHELL_TEXT.notifications}
+      toastOptions={{
+        closeButtonAriaLabel: SHELL_TEXT.closeNotification,
+        ...props.toastOptions,
+      }}
     />
   )
 }

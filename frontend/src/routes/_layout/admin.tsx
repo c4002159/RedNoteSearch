@@ -1,13 +1,13 @@
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { Suspense } from "react"
-
 import { type UserPublic, UsersService } from "@/client"
 import AddUser from "@/components/Admin/AddUser"
 import { columns, type UserTableData } from "@/components/Admin/columns"
 import { DataTable } from "@/components/Common/DataTable"
 import PendingUsers from "@/components/Pending/PendingUsers"
 import useAuth from "@/hooks/useAuth"
+import { SHELL_TEXT } from "@/lib/zh"
 
 function getUsersQueryOptions() {
   return {
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_layout/admin")({
   head: () => ({
     meta: [
       {
-        title: "Admin - FastAPI Template",
+        title: SHELL_TEXT.adminTitle,
       },
     ],
   }),
@@ -61,10 +61,10 @@ function Admin() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Users</h1>
-          <p className="text-muted-foreground">
-            Manage user accounts and permissions
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {SHELL_TEXT.users}
+          </h1>
+          <p className="text-muted-foreground">{SHELL_TEXT.manageUsers}</p>
         </div>
         <AddUser />
       </div>

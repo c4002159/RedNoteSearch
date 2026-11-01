@@ -19,21 +19,22 @@ import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { PasswordInput } from "@/components/ui/password-input"
 import useAuth, { isLoggedIn } from "@/hooks/useAuth"
+import { SHELL_TEXT } from "@/lib/zh"
 
 const formSchema = z
   .object({
-    email: z.email({ message: "Invalid email address" }),
-    full_name: z.string().min(1, { message: "Full Name is required" }),
+    email: z.email({ message: SHELL_TEXT.invalidEmail }),
+    full_name: z.string().min(1, { message: SHELL_TEXT.nameRequired }),
     password: z
       .string()
-      .min(1, { message: "Password is required" })
-      .min(8, { message: "Password must be at least 8 characters" }),
+      .min(1, { message: SHELL_TEXT.passwordRequired })
+      .min(8, { message: SHELL_TEXT.passwordMin }),
     confirm_password: z
       .string()
-      .min(1, { message: "Password confirmation is required" }),
+      .min(1, { message: SHELL_TEXT.passwordConfirmationRequired }),
   })
   .refine((data) => data.password === data.confirm_password, {
-    message: "The passwords don't match",
+    message: SHELL_TEXT.passwordMismatch,
     path: ["confirm_password"],
   })
 
@@ -51,7 +52,7 @@ export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
       {
-        title: "Sign Up - FastAPI Template",
+        title: SHELL_TEXT.signupTitle,
       },
     ],
   }),
@@ -87,7 +88,7 @@ function SignUp() {
           className="flex flex-col gap-6"
         >
           <div className="flex flex-col items-center gap-2 text-center">
-            <h1 className="text-2xl font-bold">Create an account</h1>
+            <h1 className="text-2xl font-bold">{SHELL_TEXT.createAccount}</h1>
           </div>
 
           <div className="grid gap-4">
@@ -96,11 +97,11 @@ function SignUp() {
               name="full_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel>{SHELL_TEXT.fullName}</FormLabel>
                   <FormControl>
                     <Input
                       data-testid="full-name-input"
-                      placeholder="User"
+                      placeholder={SHELL_TEXT.user}
                       type="text"
                       {...field}
                     />
@@ -115,7 +116,7 @@ function SignUp() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{SHELL_TEXT.email}</FormLabel>
                   <FormControl>
                     <Input
                       data-testid="email-input"
@@ -134,11 +135,11 @@ function SignUp() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>{SHELL_TEXT.password}</FormLabel>
                   <FormControl>
                     <PasswordInput
                       data-testid="password-input"
-                      placeholder="Password"
+                      placeholder={SHELL_TEXT.password}
                       {...field}
                     />
                   </FormControl>
@@ -152,11 +153,11 @@ function SignUp() {
               name="confirm_password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
+                  <FormLabel>{SHELL_TEXT.confirmPassword}</FormLabel>
                   <FormControl>
                     <PasswordInput
                       data-testid="confirm-password-input"
-                      placeholder="Confirm Password"
+                      placeholder={SHELL_TEXT.confirmPassword}
                       {...field}
                     />
                   </FormControl>
@@ -170,14 +171,14 @@ function SignUp() {
               className="w-full"
               loading={signUpMutation.isPending}
             >
-              Sign Up
+              {SHELL_TEXT.signup}
             </LoadingButton>
           </div>
 
           <div className="text-center text-sm">
-            Already have an account?{" "}
+            {SHELL_TEXT.alreadyAccount}{" "}
             <RouterLink to="/login" className="underline underline-offset-4">
-              Log in
+              {SHELL_TEXT.login}
             </RouterLink>
           </div>
         </form>

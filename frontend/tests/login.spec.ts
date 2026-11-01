@@ -45,9 +45,7 @@ test("Log in with valid email and password ", async ({ page }) => {
 
   await page.waitForURL("/")
 
-  await expect(
-    page.getByText("Welcome back, nice to see you again!"),
-  ).toBeVisible()
+  await expect(page.getByText("欢迎回来，很高兴再次见到你！")).toBeVisible()
 })
 
 test("Log in with invalid email", async ({ page }) => {
@@ -77,9 +75,7 @@ test("Successful log out", async ({ page }) => {
 
   await page.waitForURL("/")
 
-  await expect(
-    page.getByText("Welcome back, nice to see you again!"),
-  ).toBeVisible()
+  await expect(page.getByText("欢迎回来，很高兴再次见到你！")).toBeVisible()
 
   await page.getByTestId("user-menu").click()
   await page.getByRole("menuitem", { name: "退出登录" }).click()
@@ -94,9 +90,7 @@ test("Logged-out user cannot access protected routes", async ({ page }) => {
 
   await page.waitForURL("/")
 
-  await expect(
-    page.getByText("Welcome back, nice to see you again!"),
-  ).toBeVisible()
+  await expect(page.getByText("欢迎回来，很高兴再次见到你！")).toBeVisible()
 
   await page.getByTestId("user-menu").click()
   await page.getByRole("menuitem", { name: "退出登录" }).click()
@@ -158,4 +152,28 @@ test("Login does not offer self registration", async ({ page }) => {
     page.getByText("账号由平台管理员创建，不提供自助注册", { exact: true }),
   ).toBeVisible()
   await expect(page.getByRole("link", { name: /Sign up|注册/ })).toHaveCount(0)
+})
+
+test("Fresh login uses light theme despite dark system preference and preserves dark choice", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" })
+  await page.goto("/login")
+  await page.evaluate(() => localStorage.clear())
+  await page.reload()
+  await expect(page.locator("html")).toHaveClass(/light/)
+  await expect(page).toHaveTitle("登录 - RedNoteSearch")
+  // Scope the assertion to AuthLayout, excluding the development-tools footer.
+  await expect(page.locator("#root > div.grid footer")).toHaveCount(0)
+  await expect(
+    page.getByRole("link", { name: "GitHub", exact: true }),
+  ).toHaveCount(0)
+  await page.getByTestId("theme-button").click()
+  await page.getByTestId("dark-mode").click()
+  await expect(page.locator("html")).toHaveClass(/dark/)
+  await page.reload()
+  await expect(page.locator("html")).toHaveClass(/dark/)
+  expect(await page.evaluate(() => localStorage.getItem("vite-ui-theme"))).toBe(
+    "dark",
+  )
 })
