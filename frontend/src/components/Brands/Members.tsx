@@ -6,10 +6,12 @@ import { EmptyState } from "@/components/Common/EmptyState"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { label, ROLE_LABEL, BRAND_PAGE_TEXT as T } from "@/lib/zh"
+import { AddMember } from "./AddMember"
 import { BrandConfirm, BrandError } from "./Feedback"
 
 export function Members({ brandId }: { brandId: string }) {
   const cache = useQueryClient()
+  const [adding, setAdding] = useState(false)
   const [action, setAction] = useState<{
     row: MemberPublic
     role?: MemberRole
@@ -39,8 +41,26 @@ export function Members({ brandId }: { brandId: string }) {
   })
   return (
     <section className="min-w-0 space-y-4 rounded-xl border bg-card p-4">
-      <h2 className="text-lg font-semibold">{T.members}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">{T.members}</h2>
+        <Button size="sm" onClick={() => setAdding(true)}>
+          {T.addMember}
+        </Button>
+      </div>
       <p className="text-sm text-muted-foreground">{T.lastAdmin}</p>
+      {adding && (
+        <AddMember
+          brandId={brandId}
+          onClose={() => setAdding(false)}
+          onSaved={() => {
+            setAdding(false)
+            toast.success(T.saved)
+            void cache.invalidateQueries({
+              queryKey: ["brand-members", brandId],
+            })
+          }}
+        />
+      )}
       {query.isLoading && <Skeleton className="h-32 w-full" />}
       {query.isError && (
         <BrandError error={query.error} retry={() => query.refetch()} />

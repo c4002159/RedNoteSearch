@@ -16,14 +16,19 @@ import { BRAND_PAGE_TEXT as T } from "@/lib/zh"
 export function BrandError({
   error,
   retry,
+  message,
 }: {
   error: unknown
   retry?: () => void
+  message?: string
 }) {
   const info = parseApiError(error)
   return (
     <div className="space-y-3">
-      <ErrorBanner error={info} onRetry={retry} />
+      <ErrorBanner
+        error={message ? { ...info, message } : info}
+        onRetry={retry}
+      />
       {info.status === 403 && <ForbiddenPage requestId={info.requestId} />}
     </div>
   )
