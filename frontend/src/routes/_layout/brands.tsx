@@ -10,6 +10,7 @@ import { BrandsService } from "@/client"
 import { BrandError } from "@/components/Brands/Feedback"
 import { Members } from "@/components/Brands/Members"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { LoadingState } from "@/components/Common/LoadingState"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -21,7 +22,6 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
-import { Skeleton } from "@/components/ui/skeleton"
 import useAuth from "@/hooks/useAuth"
 import { useBrand } from "@/hooks/useBrand"
 import { codePointCount } from "@/lib/count"
@@ -146,7 +146,7 @@ function BrandsPage() {
           <Button onClick={() => setCreating(true)}>{T.create}</Button>
         )}
       </div>
-      {brand.isLoading && <Skeleton className="h-32 w-full" />}
+      {brand.isLoading && <LoadingState className="h-32 w-full" />}
       {brand.isError && (
         <BrandError
           error={cache.getQueryState(["brands"])?.error}

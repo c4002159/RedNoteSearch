@@ -13,6 +13,7 @@ import {
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { MissingPage } from "@/components/Common/ForbiddenPage"
+import { LoadingState } from "@/components/Common/LoadingState"
 import { ReasonDialog } from "@/components/Common/ReasonDialog"
 import { Pill, SeverityBadge } from "@/components/Common/StatusBadge"
 import { RuleErrors } from "@/components/Compliance/RuleErrors"
@@ -39,7 +40,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -77,7 +77,7 @@ function RuleDetail({ id, onClose }: { id: string; onClose: () => void }) {
             当前规则信息；历史风险提示保留命中时的规则快照。
           </DialogDescription>
         </DialogHeader>
-        {query.isLoading && <Skeleton className="h-32 w-full" />}
+        {query.isLoading && <LoadingState className="h-32 w-full" />}
         {query.isError &&
           (parseApiError(query.error).status === 404 ? (
             <MissingPage requestId={parseApiError(query.error).requestId} />
@@ -124,7 +124,7 @@ function RuleDetail({ id, onClose }: { id: string; onClose: () => void }) {
 function RulesPage() {
   const brand = useBrand()
   const { user } = useAuth()
-  if (brand.isLoading || !user) return <Skeleton className="h-48 w-full" />
+  if (brand.isLoading || !user) return <LoadingState className="h-48 w-full" />
   if (brand.isError)
     return (
       <ErrorBanner
@@ -405,7 +405,7 @@ function ScopedRules({
         <RuleErrors error={parseApiError(download.error)} />
       )}
       {toggle.isError && <RuleErrors error={parseApiError(toggle.error)} />}
-      {rules.isLoading && <Skeleton className="h-64 w-full" />}
+      {rules.isLoading && <LoadingState className="h-64 w-full" />}
       {rules.isError && (
         <RuleErrors
           error={parseApiError(rules.error)}

@@ -7,9 +7,9 @@ import { BrandConfirm, BrandError } from "@/components/Brands/Feedback"
 import { CatalogGuard } from "@/components/Catalog/Fields"
 import { VoiceForm } from "@/components/Catalog/VoiceForm"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { LoadingState } from "@/components/Common/LoadingState"
 import { Pill } from "@/components/Common/StatusBadge"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import { useBrand } from "@/hooks/useBrand"
 import { parseApiError } from "@/lib/apiError"
 import { formatTime } from "@/lib/format"
@@ -81,7 +81,7 @@ function VoicePage() {
         )}
       </div>
       {(versions.isLoading || active.isLoading) && (
-        <Skeleton className="h-40 w-full" />
+        <LoadingState className="h-40 w-full" />
       )}
       {versions.isError && (
         <BrandError error={versions.error} retry={() => versions.refetch()} />

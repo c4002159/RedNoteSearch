@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { type DocumentDetail, KnowledgeService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
+import { LoadingState } from "@/components/Common/LoadingState"
 import { ReasonDialog } from "@/components/Common/ReasonDialog"
 import { DocumentStatusBadge, Pill } from "@/components/Common/StatusBadge"
 import {
@@ -15,7 +16,6 @@ import {
 import { UploadDocument } from "@/components/Knowledge/UploadDocument"
 import { Button } from "@/components/ui/button"
 import { LoadingButton } from "@/components/ui/loading-button"
-import { Skeleton } from "@/components/ui/skeleton"
 import { useBrand } from "@/hooks/useBrand"
 import { parseApiError } from "@/lib/apiError"
 import { formatTime } from "@/lib/format"
@@ -46,7 +46,7 @@ function Chunks({ id }: { id: string }) {
   return (
     <section className="space-y-3 rounded-xl border bg-card p-4">
       <h2 className="font-semibold">{T.chunks}</h2>
-      {query.isLoading && <Skeleton className="h-24 w-full" />}
+      {query.isLoading && <LoadingState className="h-24 w-full" />}
       {query.isError && (
         <KnowledgeError error={query.error} retry={() => query.refetch()} />
       )}
@@ -94,7 +94,7 @@ function DocumentPage() {
       n < 2 && ![401, 403, 404, 422].includes(parseApiError(error).status ?? 0),
   })
   if (brand.isLoading || query.isLoading)
-    return <Skeleton className="h-48 w-full" />
+    return <LoadingState className="h-48 w-full" />
   if (brand.isError)
     return (
       <KnowledgeError
