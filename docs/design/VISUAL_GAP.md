@@ -19,8 +19,6 @@
 
 设计系统有内部差异：`DESIGN.md` 的圆角/渐变描述与页面 HTML、已确认 token spec 并非一套值。样式实测以每页 HTML 为准，是否建议修复同时参照 token spec；不把系统字体、lucide、加深边框当成缺陷。
 
-> 初稿先提交：公共表边框取值与压缩图正在补齐；“未采集”均为尚未补测，不视为相同。
-
 ## 环境、方法与计数口径
 
 - 对比前端：upstream main `7ffd043acc7fd7816a9223b3e24b67dc3958d38d`。先执行 `git fetch upstream main`，连接 GitHub 443 在 75 秒后超时；改用 GitHub API 核实 SHA，再由 codeload 下载该精确提交到新目录，未覆盖旧目录修改。
@@ -28,7 +26,7 @@
 - 使用此前 `--fake-embeddings` 建立的演示库（冰希黎（演示）及隔离测试品牌）。本轮不 seed、不新建/编辑/删除业务数据，不点击生成、重写、结构分析或评测运行；只读取既有任务两版。登录/退出仅切换本机测试会话。403 使用既有测试编辑者；资源 404 使用该编辑者不可见的既有另一品牌任务。
 - 视口由浏览器能力设置，并逐次读 `innerWidth/innerHeight` 验证；常规 1440×900，另测 1280×900 的工作台/结果页。截图为全页，故图片高度可能超过 900。加载未完成的截图已剔除。
 - 高/中/低为视觉影响判断，不是像素相似度或缺陷严重性。每一行是一个可定位观察，不按 CSS 属性数重复计数。A=全局壳；B=组件样式；C=页面布局/文案；D=有依据的有意不同。D 单列不计缺陷。共同壳差异在每个有稿页面重复计数，跨页总数不代表独立修复项数。
-- 场景、商品、样本数量、当前状态、空/加载/错误、角色可见导航及测试账号文字，不据此判缺陷。无对应设计稿的页面不报“0 个缺陷”，而是“无法计”。
+- 场景、商品、样本数量、当前状态、空/加载/错误、角色可见导航及测试账号文字，不据此判缺陷。无对应设计稿的页面不报“0 个缺陷”，而是“无法计”。本轮爆款/评测有仓库 PNG，仅其骨架可目测；无原始 HTML，不做样式实测。
 
 ## 总表
 
@@ -42,8 +40,8 @@
 | 知识库列表 | 6 | 0 | 3 | 3 | 2 | 顶栏与 Logo；筛选与说明层次；表格与容器 |
 | 待审队列 | 5 | 0 | 2 | 3 | 1 | 顶栏与 Logo；说明层次；导航密度与顺序 |
 | 风险提示规则 | 6 | 0 | 4 | 2 | 1 | 顶栏与 Logo；筛选组织；说明与操作 |
-| 爆款结构分析 | 无法计 | — | — | — | — | 无对应设计稿；仅记录当前空列表与公共壳，不推断详细布局 |
-| 评测运行 | 无法计 | — | — | — | — | 无对应设计稿；仅记录当前空列表与公共壳，不推断详细布局 |
+| 爆款结构分析 | 3 | 0 | 2 | 1 | 1 | 顶栏与 Logo；筛选骨架；导航密度与顺序 |
+| 评测运行 | 3 | 0 | 2 | 1 | 1 | 顶栏与 Logo；筛选骨架；导航密度与顺序 |
 | 品牌与切换 | 6 | 0 | 4 | 2 | 1 | 顶栏与 Logo；左右比例；成员呈现 |
 | 商品管理 | 6 | 1 | 2 | 3 | 1 | 列表形态；顶栏与 Logo；来源与状态 |
 | 品牌档案 | 6 | 1 | 3 | 2 | 1 | 详情分组；顶栏与 Logo；左右比例 |
@@ -51,7 +49,9 @@
 | 403 权限页 | 5 | 0 | 3 | 2 | 1 | 顶栏与 Logo；错误内容容器；标题 |
 | 404 资源页 | 5 | 0 | 3 | 2 | 1 | 顶栏与 Logo；错误内容容器；标题 |
 
-可比页面共 83 条跨页观察：高 9、中 42、低 32；另有 D 18 条。爆款与评测没有导出 HTML 的对应页，不纳入分母；独立版本历史仅有行内历史参考，属于部分可比。请按后文公共样式去重后估工，不把这个总数当独立问题数量。
+可比页面共 89 条跨页观察：高 9、中 46、低 34；另有 D 20 条。爆款与评测仅按仓库压缩 PNG 比页面骨架，未测样式；独立版本历史仅有行内历史参考，均属于部分可比。请按后文公共样式去重后估工，不把这个总数当独立问题数量。
+
+本轮分组：13 个原始 HTML 对应页面、2 个仅有仓库 PNG 的骨架目测页面、1 个仅有行内模式参考的独立版本页；无对应设计稿 0 个。D 单独计数，不进入 A/B/C 总数。
 
 ## 每页明细
 
@@ -67,7 +67,7 @@
 | 导航密度与顺序 | 常见侧栏项高 34px，知识库在质量与评测之前 | 常见侧栏项高 32px；质量与评测在知识库之前，并有增强/外观入口 | A | 低 | 组件层 |
 | 字体与图标 | Plus Jakarta Sans、Material Symbols | 系统字体栈、lucide；已决定的替代，不计缺陷 | D | 低 | token层+组件层 |
 | 场景选择 | 六张卡片、32px 彩色图标块和模板版本 | 一个原生下拉；没有卡片图标块 | C | 高 | 页面层 |
-| 主栅格 | 表单与右侧竖向进度分栏；表单外卡片约 643px | 表单铺满内容区；商品与场景在同一行；空表单不显示右侧进度栏 | C | 高 | 页面层 |
+| 主栅格 | 表单与右侧竖向进度分栏；表单外卡片约 643px | 表单铺满内容区；商品与场景在同一行。当前为空表单，进度栏有无不计缺陷，仅比较表单分栏 | C | 高 | 页面层 |
 | 控件密度 | 商品下拉高 44px，风格输入高 40px，圆角 8px | 下拉与输入高 36px，圆角 6px | B | 中 | 组件层+页面层 |
 | 风格与必含词 | 风格区嵌在白色大卡片中；必含词用标签颗粒 | 风格独立带边框卡片；必含词是多行文本域 | C | 中 | 页面层 |
 | 文字与操作 | “任务简述（选填）”“必含词”“生成” | “创作要求”“必须包含的词”“创建并开始生成”及“仅创建，稍后添加资料” | C | 低 | 页面层 |
@@ -195,19 +195,33 @@
 
 ### 爆款结构分析
 
-设计：**无对应设计稿**。对全部 59 个 HTML 的主内容 h1/h2 和正文核对，未找到该独立页面；不拿仓库压缩 PNG 冒充原始稿。
+设计：仓库压缩 PNG `docs/design/viral-analysis/01-sample-list-and-add.png`。**无 code.html，未做样式实测**；仅目测页头、筛选与空状态骨架。
 
 前端：`/viral-samples`；代码：`frontend/src/routes/_layout/viral-samples/index.tsx`。本页仅记录文字差异，未输出并排图。
 
-实际看到：“还没有样本”、排序和添加入口。没有打开或调用分析。 未验证有数据的列表与详情，不量化页面特有差异。
+| 维度 | 设计稿怎样 | 我们怎样 | 类别 | 影响 | 来源层级 |
+|---|---|---|---|---|---|
+| 顶栏与 Logo | Logo 与品牌切换器同在全宽顶栏 | Logo 在侧栏顶部；顶栏从侧栏右侧开始 | A | 中 | 组件层 |
+| 字体与图标 | 原始 HTML 的公共替代决定见上文；本页 PNG 字体/图标库未实测 | 系统字体栈、lucide（来自代码）；本页不据 PNG 断言字体差异 | D | 低 | token层+组件层 |
+| 筛选骨架 | 排序位于独立白色筛选条（仅目测） | 排序下拉直接放在页面背景上 | C | 中 | 页面层 |
+| 页头文字 | 爆款结构分析 · 样本；简短结构提取说明 | 爆款结构分析；副标题另说明授权边界与检索范围 | C | 低 | 页面层 |
+
+数据行、表头在当前空列表中未呈现，标为 **未验证（库中无数据）**；不把空状态替代演示数据行算作缺陷。爆款卡片行已由 #112/spec 决定，不要求恢复旧图表格。
 
 ### 评测运行
 
-设计：**无对应设计稿**。对全部 59 个 HTML 的主内容 h1/h2 和正文核对，未找到该独立页面；不拿仓库压缩 PNG 冒充原始稿。
+设计：仓库压缩 PNG `docs/design/evaluation/03-run-list-and-run-detail.png`。**无 code.html，未做样式实测**；仅目测页头、筛选与空状态骨架。
 
 前端：`/evaluation/runs`；代码：`frontend/src/routes/_layout/evaluation/runs/index.tsx`。本页仅记录文字差异，未输出并排图。
 
-实际看到：“暂无评测运行”、评测集筛选和新建入口。没有执行评测。 未验证有数据的列表与详情，不量化页面特有差异。
+| 维度 | 设计稿怎样 | 我们怎样 | 类别 | 影响 | 来源层级 |
+|---|---|---|---|---|---|
+| 顶栏与 Logo | Logo 与品牌切换器同在全宽顶栏 | Logo 在侧栏顶部；顶栏从侧栏右侧开始 | A | 中 | 组件层 |
+| 字体与图标 | 原始 HTML 的公共替代决定见上文；本页 PNG 字体/图标库未实测 | 系统字体栈、lucide（来自代码）；本页不据 PNG 断言字体差异 | D | 低 | token层+组件层 |
+| 筛选骨架 | 带标签的评测集下拉在独立白色筛选条内（仅目测） | 下拉直接放在页面背景上，当前空列表居中提示 | C | 中 | 页面层 |
+| 页头操作与文字 | 副标题说明异步运行状态；图中无新建按钮 | 副标题说明固定版本与指标；右上有新建运行按钮（未点击） | C | 低 | 页面层 |
+
+数据行、表头在当前空列表中未呈现，标为 **未验证（库中无数据）**；不把空状态替代演示数据行算作缺陷。
 
 ### 品牌与切换
 
@@ -328,7 +342,201 @@
 
 | 元素 | 属性 | 设计稿实测值 | 前端实测值 | 是否相同 | 来源层级 / 前端文件位置 |
 |---|---|---|---|---|---|
-
+| 工作台标题 | font-family | DF | SF | 否（D） | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台标题 | font-size | 24px | 24px | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台标题 | font-weight | 700 | 700 | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台标题 | line-height | 32px | 32px | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台标题 | color | rgb(17, 28, 45) | rgb(17, 28, 45) | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台标题 | background-color | rgba(0, 0, 0, 0) | rgba(0, 0, 0, 0) | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台标题 | background-image | none | none | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台标题 | border-width | 0px | 0px | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台标题 | border-style | solid | solid | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台标题 | border-color | rgb(229, 231, 235) | rgb(195, 198, 215) | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台标题 | border-radius | 0px | 0px | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台标题 | box-shadow | none | none | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台标题 | padding | 0px | 0px | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台标题 | height | 32px | 32px | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台标题 | gap | normal | normal | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:752 |
+| 工作台副标题 | font-family | DF | SF | 否（D） | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 工作台副标题 | font-size | 14px | 14px | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 工作台副标题 | font-weight | 400 | 400 | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 工作台副标题 | line-height | 20px | 20px | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 工作台副标题 | color | rgb(80, 95, 118) | rgb(95, 99, 114) | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 工作台副标题 | background-color | rgba(0, 0, 0, 0) | rgba(0, 0, 0, 0) | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 工作台副标题 | background-image | none | none | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 工作台副标题 | border-width | 0px | 0px | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 工作台副标题 | border-style | solid | solid | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 工作台副标题 | border-color | rgb(229, 231, 235) | rgb(195, 198, 215) | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 工作台副标题 | border-radius | 0px | 0px | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 工作台副标题 | box-shadow | none | none | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 工作台副标题 | padding | 0px | 0px | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 工作台副标题 | height | 20px | 20px | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 工作台副标题 | gap | normal | normal | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:753 |
+| 表单/风格卡片及内边距 | font-family | DF | SF | 否（D） | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 表单/风格卡片及内边距 | font-size | 14px | 16px | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 表单/风格卡片及内边距 | font-weight | 400 | 400 | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 表单/风格卡片及内边距 | line-height | 20px | 24px | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 表单/风格卡片及内边距 | color | rgb(17, 28, 45) | rgb(17, 28, 45) | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 表单/风格卡片及内边距 | background-color | rgb(255, 255, 255) | rgb(255, 255, 255) | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 表单/风格卡片及内边距 | background-image | none | none | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 表单/风格卡片及内边距 | border-width | 0px | 1px | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 表单/风格卡片及内边距 | border-style | solid | solid | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 表单/风格卡片及内边距 | border-color | rgb(229, 231, 235) | rgb(195, 198, 215) | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 表单/风格卡片及内边距 | border-radius | 12px | 12px | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 表单/风格卡片及内边距 | box-shadow | rgba(0, 0, 0, 0.05) 0px 1px 2px 0px | none | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 表单/风格卡片及内边距 | padding | 24px | 16px | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 表单/风格卡片及内边距 | height | 961px | 146px | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 表单/风格卡片及内边距 | gap | normal | normal | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:315 |
+| 文本输入框（语气） | font-family | DF | SF | 否（D） | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 文本输入框（语气） | font-size | 14px | 14px | 是 | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 文本输入框（语气） | font-weight | 400 | 400 | 是 | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 文本输入框（语气） | line-height | 20px | 20px | 是 | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 文本输入框（语气） | color | rgb(17, 28, 45) | rgb(17, 28, 45) | 是 | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 文本输入框（语气） | background-color | rgb(240, 243, 255) | rgba(0, 0, 0, 0) | 否 | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 文本输入框（语气） | background-image | none | none | 是 | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 文本输入框（语气） | border-width | 0px | 1px | 否 | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 文本输入框（语气） | border-style | solid | solid | 是 | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 文本输入框（语气） | border-color | rgb(229, 231, 235) | rgb(128, 132, 154) | 否 | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 文本输入框（语气） | border-radius | 8px | 6px | 否 | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 文本输入框（语气） | box-shadow | none | rgba(0, 0, 0, 0.05) 0px 1px 2px 0px | 否 | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 文本输入框（语气） | padding | 0px 12px | 4px 12px | 否 | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 文本输入框（语气） | height | 40px | 36px | 否 | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 文本输入框（语气） | gap | normal | normal | 是 | 组件层；frontend/src/components/ui/input.tsx:11 |
+| 商品下拉 | font-family | DF | SF | 否（D） | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 商品下拉 | font-size | 14px | 14px | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 商品下拉 | font-weight | 400 | 400 | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 商品下拉 | line-height | 20px | normal | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 商品下拉 | color | rgb(17, 28, 45) | rgb(17, 28, 45) | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 商品下拉 | background-color | rgb(240, 243, 255) | rgb(249, 249, 255) | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 商品下拉 | background-image | none | none | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 商品下拉 | border-width | 0px | 1px | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 商品下拉 | border-style | solid | solid | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 商品下拉 | border-color | rgb(229, 231, 235) | rgb(128, 132, 154) | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 商品下拉 | border-radius | 8px | 6px | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 商品下拉 | box-shadow | none | none | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 商品下拉 | padding | 0px 40px 0px 14px | 0px 12px | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 商品下拉 | height | 44px | 36px | 否 | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 商品下拉 | gap | normal | normal | 是 | 页面层；frontend/src/routes/_layout/generate.tsx:71 |
+| 创作要求文本域 | font-family | DF | SF | 否（D） | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 创作要求文本域 | font-size | 14px | 14px | 是 | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 创作要求文本域 | font-weight | 400 | 400 | 是 | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 创作要求文本域 | line-height | 20px | 20px | 是 | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 创作要求文本域 | color | rgb(17, 28, 45) | rgb(17, 28, 45) | 是 | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 创作要求文本域 | background-color | rgb(240, 243, 255) | rgb(240, 243, 255) | 是 | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 创作要求文本域 | background-image | none | none | 是 | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 创作要求文本域 | border-width | 0px | 1px | 否 | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 创作要求文本域 | border-style | solid | solid | 是 | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 创作要求文本域 | border-color | rgb(229, 231, 235) | rgb(128, 132, 154) | 否 | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 创作要求文本域 | border-radius | 8px | 6px | 否 | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 创作要求文本域 | box-shadow | none | rgba(0, 0, 0, 0.05) 0px 1px 2px 0px | 否 | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 创作要求文本域 | padding | 12px | 8px 12px | 否 | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 创作要求文本域 | height | 84px | 98px | 否 | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 创作要求文本域 | gap | normal | normal | 是 | 组件层；frontend/src/components/ui/textarea.tsx:10 |
+| 侧栏普通项 | font-family | DF | SF | 否（D） | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏普通项 | font-size | 14px | 14px | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏普通项 | font-weight | 400 | 400 | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏普通项 | line-height | 20px | 20px | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏普通项 | color | rgb(67, 70, 85) | rgb(17, 28, 45) | 否 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏普通项 | background-color | rgba(0, 0, 0, 0) | rgba(0, 0, 0, 0) | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏普通项 | background-image | none | none | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏普通项 | border-width | 0px | 0px | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏普通项 | border-style | solid | solid | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏普通项 | border-color | rgb(229, 231, 235) | rgb(195, 198, 215) | 否 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏普通项 | border-radius | 8px | 8px | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏普通项 | box-shadow | none | none | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏普通项 | padding | 8px | 8px | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏普通项 | height | 34px | 32px | 否 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏普通项 | gap | 8px | 8px | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | font-family | DF | SF | 否（D） | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | font-size | 14px | 14px | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | font-weight | 600 | 500 | 否 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | line-height | 20px | 20px | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | color | rgb(37, 99, 235) | rgb(17, 28, 45) | 否 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | background-color | rgb(239, 244, 255) | rgb(239, 244, 255) | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | background-image | none | none | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | border-width | 0px | 0px | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | border-style | solid | solid | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | border-color | rgb(229, 231, 235) | rgb(195, 198, 215) | 否 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | border-radius | 8px | 8px | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | box-shadow | none | none | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | padding | 8px | 8px | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | height | 34px | 32px | 否 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 侧栏选中项 | gap | 8px | 8px | 是 | 组件层；frontend/src/components/ui/sidebar.tsx:496 |
+| 顶栏 | font-family | DF | SF | 否（D） | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 顶栏 | font-size | 14px | 16px | 否 | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 顶栏 | font-weight | 400 | 400 | 是 | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 顶栏 | line-height | 20px | 24px | 否 | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 顶栏 | color | rgb(17, 28, 45) | rgb(17, 28, 45) | 是 | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 顶栏 | background-color | rgb(255, 255, 255) | rgb(255, 255, 255) | 是 | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 顶栏 | background-image | none | none | 是 | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 顶栏 | border-width | 0px 0px 1px | 0px 0px 1px | 是 | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 顶栏 | border-style | solid | solid | 是 | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 顶栏 | border-color | rgba(195, 198, 215, 0.3) | rgb(195, 198, 215) | 否 | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 顶栏 | border-radius | 0px | 0px | 是 | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 顶栏 | box-shadow | rgba(0, 0, 0, 0.02) 0px 1px 8px 0px | rgba(0, 0, 0, 0.02) 0px 1px 8px 0px | 是 | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 顶栏 | padding | 0px 32px | 0px 16px | 否 | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 顶栏 | height | 64px | 64px | 是 | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 顶栏 | gap | normal | 12px | 否 | 组件层；frontend/src/routes/_layout.tsx:36 |
+| 主按钮（档案新建） | font-family | DF | SF | 否（D） | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 主按钮（档案新建） | font-size | 13px | 14px | 否 | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 主按钮（档案新建） | font-weight | 600 | 500 | 否 | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 主按钮（档案新建） | line-height | 18px | 20px | 否 | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 主按钮（档案新建） | color | rgb(255, 255, 255) | rgb(255, 255, 255) | 是 | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 主按钮（档案新建） | background-color | rgb(37, 99, 235) | rgb(37, 99, 235) | 是 | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 主按钮（档案新建） | background-image | none | none | 是 | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 主按钮（档案新建） | border-width | 0px | 0px | 是 | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 主按钮（档案新建） | border-style | solid | solid | 是 | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 主按钮（档案新建） | border-color | rgb(229, 231, 235) | rgb(195, 198, 215) | 否 | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 主按钮（档案新建） | border-radius | 8px | 6px | 否 | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 主按钮（档案新建） | box-shadow | rgba(37, 99, 235, 0.25) 0px 4px 14px 0px | none | 否 | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 主按钮（档案新建） | padding | 8px 16px | 8px 16px | 是 | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 主按钮（档案新建） | height | 34px | 36px | 否 | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 主按钮（档案新建） | gap | 6px | 8px | 否 | 组件层；frontend/src/components/ui/button.tsx:12 |
+| 次按钮（结果复检 / 任务返回） | font-family | DF | SF | 否（D） | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 次按钮（结果复检 / 任务返回） | font-size | 13px | 14px | 否 | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 次按钮（结果复检 / 任务返回） | font-weight | 500 | 500 | 是 | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 次按钮（结果复检 / 任务返回） | line-height | 18px | 20px | 否 | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 次按钮（结果复检 / 任务返回） | color | rgb(17, 28, 45) | rgb(17, 28, 45) | 是 | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 次按钮（结果复检 / 任务返回） | background-color | rgb(255, 255, 255) | rgb(249, 249, 255) | 否 | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 次按钮（结果复检 / 任务返回） | background-image | none | none | 是 | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 次按钮（结果复检 / 任务返回） | border-width | 1px | 1px | 是 | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 次按钮（结果复检 / 任务返回） | border-style | solid | solid | 是 | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 次按钮（结果复检 / 任务返回） | border-color | rgba(195, 198, 215, 0.5) | rgb(195, 198, 215) | 否 | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 次按钮（结果复检 / 任务返回） | border-radius | 8px | 6px | 否 | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 次按钮（结果复检 / 任务返回） | box-shadow | rgba(0, 0, 0, 0.05) 0px 1px 2px 0px | rgba(0, 0, 0, 0.05) 0px 1px 2px 0px | 是 | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 次按钮（结果复检 / 任务返回） | padding | 6px 12px | 0px 12px | 否 | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 次按钮（结果复检 / 任务返回） | height | 32px | 32px | 是 | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 次按钮（结果复检 / 任务返回） | gap | 6px | 6px | 是 | 组件层；frontend/src/components/ui/button.tsx:15 |
+| 状态徽标（可复制） | font-family | DF | SF | 否（D） | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 状态徽标（可复制） | font-size | 12px | 12px | 是 | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 状态徽标（可复制） | font-weight | 500 | 500 | 是 | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 状态徽标（可复制） | line-height | 16px | 16px | 是 | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 状态徽标（可复制） | color | rgb(22, 101, 52) | rgb(22, 101, 52) | 是 | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 状态徽标（可复制） | background-color | rgb(220, 252, 231) | rgb(220, 252, 231) | 是 | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 状态徽标（可复制） | background-image | none | none | 是 | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 状态徽标（可复制） | border-width | 0px | 0px | 是 | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 状态徽标（可复制） | border-style | solid | solid | 是 | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 状态徽标（可复制） | border-color | rgb(229, 231, 235) | rgb(195, 198, 215) | 否 | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 状态徽标（可复制） | border-radius | 9999px | 1.67772e+07px | 否 | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 状态徽标（可复制） | box-shadow | none | none | 是 | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 状态徽标（可复制） | padding | 4px 10px | 2px 8px | 否 | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 状态徽标（可复制） | height | 24px | 20px | 否 | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 状态徽标（可复制） | gap | 4px | 4px | 是 | 组件层；frontend/src/components/Common/StatusBadge.tsx:14 |
+| 表格表头 | font-family | DF | SF | 否（D） | 组件层；frontend/src/components/ui/table.tsx:20 |
+| 表格表头 | font-size | 12px | 12px | 是 | 组件层；frontend/src/components/ui/table.tsx:20 |
+| 表格表头 | font-weight | 700 | 600 | 否 | 组件层；frontend/src/components/ui/table.tsx:20 |
+| 表格表头 | line-height | 16px | 16px | 是 | 组件层；frontend/src/components/ui/table.tsx:20 |
+| 表格表头 | color | rgb(67, 70, 85) | rgb(95, 99, 114) | 否 | 组件层；frontend/src/components/ui/table.tsx:20 |
+| 表格表头 | background-color | rgba(0, 0, 0, 0) | rgba(0, 0, 0, 0) | 是 | 组件层；frontend/src/components/ui/table.tsx:20 |
+| 表格表头 | background-image | none | none | 是 | 组件层；frontend/src/components/ui/table.tsx:20 |
+| 表格表头 | border-width | 0px | 0px | 是 | 组件层；frontend/src/components/ui/table.tsx:20 |
+| 表格表头 | border-style | solid | solid | 是 | 组件层；frontend/src/components/ui/table.tsx:20 |
+| 表格表头 | border-color | rgb(229, 231, 235) | rgb(195, 198, 215) | 否 | 组件层；frontend/src/components/ui/table.tsx:20 |
+| 表格表头 | border-radius | 0px | 0px | 是 | 组件层；frontend/src/components/ui/table.tsx:20 |
+| 表格表头 | box-shadow | none | none | 是 | 组件层；frontend/src/components/ui/table.tsx:20 |
+| 表格表头 | padding | 12px 16px | 0px 16px | 否 | 组件层；frontend/src/components/ui/table.tsx:20 |
+| 表格表头 | height | 40.5px | 44px | 否 | 组件层；frontend/src/components/ui/table.tsx:20 |
+| 表格表头 | gap | normal | normal | 是 | 组件层；frontend/src/components/ui/table.tsx:20 |
 
 ## 新增内容深绿底色：已查实为缺陷
 
@@ -341,12 +549,26 @@
 
 结论：**缺陷，非已知有意不同（B，高；页面层）**。前端把设计中用作文字的深绿 token 用作背景，且没有浅色前景覆盖；现有 `docs/design/task-history/spec.md` 又明确要求新增内容采用浅蓝标记，两份依据均不支持当前深绿底。后续应由 A 确定采用 spec 的浅蓝方案；不在本 PR 改色，也没有以“已测对比度”作为结论。此项已包含在版本对比差异计数内，不重复加总。
 
+## 五个数值抽查
+
+只做以下五项复读，未全量复核。报告数值与本次浏览器复读相符：
+
+| 抽查项 | 本次值 | 报告/采样值 | 结果 |
+|---|---|---|---|
+| 语气输入高度 | `36px` | `36px` | 相符 |
+| 风格卡片 padding | `16px` | `16px` | 相符 |
+| 档案页主按钮阴影 | `none` | `none` | 相符 |
+| 侧栏白底内层宽度 | `255px` | `255px` | 相符 |
+| 工作台标题字号 | `24px` | `24px` | 相符 |
+
+侧栏白底内层 255px 加外层 1px 边界占位 256px，两个口径不混写。
+
 ## 公共样式：去重后的改动位置与估工
 
-以下是建议量级而非执行承诺。影响页数限本次 16 个已查看页面/状态；字体与图标、输入边框不纳入必须修复。A 负责公共壳、Common、token，B 不能直接改这些文件。本 PR 没有实施任何一项。
+以下是建议量级而非执行承诺。影响页数限本次 16 个已查看页面/状态；字体与图标、输入边框不纳入必须修复。A 负责公共壳、Common、token，B 不能直接改这些文件。本次提交没有实施任何一项。
 
-| 层级 / 项目 | 建议位置 | 本轮可见影响页数 | 估计改动量 | 组件结论 |
-|---|---|---:|---|---|
+| 层级 | 项目 | 建议位置 | 本轮可见影响页数 | 估计改动量 | 组件结论 |
+|---|---|---|---:|---|---|
 | token | 控件圆角映射 | frontend/src/index.css（--radius 及映射） | 16 | 5–15 行，但改 --radius 会同时波及胶囊/卡片，需逐组件校验 | 只改 token 就能对齐（仅同一圆角变量覆盖的局部；不能对齐高度/布局） |
 | token | 辅助文字与边框颜色 | frontend/src/index.css | 16 | 0 行建议；#5f6372 与 #80849a 属已决定的加深 | 只改 token 就能对齐颜色，但建议保留当前取值 |
 | 组件 | 主/次 Button 高度、字号、发光阴影 | frontend/src/components/ui/button.tsx | 16 | 10–25 行；依据页面变体处理，不能把所有按钮变渐变 | 要改组件 |
@@ -356,14 +578,14 @@
 | 组件 | StatusBadge 留白和色调 | frontend/src/components/Common/StatusBadge.tsx | 5 | 5–15 行；本轮任务列表、详情、结果、知识库、档案看过状态 | 要改组件；不把设计旧版绿色支持标签带回来 |
 | 组件 | 顶栏 Logo/侧栏组织/用户区 | frontend/src/routes/_layout.tsx；components/Sidebar/AppSidebar.tsx、Main.tsx、User.tsx、BrandSwitcher.tsx；components/ui/sidebar.tsx | 16 | 60–140 行；菜单角色差异不计缺陷，Logo 移位不能只改色值 | 要改组件 |
 
-实测相近、无需为追稿改动的部分：常见页面顶栏均 64px；常见侧栏均 256px（规则页稿是例外）；工作台标题均 24/32px、700，#111c2d；选中侧栏底色均 #eff4ff；工作台文本域底色均 #f0f3ff；多数内容卡片圆角均 12px。存在这些相同取值，不等于整页已完成视觉验收。
+实测相近、无需为追稿改动的部分：常见页面顶栏均 64px；常见侧栏外层占位均 256px（前端白底内层 255px；规则页稿是例外）；工作台标题均 24/32px、700，#111c2d；选中侧栏底色均 #eff4ff；工作台文本域底色均 #f0f3ff；多数内容卡片圆角均 12px。存在这些相同取值，不等于整页已完成视觉验收。
 
 ## 我们的判断
 
 作为本轮设计对比助手，建议先处理：
 
 1. **先修版本对比的深绿底色可读性。** 本轮直接看到右侧新增块是 #166534 深底配深字；它不需要等待全局换肤，且 task-history spec 要求的新增色本来是浅蓝。这里仅报告观感，未运行无障碍对比度仪器，不宣称检查通过。
-2. **如果目标是让首屏更接近稿，优先决定工作台场景卡/双栏和结果检查面板。** 这是最明显的结构差异；单改 token 不能得到设计中的信息层级。应先由 A 确认交互，再动实现，避免为了截图破坏已实现的流程。
+2. **如果目标是让首屏更接近稿，优先决定工作台场景卡与表单分栏、结果检查面板。** 生成中进度栏是否缺失需同状态再核，本轮不作缺失结论。这些是明显的结构差异；单改 token 不能得到设计中的信息层级。应先由 A 确认交互，再动实现，避免为了截图破坏已实现的流程。
 3. **再统一控件与卡片密度。** 36px 对 40/44px、6px 对 8px、16px 对 24px、实边框对淡边框/阴影，是跨页重复差异，组件与页面两层都要处理。先做代表组件再复核完整页面，勿直接把 --radius 全局调大就算结束。
 4. **壳的 Logo 位置与侧栏顺序应由 A 集中处理。** 它影响全部页面，但当前并不是功能缺失；若时间有限，可在核心流程布局之后修。
 
@@ -374,7 +596,7 @@
 - 没有验证全部 59 张稿的每种状态；只覆盖本表列出的原始目录。没有统计像素差异率，不声称给出“还原百分比”。
 - 待审队列有数据时的表格与审核详情；规则有数据时的规则行/详情；爆款有样本/结构详情；评测有运行数据的报告页，均未验证。未运行模型补数据。
 - 上传、编辑、新建、删除、确认、复制、导出等写入/业务操作本轮未执行；未比较这些弹窗/抽屉的交互和错误状态。未测生成中/慢模型、非空事实与风险长文、移动端、折叠侧栏、暗色、其他浏览器或操作系统。
-- 403 截图来自评测页角色禁止访问；没有实操待审页的授权变更。未知路由 404 另附，不代替资源 404。
+- 403 截图来自评测页角色禁止访问；没有实操待审页的授权变更。未知路由 404 仅作文字记录，不代替资源 404。
 - 未用真实客户库或客户资料，未读最终演示库真实模型结果。当前数据均为假嵌入演示资料与此前本机走查记录。
 - Google 字体按 CSS 栈记录，没有逐字形追踪实际回退字体；设计按钮的悬停/动画状态不作为稳定基线。源稿内允许空/错误演示的区域不计缺陷。
 
@@ -391,7 +613,7 @@ python3 -m http.server 8020 --bind 127.0.0.1 --directory <指定设计文件夹>
 # Python/Pillow：等比并排、PNG 调色板压缩、核实每张 <=500000 字节
 ```
 
-构建包含 TypeScript 构建检查且成功。项目依赖在前一轮已安装，本轮只复用；没有新增依赖、修改锁文件、CI、前端源文件或后端实现。文档提交前检查结果见 PR 描述；不把视觉判断当成功能回归结果。
+构建包含 TypeScript 构建检查且成功。并排图使用调色板压缩，仅作布局目测，颜色数值以公共元素表的 DOM 实测为准。零宽边框的颜色差异和内容驱动的尺寸差异不自动计缺陷。项目依赖在前一轮已安装，本轮只复用；没有新增依赖、修改锁文件、CI、前端源文件或后端实现。提交前实际检查：`bunx tsc --noEmit`、`bash scripts/check-forbidden-wording.sh`、`git diff --cached --check` 均成功。`bunx biome check --write --no-errors-on-unmatched docs/design/VISUAL_GAP.md` 成功退出但 Checked 0 files（Markdown 不受支持），没有声称格式化了 Markdown。另检查本报告禁用措辞、链接、图片格式/大小与暂存文件白名单；不把视觉判断当成功能回归结果。
 
 ## 图片清单与大小
 
