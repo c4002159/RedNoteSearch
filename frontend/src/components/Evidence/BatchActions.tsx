@@ -16,7 +16,11 @@ import { LoadingButton } from "@/components/ui/loading-button"
 import { Textarea } from "@/components/ui/textarea"
 import { parseApiError } from "@/lib/apiError"
 import { codePointCount } from "@/lib/count"
-import { PAGE_ERROR_TEXT, EVIDENCE_BATCH_TEXT as T } from "@/lib/zh"
+import {
+  PAGE_ERROR_TEXT,
+  EVIDENCE_BATCH_REVIEW_TEXT as R,
+  EVIDENCE_BATCH_TEXT as T,
+} from "@/lib/zh"
 
 type Decision = { ids: string[]; confirmed: boolean }
 export function EvidenceBatchActions({
@@ -57,13 +61,16 @@ export function EvidenceBatchActions({
     },
   })
   if (!enabled || items.length === 0) return null
+  const needsDecision = items.filter(
+    (item) => item.status !== "system_supported",
+  )
   const error = mutation.isError ? parseApiError(mutation.error) : null
   const start = (confirmed: boolean) => {
     mutation.reset()
     setNote("")
     setAction({
       confirmed,
-      ids: confirmed ? [...selectedIds] : items.map((item) => item.id),
+      ids: confirmed ? [...selectedIds] : needsDecision.map((item) => item.id),
     })
   }
   const valid =
@@ -78,7 +85,11 @@ export function EvidenceBatchActions({
           <Button
             size="sm"
             variant="outline"
-            disabled={mutation.isPending || items.length > 100}
+            disabled={
+              mutation.isPending ||
+              needsDecision.length === 0 ||
+              needsDecision.length > 100
+            }
             onClick={() => start(false)}
           >
             {T.reject}
@@ -97,7 +108,7 @@ export function EvidenceBatchActions({
           </Button>
         </div>
         <p className="text-xs leading-6 text-muted-foreground">
-          {T.selection(selectedIds.length)} {T.manual}
+          {T.selection(selectedIds.length)} {T.manual} {R.scope}
         </p>
         {items.length > 100 && (
           <p className="text-xs text-tone-warn">{T.limit}</p>
@@ -122,10 +133,10 @@ export function EvidenceBatchActions({
           >
             <DialogHeader>
               <DialogTitle>
-                {action.confirmed ? T.acceptTitle : T.rejectTitle}
+                {action.confirmed ? T.acceptTitle : R.rejectTitle}
               </DialogTitle>
               <DialogDescription>
-                {action.confirmed ? T.acceptHint : T.rejectHint} {T.manual}
+                {action.confirmed ? T.acceptHint : R.rejectHint} {T.manual}
               </DialogDescription>
             </DialogHeader>
             <ol className="list-decimal space-y-2 rounded-xl bg-surface-low py-4 pr-4 pl-9 text-sm">

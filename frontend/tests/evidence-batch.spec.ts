@@ -98,7 +98,7 @@ async function setup(
   return { state, calls }
 }
 
-test("Rejecting all requires confirmation and retains every system status", async ({
+test("Rejecting all excludes system supported claims and retains every system status", async ({
   page,
 }) => {
   const { state, calls } = await setup(page)
@@ -108,10 +108,12 @@ test("Rejecting all requires confirmation and retains every system status", asyn
     .getByRole("button", { name: "全部判为不成立", exact: true })
     .click()
   const dialog = page.getByRole("dialog", {
-    name: "将本版全部断言判为不成立？",
+    name: "将需要人工决定的断言全部判为不成立？",
     exact: true,
   })
   await expect(dialog).toContainText("覆盖本版已有的人工判断")
+  await expect(dialog).not.toContainText("香气描述 A（演示）")
+  await expect(dialog.getByRole("listitem")).toHaveCount(2)
   expect(calls).toEqual([])
   await dialog.getByRole("button", { name: "取消", exact: true }).click()
   expect(calls).toEqual([])
@@ -125,18 +127,23 @@ test("Rejecting all requires confirmation and retains every system status", asyn
   await expect(page.getByRole("dialog")).toHaveCount(0)
   expect(calls).toHaveLength(1)
   expect(calls[0]).toEqual({
-    items: claims().map((item) => ({
-      evidence_id: item.id,
-      human_confirmed: false,
-    })),
+    items: claims()
+      .filter((item) => item.status !== "system_supported")
+      .map((item) => ({
+        evidence_id: item.id,
+        human_confirmed: false,
+      })),
   })
   expect(state.evidence.map((item) => item.status)).toEqual(statuses)
-  expect(state.evidence.every((item) => item.human_confirmed === false)).toBe(
-    true,
-  )
+  expect(
+    state.evidence
+      .filter((item) => item.status !== "system_supported")
+      .every((item) => item.human_confirmed === false),
+  ).toBe(true)
   await expect(page.getByText("人工判定：不成立", { exact: true })).toHaveCount(
-    3,
+    2,
   )
+  expect(state.evidence[0].human_confirmed).toBeNull()
   await expect(page.getByText("系统判定支持", { exact: true })).toBeVisible()
 })
 
@@ -201,6 +208,43 @@ test("Positive decisions require individual checkboxes and a note; no all-positi
   expect(state.evidence[0].human_confirmed).toBeNull()
   await expect(page.getByRole("checkbox").nth(1)).not.toBeChecked()
   await expect(accept).toBeDisabled()
+})
+
+test("All supported claims disable reject-all but can still be individually confirmed positive", async ({
+  page,
+}) => {
+  const { state, calls } = await setup(page)
+  state.evidence = [claims()[0]]
+  await page.goto(resultUrl)
+  await expect(
+    page.getByRole("button", { name: "全部判为不成立", exact: true }),
+  ).toBeDisabled()
+  await page
+    .getByRole("checkbox", {
+      name: "选择断言：香气描述 A（演示）",
+      exact: true,
+    })
+    .check()
+  await page
+    .getByRole("button", { name: "把选中的判为成立", exact: true })
+    .click()
+  const dialog = page.getByRole("dialog")
+  await expect(dialog).toContainText("香气描述 A（演示）")
+  await dialog
+    .getByLabel("判断备注（必填）", { exact: true })
+    .fill("逐条核对，保留系统支持状态（演示）")
+  await dialog
+    .getByRole("button", { name: "确认选中的成立", exact: true })
+    .click()
+  await expect(dialog).toHaveCount(0)
+  expect(calls[0].items).toEqual([
+    {
+      evidence_id: claims()[0].id,
+      human_confirmed: true,
+      note: "逐条核对，保留系统支持状态（演示）",
+    },
+  ])
+  expect(state.evidence[0].status).toBe("system_supported")
 })
 
 test("A failed batch keeps the note and selection for retry and never changes local decisions", async ({

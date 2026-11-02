@@ -1066,3 +1066,10 @@ export const EVIDENCE_BATCH_TEXT = {
     `已选 ${count} 条；成立只作用于逐条勾选的断言。`,
   select: (claim: string) => `选择断言：${claim}`,
 } as const
+
+export const EVIDENCE_BATCH_REVIEW_TEXT = {
+  scope: "全部不成立只影响需要人决定的断言，不改变系统已判定支持的断言。",
+  rejectTitle: "将需要人工决定的断言全部判为不成立？",
+  rejectHint:
+    "只处理系统尚未判定支持的断言。此操作会覆盖本版已有的人工判断；系统状态不变。请逐项核对下列清单，提交后可再单条修改。",
+} as const
