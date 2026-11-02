@@ -1599,3 +1599,17 @@ export const R6_RULE_TEXT = {
   sourceSample: "待核对",
   sourceMissing: "待补充",
 } as const
+
+// 场景模板：删除即停用，不物理删除。
+export const R6_TEMPLATE_TEXT = {
+  delete: "删除",
+  restore: "恢复",
+  deleted: "已删除",
+  showDeleted: "显示已删除的模板",
+  builtinFixed: "内置模板不能删除",
+  confirmTitle: (name: string) => `删除模板「${name}」？`,
+  confirmBody:
+    "删除后该模板不再出现在生成工作台；已经用它生成的任务不受影响。不会物理删除，可以在“显示已删除的模板”里恢复。",
+  confirm: "确认删除",
+  cancel: "取消",
+} as const
