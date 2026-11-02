@@ -1,6 +1,7 @@
 """Ephemeral tone generation: scoped context, bounded model calls, count-only audit."""
 
 import uuid
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 from sqlmodel import Session, col, or_, select
@@ -9,6 +10,7 @@ from app.domain.tone import (
     InvalidToneOutput,
     NoValidTones,
     ToneCandidate,
+    clean_tone,
     filter_generated_tones,
 )
 from app.domain.tone_prompt import TONE_PROMPT_VERSION, build_tone_prompt
@@ -27,6 +29,10 @@ class ToneGenerateRequest(BaseModel):
     scene: str | None = Field(default=None, min_length=1, max_length=20)
     product_id: uuid.UUID | None = None
     count: int = Field(default=5, ge=1, le=5, strict=True)
+    # Tones the dialog already showed (earlier model batches); never suggested again.
+    exclude: list[Annotated[str, Field(min_length=1, max_length=40)]] = Field(
+        default_factory=list, max_length=30
+    )
 
 
 class GeneratedTones(BaseModel):
@@ -89,6 +95,8 @@ def generate_tones(
         "template": [row.tone for row in groups.template],
         "results": [row.tone for row in groups.results.items],
     }
+    if data.exclude:
+        tones["already_shown"] = [clean_tone(tone) for tone in data.exclude]
     system, context = build_tone_prompt(
         profile=profile,
         product=product_data,

@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Sequence
 
 from sqlmodel import Session, col, func, select
 
@@ -10,17 +11,24 @@ from app.domain.viral import (
     contains_copied_text,
     has_format_artifacts,
 )
+from app.domain.viral_revisions import structures_stale
 from app.models import ScenarioTemplate
 from app.models.viral import (
     ViralPattern,
     ViralSample,
     ViralSampleCreate,
+    ViralSampleUpdate,
     ViralToTemplateRequest,
 )
 from app.ports.llm import LlmClient, LlmMessage, LlmRequest
 from app.services import scenarios
 from app.services.audit import record_audit
-from app.services.errors import ConflictError, InvalidModelOutputError, NotFoundError
+from app.services.errors import (
+    ConflictError,
+    InvalidInputError,
+    InvalidModelOutputError,
+    NotFoundError,
+)
 from app.services.llm_structured import LlmOutputError, generate_structured
 
 
@@ -37,6 +45,70 @@ def create_sample(
         brand_id=brand_id,
         entity_id=row.id,
         detail={"char_count": len(row.text)},
+    )
+    session.commit()
+    session.refresh(row)
+    return row
+
+
+def sample_structures_stale(session: Session, sample: ViralSample) -> bool:
+    return samples_staleness(session, [sample])[sample.id]
+
+
+def samples_staleness(
+    session: Session, samples: Sequence[ViralSample]
+) -> dict[uuid.UUID, bool]:
+    if not samples:
+        return {}
+    rows = session.exec(
+        select(
+            ViralPattern.sample_id, ViralPattern.brand_id, ViralPattern.sample_revision
+        ).where(col(ViralPattern.sample_id).in_([sample.id for sample in samples]))
+    ).all()
+    groups: dict[tuple[uuid.UUID, uuid.UUID], list[int | None]] = {}
+    for sample_id, brand_id, revision in rows:
+        groups.setdefault((sample_id, brand_id), []).append(revision)
+    return {
+        sample.id: structures_stale(
+            sample.revision, groups.get((sample.id, sample.brand_id), [])
+        )
+        for sample in samples
+    }
+
+
+def update_sample(
+    session: Session, sample: ViralSample, actor_id: uuid.UUID, data: ViralSampleUpdate
+) -> ViralSample:
+    values = data.model_dump(exclude_unset=True)
+    if not values:
+        raise InvalidInputError("至少提供样本文字或来源链接")
+    row = session.exec(
+        select(ViralSample)
+        .where(ViralSample.id == sample.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).first()
+    if row is None:
+        raise NotFoundError("Sample not found")
+    changed = "text" in values and values["text"] != row.text
+    if changed:
+        row.revision += 1
+    for field, value in values.items():
+        setattr(row, field, value)
+    session.add(row)
+    record_audit(
+        session,
+        action="viral.sample_update",
+        entity_type="viral_sample",
+        actor_id=actor_id,
+        brand_id=row.brand_id,
+        entity_id=row.id,
+        detail={
+            "fields": sorted(values),
+            "text_changed": changed,
+            "revision": row.revision,
+            "char_count": len(row.text),
+        },
     )
     session.commit()
     session.refresh(row)
@@ -94,8 +166,14 @@ def analyze(
 ) -> ViralPattern:
     # End the read transaction first: the model call can take a minute and must not hold a connection
     # inside an open transaction.
+    sample_id, brand_id, text, sample_revision = (
+        sample.id,
+        sample.brand_id,
+        sample.text,
+        sample.revision,
+    )
     session.rollback()
-    messages = analysis_messages(sample.text)
+    messages = analysis_messages(text)
     analysis: ViralAnalysis | None = None
     reason = "schema_invalid"
     for _ in range(2):
@@ -109,7 +187,7 @@ def analyze(
         except LlmOutputError:
             reason = "schema_invalid"
         else:
-            if contains_copied_text(sample.text, generated.value):
+            if contains_copied_text(text, generated.value):
                 reason = "copied_text"
             elif has_format_artifacts(generated.value):
                 reason = "format_invalid"
@@ -127,8 +205,9 @@ def analyze(
             "The structural analysis output was rejected", {"reason": reason}
         )
     row = ViralPattern(
-        sample_id=sample.id,
-        brand_id=sample.brand_id,
+        sample_id=sample_id,
+        brand_id=brand_id,
+        sample_revision=sample_revision,
         model_id=model_id,
         prompt_version=PROMPT_VERSION,
         checker_version=CHECKER_VERSION,
@@ -140,10 +219,10 @@ def analyze(
         action="viral.analyze",
         entity_type="viral_pattern",
         actor_id=actor_id,
-        brand_id=sample.brand_id,
+        brand_id=brand_id,
         entity_id=row.id,
         detail={
-            "sample_id": str(sample.id),
+            "sample_id": str(sample_id),
             "model_id": model_id,
             "prompt_version": PROMPT_VERSION,
             "checker_version": CHECKER_VERSION,

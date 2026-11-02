@@ -32,6 +32,7 @@ from app.models import (
     RunsPublic,
     RunVersions,
 )
+from app.models.evaluation import DatasetRevisionRequest
 from app.ports.embedding import EmbeddingProvider
 from app.ports.llm import LlmClient
 from app.services import evaluation as eval_service
@@ -125,6 +126,26 @@ def create_dataset(
             else "Platform administrator required",
         )
     dataset = eval_service.create_dataset(session=session, data=body, user=current_user)
+    return DatasetPublic.model_validate(dataset, from_attributes=True)
+
+
+@router.post(
+    "/evaluation/datasets/{dataset_id}/revisions",
+    response_model=DatasetPublic,
+    status_code=201,
+)
+def revise_dataset(
+    dataset_id: uuid.UUID,
+    session: SessionDep,
+    current_user: CurrentUser,
+    body: DatasetRevisionRequest,
+) -> DatasetPublic:
+    try:
+        dataset = eval_service.revise_dataset(
+            session=session, dataset_id=dataset_id, user=current_user, data=body
+        )
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     return DatasetPublic.model_validate(dataset, from_attributes=True)
 
 

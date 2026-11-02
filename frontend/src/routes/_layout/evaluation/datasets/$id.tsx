@@ -4,6 +4,11 @@ import { useState } from "react"
 import { type CasePublic, EvaluationService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { MissingPage } from "@/components/Common/ForbiddenPage"
+import {
+  TableBatchBar,
+  TableSelectAll,
+  TableSelectRow,
+} from "@/components/Common/TableBatchBar"
 import { CreateRun } from "@/components/Evaluation/CreateRun"
 import {
   EVAL_TABLE,
@@ -53,6 +58,7 @@ function DatasetPage() {
   const brand = useBrand()
   const { id } = Route.useParams(),
     navigate = useNavigate()
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [viewing, setViewing] = useState<CasePublic | null>(null)
   const [page, setPage] = useState(1),
     [run, setRun] = useState(false)
@@ -75,6 +81,11 @@ function DatasetPage() {
     enabled: !!dataset,
     retry: retryEval,
   })
+  const selection = {
+    selected,
+    onChange: setSelected,
+    pageIds: cases.data?.items.map((row) => row.id) ?? [],
+  }
   if (datasets.isLoading) return <Skeleton className="h-48 w-full" />
   if (datasets.isError)
     return (
@@ -129,10 +140,25 @@ function DatasetPage() {
           {" "}
           <section className="space-y-3 rounded-xl bg-card p-6 shadow-sm">
             <h2 className="font-semibold">{T.cases}</h2>
+            <TableBatchBar
+              {...selection}
+              total={cases.data?.total ?? 0}
+              loadAll={async () =>
+                (
+                  await EvaluationService.readCases({
+                    path: { dataset_id: id },
+                    query: { page: 1, page_size: 50 },
+                  })
+                ).data.items.map((row) => row.id)
+              }
+            />
             <div className="overflow-x-auto">
               <Table className={`${EVAL_TABLE} min-w-[720px]`}>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <TableSelectAll {...selection} />
+                    </TableHead>
                     <TableHead>{V.number}</TableHead>
                     <TableHead>{V.inputSummary}</TableHead>
                     <TableHead>{T.expected}</TableHead>
@@ -143,13 +169,13 @@ function DatasetPage() {
                 <TableBody>
                   {cases.isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5}>
+                      <TableCell colSpan={6}>
                         <Skeleton className="h-24 w-full" />
                       </TableCell>
                     </TableRow>
                   ) : cases.isError ? (
                     <TableRow>
-                      <TableCell colSpan={5}>
+                      <TableCell colSpan={6}>
                         <EvaluationError
                           error={cases.error}
                           retry={() => cases.refetch()}
@@ -158,7 +184,7 @@ function DatasetPage() {
                     </TableRow>
                   ) : !cases.data?.items.length ? (
                     <TableRow>
-                      <TableCell colSpan={5}>
+                      <TableCell colSpan={6}>
                         <EmptyState title={T.emptyCases} />
                       </TableCell>
                     </TableRow>
@@ -166,6 +192,13 @@ function DatasetPage() {
                     cases.data.items.map((c) => (
                       <TableRow key={c.id}>
                         <TableCell>
+                          <TableSelectRow
+                            {...selection}
+                            id={c.id}
+                            label={`${T.sample} ${c.case_index}`}
+                          />
+                        </TableCell>
+                        <TableCell className="text-muted-foreground tabular-nums">
                           {T.sample} {c.case_index}
                         </TableCell>
                         <TableCell className="max-w-72 whitespace-normal">
@@ -179,13 +212,13 @@ function DatasetPage() {
                           </p>
                         </TableCell>
                         <TableCell className="whitespace-normal">
-                          {c.annotators.join("、") || "—"}
+                          {c.annotators.join("、")}
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-link"
+                            className="text-link hover:underline"
                             onClick={() => setViewing(c)}
                           >
                             {V.viewJson}

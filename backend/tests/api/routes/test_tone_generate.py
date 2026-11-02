@@ -325,3 +325,34 @@ def test_factory_caps_adapter_retries_without_real_model(
     assert isinstance(llm, OpenAICompatibleClient) and llm._max_retries == 0
     monkeypatch.setattr(settings, "LLM_MODE", "demo_fake")
     assert isinstance(get_tone_llm_factory()(uuid.uuid4()), DemoLlmClient)
+
+
+def test_exclude_is_sent_to_the_model_and_never_returned(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
+    h = superuser_token_headers
+    ctx = _context(client, db, h)
+    url = _url(ctx["brand"])
+    llm = ScriptedToneLlm(
+        '{"suggestions":[{"tone":"平实，叙述","reason":"a"},{"tone":"新语气","reason":"b"}]}'
+    )
+    _use(llm)
+    r = client.post(url, headers=h, json={"count": 5, "exclude": ["平实 叙述"]})
+    assert r.status_code == 200, r.text
+    assert [i["tone"] for i in r.json()["items"]] == ["新语气"]
+    context = json.loads(llm.requests[0].messages[1].content)
+    assert context["existing_tones"]["already_shown"] == ["平实 叙述"]
+    assert set(context["existing_tones"]) == {
+        "history",
+        "template",
+        "results",
+        "already_shown",
+    }
+    from app.domain.tone_prompt import TONE_SYSTEM_PROMPT
+
+    assert llm.requests[0].messages[0].content == TONE_SYSTEM_PROMPT
+    assert r.json()["prompt_version"] == "tone-v1"
+    calls = len(llm.requests)
+    for bad in ([""], ["x" * 41], ["a"] * 31, [1], None, "text"):
+        assert client.post(url, headers=h, json={"exclude": bad}).status_code == 422
+    assert len(llm.requests) == calls

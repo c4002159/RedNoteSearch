@@ -4,9 +4,13 @@ import { useState } from "react"
 import { ViralService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { HeaderFilter } from "@/components/Common/FilterSelect"
+import {
+  TableBatchBar,
+  TableSelectAll,
+  TableSelectRow,
+} from "@/components/Common/TableBatchBar"
 import { TemplateAnalysisTabs } from "@/components/Common/TemplateAnalysisTabs"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -54,7 +58,7 @@ function BrandSamples({ brandId }: { brandId: string }) {
   const cache = useQueryClient(),
     navigate = useNavigate()
   const brand = useBrand()
-  const currentBrandName = brand.current?.name ?? "—"
+  const currentBrandName = brand.current?.name ?? ""
   const [page, setPage] = useState(1),
     [sort, setSort] = useState<"created_at" | "-created_at">("-created_at"),
     [adding, setAdding] = useState(false)
@@ -71,6 +75,11 @@ function BrandSamples({ brandId }: { brandId: string }) {
         })
       ).data,
   })
+  const selection = {
+    selected,
+    onChange: setSelected,
+    pageIds: samples.data?.items.map((row) => row.id) ?? [],
+  }
   return (
     <div className="min-w-0 space-y-6 [&_[data-slot=table-container]]:border-0">
       <TemplateAnalysisTabs />
@@ -86,7 +95,7 @@ function BrandSamples({ brandId }: { brandId: string }) {
         <div className="rounded-xl bg-card p-6 shadow-sm">
           <p className="text-xs text-muted-foreground">{V.sampleTotal}</p>
           <p className="mt-2 text-3xl font-semibold text-link">
-            {samples.isLoading ? "—" : (samples.data?.total ?? "—")}
+            {samples.isLoading ? "" : (samples.data?.total ?? "")}
           </p>
         </div>
         <div className="rounded-xl bg-card p-6 shadow-sm">
@@ -98,25 +107,25 @@ function BrandSamples({ brandId }: { brandId: string }) {
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         {brand.isAdmin ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted-foreground">
-              {D.selected(selected.size)}
-            </span>
-            <Button
-              variant="destructive"
-              disabled={!selected.size}
-              onClick={() => setDeleting([...selected])}
-            >
-              {D.bulk}
-            </Button>
-            <Button
-              variant="ghost"
-              disabled={!selected.size}
-              onClick={() => setSelected(new Set())}
-            >
-              {D.clear}
-            </Button>
-          </div>
+          <TableBatchBar
+            {...selection}
+            total={samples.data?.total ?? 0}
+            loadAll={async () =>
+              (
+                await ViralService.readSamples({
+                  path: { brand_id: brandId },
+                  query: { page: 1, page_size: 50, sort },
+                })
+              ).data.items.map((row) => row.id)
+            }
+            actions={[
+              {
+                label: D.bulk,
+                destructive: true,
+                onSelect: () => setDeleting([...selected]),
+              },
+            ]}
+          />
         ) : (
           <span />
         )}
@@ -137,7 +146,7 @@ function BrandSamples({ brandId }: { brandId: string }) {
               <TableRow>
                 {brand.isAdmin && (
                   <TableHead className="w-12">
-                    <span className="sr-only">{D.selectColumn}</span>
+                    <TableSelectAll {...selection} />
                   </TableHead>
                 )}
                 <TableHead className="w-[30%]">{V.sampleSummary}</TableHead>
@@ -190,21 +199,10 @@ function BrandSamples({ brandId }: { brandId: string }) {
                   <TableRow key={row.id}>
                     {brand.isAdmin && (
                       <TableCell>
-                        <Checkbox
-                          aria-label={D.select(row.excerpt)}
-                          checked={selected.has(row.id)}
-                          disabled={
-                            selected.size >= 50 && !selected.has(row.id)
-                          }
-                          onCheckedChange={(checked) =>
-                            setSelected((previous) => {
-                              const next = new Set(previous)
-                              if (checked === true && next.size < 50)
-                                next.add(row.id)
-                              else next.delete(row.id)
-                              return next
-                            })
-                          }
+                        <TableSelectRow
+                          id={row.id}
+                          label={row.excerpt}
+                          {...selection}
                         />
                       </TableCell>
                     )}
@@ -222,15 +220,15 @@ function BrandSamples({ brandId }: { brandId: string }) {
                         </p>
                       )}
                     </TableCell>
-                    <TableCell>{row.char_count}</TableCell>
+                    <TableCell variant="secondary">{row.char_count}</TableCell>
                     <TableCell className="max-w-64 whitespace-normal">
                       <p className="line-clamp-2 break-all text-xs text-muted-foreground">
-                        {row.source_url || "—"}
+                        {row.source_url || ""}
                       </p>
                     </TableCell>
                     <SampleStructureCells id={row.id} />
-                    <TableCell className="whitespace-normal text-xs text-muted-foreground">
-                      {formatTime(row.created_at)}
+                    <TableCell className="whitespace-normal text-xs text-muted-foreground tabular-nums">
+                      {row.created_at ? formatTime(row.created_at) : ""}
                     </TableCell>
                     {brand.isAdmin && (
                       <TableCell>

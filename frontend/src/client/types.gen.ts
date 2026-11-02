@@ -755,6 +755,32 @@ export type CreativeTypesPublic = {
 };
 
 /**
+ * DatasetCaseUpdate
+ */
+export type DatasetCaseUpdate = {
+    /**
+     * Input
+     */
+    input: {
+        [key: string]: unknown;
+    };
+    /**
+     * Expected
+     */
+    expected?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Annotators
+     */
+    annotators?: Array<string>;
+    /**
+     * Case Index
+     */
+    case_index: number;
+};
+
+/**
  * DatasetCreate
  */
 export type DatasetCreate = {
@@ -817,6 +843,20 @@ export type DatasetPublic = {
      * Created At
      */
     created_at: string | null;
+};
+
+/**
+ * DatasetRevisionRequest
+ */
+export type DatasetRevisionRequest = {
+    /**
+     * Updates
+     */
+    updates?: Array<DatasetCaseUpdate>;
+    /**
+     * Delete Case Indexes
+     */
+    delete_case_indexes?: Array<number>;
 };
 
 /**
@@ -2303,6 +2343,68 @@ export type RewriteRequest = {
 };
 
 /**
+ * RuleBatchItem
+ */
+export type RuleBatchItem = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Success
+     */
+    success: boolean;
+    /**
+     * Changed
+     */
+    changed?: boolean;
+    /**
+     * Rule Version
+     */
+    rule_version?: number | null;
+    /**
+     * Status Code
+     */
+    status_code?: number;
+    /**
+     * Error Code
+     */
+    error_code?: string | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+};
+
+/**
+ * RuleBatchResult
+ */
+export type RuleBatchResult = {
+    /**
+     * Items
+     */
+    items: Array<RuleBatchItem>;
+};
+
+/**
+ * RuleBatchState
+ */
+export type RuleBatchState = {
+    /**
+     * Ids
+     */
+    ids: Array<string>;
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Reason
+     */
+    reason: string;
+};
+
+/**
  * RuleCreate
  */
 export type RuleCreate = {
@@ -3198,6 +3300,10 @@ export type ToneGenerateRequest = {
      * Count
      */
     count?: number;
+    /**
+     * Exclude
+     */
+    exclude?: Array<string>;
 };
 
 /**
@@ -3569,6 +3675,10 @@ export type ViralSampleListItem = {
      * Excerpt
      */
     excerpt: string;
+    /**
+     * Structures Stale
+     */
+    structures_stale?: boolean;
 };
 
 /**
@@ -3599,6 +3709,24 @@ export type ViralSamplePublic = {
      * Created At
      */
     created_at: string;
+    /**
+     * Structures Stale
+     */
+    structures_stale?: boolean;
+};
+
+/**
+ * ViralSampleUpdate
+ */
+export type ViralSampleUpdate = {
+    /**
+     * Text
+     */
+    text?: string | null;
+    /**
+     * Source Url
+     */
+    source_url?: string | null;
 };
 
 /**
@@ -5360,6 +5488,29 @@ export type toneGenerateToneSuggestionsResponses = {
 
 export type toneGenerateToneSuggestionsResponse = toneGenerateToneSuggestionsResponses[keyof toneGenerateToneSuggestionsResponses];
 
+export type extensionDownloadExtensionPackageData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/extension/package';
+};
+
+export type extensionDownloadExtensionPackageErrors = {
+    /**
+     * 插件安装包暂不可用
+     */
+    503: unknown;
+};
+
+export type extensionDownloadExtensionPackageResponses = {
+    /**
+     * 插件运行文件安装包
+     */
+    200: Blob | File;
+};
+
+export type extensionDownloadExtensionPackageResponse = extensionDownloadExtensionPackageResponses[keyof extensionDownloadExtensionPackageResponses];
+
 export type extensionReadExtensionKeysData = {
     body?: never;
     path: {
@@ -5774,6 +5925,10 @@ export type complianceReadRulesData = {
          */
         scope?: 'global' | 'brand' | null;
         /**
+         * Include Inactive
+         */
+        include_inactive?: boolean;
+        /**
          * Q
          */
         q?: string | null;
@@ -5831,6 +5986,61 @@ export type complianceCreateGlobalRuleResponses = {
 };
 
 export type complianceCreateGlobalRuleResponse = complianceCreateGlobalRuleResponses[keyof complianceCreateGlobalRuleResponses];
+
+export type complianceBatchGlobalRuleStateData = {
+    body: RuleBatchState;
+    path?: never;
+    query?: never;
+    url: '/api/v1/compliance-rules/batch-state';
+};
+
+export type complianceBatchGlobalRuleStateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceBatchGlobalRuleStateError = complianceBatchGlobalRuleStateErrors[keyof complianceBatchGlobalRuleStateErrors];
+
+export type complianceBatchGlobalRuleStateResponses = {
+    /**
+     * Successful Response
+     */
+    200: RuleBatchResult;
+};
+
+export type complianceBatchGlobalRuleStateResponse = complianceBatchGlobalRuleStateResponses[keyof complianceBatchGlobalRuleStateResponses];
+
+export type complianceBatchBrandRuleStateData = {
+    body: RuleBatchState;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/compliance-rules/batch-state';
+};
+
+export type complianceBatchBrandRuleStateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceBatchBrandRuleStateError = complianceBatchBrandRuleStateErrors[keyof complianceBatchBrandRuleStateErrors];
+
+export type complianceBatchBrandRuleStateResponses = {
+    /**
+     * Successful Response
+     */
+    200: RuleBatchResult;
+};
+
+export type complianceBatchBrandRuleStateResponse = complianceBatchBrandRuleStateResponses[keyof complianceBatchBrandRuleStateResponses];
 
 export type complianceReadRuleData = {
     body?: never;
@@ -6072,6 +6282,36 @@ export type evaluationCreateDatasetResponses = {
 };
 
 export type evaluationCreateDatasetResponse = evaluationCreateDatasetResponses[keyof evaluationCreateDatasetResponses];
+
+export type evaluationReviseDatasetData = {
+    body: DatasetRevisionRequest;
+    path: {
+        /**
+         * Dataset Id
+         */
+        dataset_id: string;
+    };
+    query?: never;
+    url: '/api/v1/evaluation/datasets/{dataset_id}/revisions';
+};
+
+export type evaluationReviseDatasetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type evaluationReviseDatasetError = evaluationReviseDatasetErrors[keyof evaluationReviseDatasetErrors];
+
+export type evaluationReviseDatasetResponses = {
+    /**
+     * Successful Response
+     */
+    201: DatasetPublic;
+};
+
+export type evaluationReviseDatasetResponse = evaluationReviseDatasetResponses[keyof evaluationReviseDatasetResponses];
 
 export type evaluationReadCasesData = {
     body?: never;
@@ -7120,6 +7360,36 @@ export type viralReadSampleResponses = {
 };
 
 export type viralReadSampleResponse = viralReadSampleResponses[keyof viralReadSampleResponses];
+
+export type viralUpdateSampleData = {
+    body: ViralSampleUpdate;
+    path: {
+        /**
+         * Sample Id
+         */
+        sample_id: string;
+    };
+    query?: never;
+    url: '/api/v1/viral-samples/{sample_id}';
+};
+
+export type viralUpdateSampleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type viralUpdateSampleError = viralUpdateSampleErrors[keyof viralUpdateSampleErrors];
+
+export type viralUpdateSampleResponses = {
+    /**
+     * Successful Response
+     */
+    200: ViralSamplePublic;
+};
+
+export type viralUpdateSampleResponse = viralUpdateSampleResponses[keyof viralUpdateSampleResponses];
 
 export type viralReadPatternsData = {
     body?: never;

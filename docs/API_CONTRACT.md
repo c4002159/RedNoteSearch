@@ -874,6 +874,51 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 
 `LLM_MODE=demo_fake` 使用固定假模型：有生效调性关键词时循环使用关键词与固定句式拼接最多 5 条；无关键词时返回“平实清楚的叙述”“简洁自然的表达”两条，count=1 时仅一条。假模型输出也必须经过同一过滤，可能被禁词、长度或已有语气规则全部丢弃。测试只用 fake 与 MockTransport，不访问真实模型。未用真实模型验证效果与成本。
 
+## R6 B5：模型语气排除与归一化去重
+
+`POST /brands/{brand_id}/tone-suggestions/generate` 增加可选 `exclude`，默认 `[]`：最多 30 个字符串，每项原始长度为 1–40 个 Unicode 码点；非列表、非字符串、空串、超长项或超过 30 项返回 422（统一错误信封）。其他请求字段、品牌授权、商品隔离、三次调用总预算、失败错误码及只记数量的审计保持原义。
+
+- 上下文在 `existing_tones` 中新增 `already_shown` 数据键，值为清洗空白后的 exclude；仅为数据，不作为指令。没有 exclude 时不加该键。既有 history/template/results 三个来源仍分别保留，不混排或合并统计。
+- POST 的已有语气、exclude 和本次返回项统一以 `tone_key` 比较：NFKC、casefold，忽略空白和 Unicode 标点；保留符号与控制字符的差异，不额外做语义相似判断。显示文字仍使用清洗后的原文，不输出归一化键。第一期 GET 的分组与统计不变。
+- 从输出中删除与已有语气或 exclude 等价的项，同一批等价项只保留最先出现的一条；只含标点/空白而形成空键的模型项丢弃。不得为了凑 count 编造条目；全部被过滤时沿用 TONE_NO_VALID_SUGGESTIONS。
+- 不修改 tone-v1 系统提示词文字、提示词版本或 gen-v*；already_shown 只扩展现有 JSON 上下文。exclude 与建议正文不进入成功审计；测试只用 fake。
+
+## R6 B3：评测样本修改与删除生成新版本
+
+`POST /evaluation/datasets/{dataset_id}/revisions`，成功 201 返回既有 DatasetPublic。资源来自路径，继承原评测集的名称、类型、brand_id、group_id；不接收这些字段覆盖。品牌评测集仅本品牌 admin 可写（非成员、不存在或不可见统一404，editor按既有评测权限404）；全局集仅平台管理员可写（可见全局集的品牌管理员写入返回403）；未登录401。
+
+请求 `{"updates":[{"case_index":0,"input":{},"expected":{},"annotators":[]}],"delete_case_indexes":[1]}`。updates 每项为该序号的完整替换，沿用 CaseIn 的 input/expected/annotators；两个列表默认空，各最多200项。序号为严格非负整数，对应旧版本零起始 case_index，不是分页行号。未知字段、重复序号、同项同时改删、越界、两列表均空、删到零条或类型校验失败均422。全有或全无，无半成品。
+
+保留原顺序，替换后删除指定项，新版本重新从0编号。原集、原样本及已有运行不修改或删除。新版本号为同 group_id 当前最大版本加1（不要求源版本是最新），哈希按现有规范重新计算；并发同组写入用最早版本行锁串行化，已有创建下一版本接口也使用该锁，不能以唯一约束500代替并发控制。成功沿用 eval_dataset.create 审计，只记类型、版本、数量，不记录样本正文；无模型调用、无迁移。
+
+## R6 B4：风险规则批量停用与恢复
+
+新增 `POST /compliance-rules/batch-state`（仅平台管理员，全局范围）与 `POST /brands/{brand_id}/compliance-rules/batch-state`（仅路径品牌admin）。未登录401；整体权限不满足403，不进入处理。请求 `{"ids":["UUID"],"enabled":false,"reason":"调整原因"}`：1–100个不同UUID，enabled为严格布尔，reason去首尾空白后1–500码点；未知字段、重复/空/超量ids及无效原因422，全批不写入。品牌不来自请求体。
+
+成功200 `{"items":[{"id":"UUID","success":true,"changed":true,"rule_version":2,"status_code":200,"error_code":null,"message":null}]}`，按输入顺序逐条返回。不存在或不属于本次范围的id记为单条404/NOT_FOUND，不泄露其他品牌信息；单条数据库故障记500/INTERNAL_ERROR通用提示。逐条事务、行锁和提交，失败只回滚本条，后续继续；因此不是文件导入的全有或全无。无物理删除。
+
+状态实际变化才加rule_version、更新updated_at；重复设置为同状态返回success=true、changed=false且不加版本。保留is_sample和所有来源/规则内容，切换不表示来源已核对。每个成功条目（含未变化）写compliance_rule.batch_state审计，记录状态、是否变化、版本与原因，不含规则全文。历史风险记录不改写。
+
+GET /compliance-rules增加include_inactive，默认true以兼容现有包含停用项的调用；R6页面默认显式传false，即默认隐藏停用项，开启查看停用项时传true，之后可恢复。false在服务端过滤后再分页计数。现有scope和品牌授权语义不变，无迁移、无模型调用。
+
+## R6 B6：下载浏览器插件安装包
+
+`GET /extension/package`：任何已登录的有效用户均可下载，不要求品牌成员或admin；未登录401。成功200，Content-Type为application/zip，Content-Disposition为attachment; filename="results-helper.zip"，Cache-Control:no-store。
+
+每次从部署随附的extensions/results-helper读取运行文件并在内存生成zip，包内只有results-helper/manifest.json、parse.js、popup.html、popup.js，不递归打包，不含test、配置、密钥或其他文件；拒绝符号链接。来源目录不接收请求参数。包缺失/不可读等返回503 EXTENSION_PACKAGE_UNAVAILABLE及通用中文提示和request_id，不泄露本机路径。
+
+运行镜像须COPY上述四个运行文件到/app/extensions/results-helper；该Docker改动在本PR作为明确基础设施配合项，由A审阅。不改变插件权限、业务数据、密钥或鉴权规则，无模型调用，无迁移。
+
+## R6 B1：编辑爆款样本与结构过期标记（含迁移）
+
+`PATCH /viral-samples/{sample_id}`：请求仅允许可选 text、source_url，至少提供一项。text 原始1–5000码点且不能全空白，显式null拒绝；source_url沿用创建样本的HttpUrl校验、最多2000字符，可用null清空。仅存储链接、不访问或抓取。不接收品牌、note、修订号覆盖。品牌admin可改；同品牌editor403，资源不存在或非成员404（平台管理员没有成员身份也404）；未登录401。成功200返回既有样本字段及structures_stale。
+
+没有可复用的分析文本哈希，因此迁移新增 viral_sample.revision（整数非空，默认0）、viral_pattern.sample_revision（可空，旧结构回填0）。仅文字与存储值实际不同时revision加1，只改链接或提交相同文字不增加。PATCH使用样本行锁防止并发修改丢失。
+
+样本列表、创建、读取及PATCH响应增加structures_stale：有结构且没有任何结构的sample_revision等于当前revision时为true；无结构为false。分析捕获开始时的文字和revision，新结构保存该revision；重新分析当前文字成功后自然变false，旧结构保留。并发编辑不会把旧文字分析误标成当前版本。迁移后原样本和旧结构均为0，不显示过期。
+
+成功写viral.sample_update审计，只含字段名、是否改文字、修订号和字数，不含正文或网址；与更新原子提交。PATCH不调用模型、不自动分析、不改提示词或已有模板。
+
 ## R6 B2：临时来源、文本版本与审核相近提示
 
 文档新增source_kind=file|note（旧资料回填file）及source_description（可空，note必填1–1000码点）。沿用doc_type分类，两者独立。所有原文件上传接口保持file；新临时来源即使由admin提交也必须待审，不允许直接入库。

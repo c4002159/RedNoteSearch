@@ -20,6 +20,9 @@ class ViralSample(SQLModel, table=True):
     text: str = Field(sa_type=Text)
     note: str | None = Field(default=None, sa_type=Text)
     source_url: str | None = Field(default=None, max_length=2000)
+    revision: int = Field(
+        default=0, nullable=False, sa_column_kwargs={"server_default": "0"}
+    )
     created_by: uuid.UUID | None = Field(
         default=None, foreign_key="user.id", ondelete="SET NULL"
     )
@@ -46,6 +49,7 @@ class ViralPattern(SQLModel, table=True):
     model_id: str = Field(max_length=80)
     prompt_version: str = Field(max_length=50)
     checker_version: str = Field(max_length=50)
+    sample_revision: int | None = Field(default=0, nullable=True)
     created_at: datetime = Field(
         default_factory=get_datetime_utc, sa_type=DateTime(timezone=True)
     )
@@ -71,6 +75,24 @@ class ViralSampleCreate(BaseModel):
         return value
 
 
+class ViralSampleUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    text: str | None = PydanticField(default=None, min_length=1, max_length=5000)
+    source_url: str | None = PydanticField(default=None, max_length=2000)
+
+    @field_validator("text")
+    @classmethod
+    def validate_text(cls, value: str | None) -> str:
+        if value is None:
+            raise ValueError("样本文字不能为空")
+        return ViralSampleCreate.nonblank_text(value)
+
+    @field_validator("source_url")
+    @classmethod
+    def validate_url(cls, value: str | None) -> str | None:
+        return ViralSampleCreate.text_url(value)
+
+
 class ViralSamplePublic(BaseModel):
     id: uuid.UUID
     brand_id: uuid.UUID
@@ -78,6 +100,7 @@ class ViralSamplePublic(BaseModel):
     note: str | None
     source_url: str | None
     created_at: datetime
+    structures_stale: bool = False
 
 
 class ViralSampleListItem(BaseModel):
@@ -88,6 +111,7 @@ class ViralSampleListItem(BaseModel):
     created_at: datetime
     char_count: int
     excerpt: str
+    structures_stale: bool = False
 
 
 class ViralSamplesPublic(BaseModel):
