@@ -90,8 +90,38 @@ def _judge(request: LlmRequest) -> str:
     )
 
 
+def _tone_suggestions(request: LlmRequest) -> str:
+    context = json.loads(request.messages[-1].content)
+    keywords = (context.get("profile") or {}).get("tone_keywords", [])
+    if keywords:
+        templates = (
+            "以{}为主的表达",
+            "用{}的笔调叙述",
+            "保持{}的行文风格",
+            "采用{}的措辞",
+            "围绕{}组织语句",
+        )
+        tones = [
+            template.format(keywords[i % len(keywords)])
+            for i, template in enumerate(templates)
+        ]
+        reason = "依据品牌调性关键词描述写作方式。"
+    else:
+        tones = ["平实清楚的叙述", "简洁自然的表达"]
+        reason = "缺少调性关键词，使用中性写作描述。"
+    return json.dumps(
+        {
+            "suggestions": [
+                {"tone": tone, "reason": reason} for tone in tones[: context["count"]]
+            ]
+        },
+        ensure_ascii=False,
+    )
+
+
 _ANSWERS = {
     "generate": _generate,
+    "tone_suggestions": _tone_suggestions,
     "claim_extraction": _extract_claims,
     "evidence_judgement": _judge,
     "compliance_context": lambda _r: json.dumps({"findings": []}),

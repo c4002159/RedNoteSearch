@@ -845,3 +845,31 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 - `results`：仅可关联本品牌原任务、语气非空的已确认文案参与语气归因；每篇只取最新读数，按 captured_at、created_at 倒序，完全相同时按 id 稳定选择，不把同篇的多条读数当多篇。scene 过滤后、能归因语气且有读数的文案数为 notes_with_metrics。少于 3 篇 enough_data=false 且 items=[]；min_notes 固定 3。复用 domain/results.py 的最热规则，items 每项 tone、note_count、average_engagement（最新点赞+收藏+评论按组平均，保留一位小数）、approximate（本组任一最新读数近似即 true）。平均互动降序、同值按篇数降序。没有综合分，不声称哪个语气更好。
 - 空品牌返回 history=[]、template=[]、results={enough_data:false,notes_with_metrics:0,min_notes:3,items:[]}。非空组不因其他组为空而消失。
 - 实现约定：查询任务、预设、结构、文案与读数均约束本品牌；已确认文案无可关联任务时不猜测语气；不读取文案正文作为语气。时间按通用约定为 UTC。
+
+## 语气推荐：第二期（模型生成，不保存建议）
+
+`POST /brands/{brand_id}/tone-suggestions/generate`：使用 `BrandAccessDep`，本品牌任意成员（含 editor）可调用；未登录 401，非成员 403，平台管理员没有成员身份也不能调用。
+
+请求：`{"scene":"seeding","product_id":"UUID","count":5}`。三个字段均可省略；`scene` 非空时为 1–20 字的场景类型 key，`product_id` 可为 null，`count` 默认 5，必须为整数 1–5（布尔值、非整数及越界均 422）。不接受其他字段。商品不存在或不属于路径品牌统一 404，且不调用模型。场景名称优先取本品牌模板，再取全局模板；未知 key 使用 key 本身作为背景，沿用第一期的宽容行为。
+
+模型输入仅包含：生效版本的品牌档案（调性关键词、人设、优先词、禁用词；无生效版本则省略，不报错）、可选商品的品类与产品线、可选场景名称、直接复用第一期 `services/tone_suggestions.py::suggestions()` 默认 limit=10 返回的 history/template/results 三组的 tone 字符串。scene 对来源组的过滤沿用第一期。不向模型发送文案正文、商品卖点、商品名称、样本引用、品牌手册原文或成绩数值。未返回在第一期这次查询窗口内的语气不在精确排重集合中。
+
+提示词常量 `TONE_PROMPT_VERSION="tone-v1"`，位于 domain，独立于 gen-v*。语气指写作风格，不是产品功效；模型只能依据给出的档案与已有语气，不能编造品牌调性；没有档案时只给中性写作描述。用户数据按资料处理，不作为指令。
+
+模型必须仅返回 `{"suggestions":[{"tone":"温柔叙述","reason":"依据品牌调性描述写作方式"}]}`，不接受 Markdown 包裹或其他说明。Pydantic 验证 JSON 信封和每一项；tone 和 reason 清洗首尾及连续 Unicode 空白，长度分别为 1–20、1–60 个 Unicode 码点（空格、标点各计 1，emoji 和组合字符按各自码点计）。超长、空白、字段无效的项丢弃，不截断。
+
+纯函数过滤同时检查 tone 和 reason：禁用词来自生效档案；拒绝绝对化用语（含最、第一、唯一、100%、百分之百等），拒绝功效或医疗承诺词（如美白、祛痘、治疗、治愈等，具体词表见 domain/tone.py）。筛词时做 NFKC、小写化并忽略空白与格式控制符。tone 用 `clean_tone` 清洗后精确去重，不能与第一期返回的任一 tone 相同；不做语义排重。按模型顺序保留，最多 count 条，允许少于 count 条。词表属于保守提示规则，不能替代人工判断，也无法保证识别所有改写的承诺。
+
+成功 200：`{"items":[{"tone":"温柔叙述","reason":"依据品牌调性描述写作方式"}],"model":"demo-fake","prompt_version":"tone-v1"}`。不创建或保存语气建议；仅记录审计 `tone.generate`，品牌与操作者取授权上下文，`detail` 严格为 `{"count":实际返回数量}`，不含建议、理由、档案或提示词。失败不写成功审计。
+
+错误使用统一 error 信封（含 request_id）：
+
+| HTTP | code | 含义 |
+| --- | --- | --- |
+| 422 | TONE_NO_VALID_SUGGESTIONS | 新增：模型条目全部被长度、禁词、承诺或重复规则丢弃，或返回空列表；提示调整档案或稍后重试 |
+| 422 | TONE_INVALID_MODEL_OUTPUT | 新增：模型在有限重试后仍返回非法 JSON、非法信封或非对象条目；不返回原始输出 |
+| 503 | MODEL_UNAVAILABLE | 复用：缺少密钥、模型不可用、超时、限流或空响应，抛 ModelUnavailableError；错误不包含模型内容或凭据 |
+
+复用现有 OpenAI 兼容适配器、provider_keys 的数据库/环境密钥解析和模型配置。适配器内部重试关闭，由本服务统一控制：首次加最多 2 次重试（至多 3 次 complete/HTTP 请求），传输失败、空响应、JSON 错误及全部被过滤共用同一额度，不嵌套放大；超时沿用 LLM_TIMEOUT_SECONDS。最后一次的失败类型决定最终错误。
+
+`LLM_MODE=demo_fake` 使用固定假模型：有生效调性关键词时循环使用关键词与固定句式拼接最多 5 条；无关键词时返回“平实清楚的叙述”“简洁自然的表达”两条，count=1 时仅一条。假模型输出也必须经过同一过滤，可能被禁词、长度或已有语气规则全部丢弃。测试只用 fake 与 MockTransport，不访问真实模型。未用真实模型验证效果与成本。
