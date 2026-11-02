@@ -87,7 +87,7 @@ test("Failed rewrites retain the original version and request id; absent suggest
       json: {
         error: {
           code: "MODEL_UNAVAILABLE",
-          message: "模型暂时不可用",
+          message: "Model unavailable",
           request_id: "rewrite-fixture",
         },
       },
@@ -96,6 +96,7 @@ test("Failed rewrites retain the original version and request id; absent suggest
   await page.goto(resultUrl)
   await page.getByRole("button", { name: "换一批标签", exact: true }).click()
   await expect(page.getByRole("alert")).toContainText("rewrite-fixture")
+  await expect(page.getByRole("alert")).not.toContainText("Model unavailable")
   await expect(page).toHaveURL(resultUrl)
   expect(state.writes).toEqual([])
   state.risks = [{ ...resultRisks[0], suggestion: "" }]

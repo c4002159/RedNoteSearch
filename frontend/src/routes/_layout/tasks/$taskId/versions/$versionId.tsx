@@ -52,6 +52,7 @@ import {
   LAYER_LABEL,
   label,
   ORIGIN_LABEL,
+  PAGE_ERROR_TEXT,
   RESULT_REWRITE_TEXT as RW,
   SCENARIO_TEXT,
 } from "@/lib/zh"
@@ -791,6 +792,7 @@ function ResultPage() {
     blockers.push(`有 ${rejected.length} 条断言被判为不成立`)
   if (!isLatest) blockers.push("只有最新版本可以确认")
   const confirmError = confirm.isError ? parseApiError(confirm.error) : null
+  const rewriteError = rewrite.isError ? parseApiError(rewrite.error) : null
 
   return (
     <div className="space-y-6">
@@ -834,7 +836,17 @@ function ResultPage() {
           {RW.pending}
         </p>
       )}
-      {rewrite.isError && <ErrorBanner error={parseApiError(rewrite.error)} />}
+      {rewriteError && (
+        <ErrorBanner
+          error={{
+            ...rewriteError,
+            message: /[\u3400-\u9fff]/.test(rewriteError.message)
+              ? rewriteError.message
+              : (PAGE_ERROR_TEXT.status[rewriteError.status ?? 0] ??
+                PAGE_ERROR_TEXT.failed),
+          }}
+        />
+      )}
       <p className="text-xs text-muted-foreground">
         创建于 {formatTime(v.created_at)}
         {v.model ? ` · 模型 ${v.model}` : ""}
