@@ -1179,3 +1179,12 @@ export const PROMO_TARGET_TEXT = {
   version: (n: number) => `模板版本 v${n}`,
   chooseTemplate: "场景模板",
 } as const
+
+// 推广对象补测后的加载、空态与错误兜底。
+export const PROMO_REVIEW_TEXT = {
+  unknownType: "其他创作类型",
+  noTypes: "当前品牌暂无创作类型，请联系管理员添加。",
+  loadingProducts: "正在加载可选商品",
+  loadingTypes: "正在加载创作场景",
+  loadFailed: "推广对象或创作场景加载失败，请重试。",
+} as const

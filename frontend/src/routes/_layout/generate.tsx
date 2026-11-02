@@ -26,7 +26,7 @@ import {
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { FilterSelect } from "@/components/Common/FilterSelect"
-import { MissingPage } from "@/components/Common/ForbiddenPage"
+import { ForbiddenPage, MissingPage } from "@/components/Common/ForbiddenPage"
 import { type DockStep, ProgressDock } from "@/components/Common/ProgressDock"
 import { StageProgress } from "@/components/Common/StageProgress"
 import { FlowStatusBadge } from "@/components/Common/StatusBadge"
@@ -49,6 +49,7 @@ import {
   LENGTH_LABEL,
   label,
   PERSON_LABEL,
+  PROMO_REVIEW_TEXT as PR,
   PROMO_TARGET_TEXT as PT,
   SCENARIO_TEXT,
   TASK_ERROR_LABEL,
@@ -171,7 +172,7 @@ function SceneCards({
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-[13px] font-semibold">
-                  {type.name || type.key}
+                  {type.name || PR.unknownType}
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
                   {s?.source_pattern_id && (
@@ -423,6 +424,10 @@ function NewTaskForm() {
     validPromo(promo, products.data ?? []) &&
     brandScenarios.some((s) => s.id === scenarioId) &&
     creativeTypes.isSuccess &&
+    creativeTypes.data.some(
+      (type) =>
+        type.key === brandScenarios.find((s) => s.id === scenarioId)?.scene,
+    ) &&
     materialCount <= MAX_MATERIALS &&
     pastedLength <= MAX_MATERIAL_CHARS &&
     briefLength <= MAX_BRIEF &&
@@ -431,6 +436,12 @@ function NewTaskForm() {
     setError(null)
     submit.mutate(start)
   }
+  const setupError = products.error ?? scenarios.error ?? creativeTypes.error
+  const setupInfo = setupError ? parseApiError(setupError) : null
+  if (setupInfo?.status === 403)
+    return <ForbiddenPage requestId={setupInfo.requestId} />
+  if (setupInfo?.status === 404)
+    return <MissingPage requestId={setupInfo.requestId} />
 
   return (
     <form
@@ -443,7 +454,7 @@ function NewTaskForm() {
       <div className="flex flex-col gap-6">
         <section className="space-y-6 rounded-xl border border-border/40 bg-card p-6 shadow-sm">
           {products.isLoading ? (
-            <Skeleton className="h-32 w-full" />
+            <Skeleton aria-label={PR.loadingProducts} className="h-32 w-full" />
           ) : (
             <PromoTarget
               value={promo}
@@ -451,11 +462,14 @@ function NewTaskForm() {
               products={products.data ?? []}
             />
           )}
-          {(products.isError || scenarios.isError || creativeTypes.isError) && (
+          {setupInfo && (
             <ErrorBanner
-              error={parseApiError(
-                products.error ?? scenarios.error ?? creativeTypes.error,
-              )}
+              error={{
+                ...setupInfo,
+                message: /[\u3400-\u9fff]/u.test(setupInfo.message)
+                  ? setupInfo.message
+                  : PR.loadFailed,
+              }}
               onRetry={() => {
                 void products.refetch()
                 void scenarios.refetch()
@@ -475,7 +489,7 @@ function NewTaskForm() {
           <div className="space-y-1.5">
             <span className="block text-base font-semibold">创作场景</span>
             {scenarios.isLoading || creativeTypes.isLoading ? (
-              <Skeleton className="h-20 w-full" />
+              <Skeleton aria-label={PR.loadingTypes} className="h-20 w-full" />
             ) : (
               <SceneCards
                 types={creativeTypes.data ?? []}
@@ -483,6 +497,9 @@ function NewTaskForm() {
                 value={scenarioId}
                 onChange={setScenarioId}
               />
+            )}
+            {creativeTypes.isSuccess && creativeTypes.data.length === 0 && (
+              <p className="text-sm text-muted-foreground">{PR.noTypes}</p>
             )}
           </div>
 
