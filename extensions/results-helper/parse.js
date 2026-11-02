@@ -72,6 +72,40 @@ function parseNoteDocument(doc) {
   }
 }
 
+// The address is the system's origin: https, or http only for this computer.
+function normalizeServer(raw) {
+  let url
+  try {
+    url = new URL(String(raw).trim())
+  } catch {
+    return null
+  }
+  const local = ["localhost", "127.0.0.1"].includes(url.hostname)
+  if (url.protocol !== "https:" && !(local && url.protocol === "http:")) return null
+  return url.origin
+}
+
+// One pasted string carries both settings: "rnk1." + base64url(JSON {"s": address, "k": key}).
+// The system's key page shows it next to the key, so the person pastes once instead of typing twice.
+const CONNECTION_PREFIX = "rnk1."
+
+function parseConnection(text) {
+  const raw = String(text || "").trim()
+  if (!raw.startsWith(CONNECTION_PREFIX)) return null
+  let data
+  try {
+    const b64 = raw.slice(CONNECTION_PREFIX.length).replace(/-/g, "+").replace(/_/g, "/")
+    data = JSON.parse(atob(b64 + "=".repeat((4 - (b64.length % 4)) % 4)))
+  } catch {
+    return null
+  }
+  if (!data || typeof data.s !== "string" || typeof data.k !== "string") return null
+  const server = normalizeServer(data.s)
+  const key = data.k.trim()
+  if (!server || !key.startsWith("rnk_")) return null
+  return { server, key }
+}
+
 if (typeof module !== "undefined") {
-  module.exports = { parseCount, parseCommentTotal, parseNoteDocument }
+  module.exports = { parseCount, parseCommentTotal, parseNoteDocument, normalizeServer, parseConnection }
 }

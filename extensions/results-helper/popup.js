@@ -11,18 +11,6 @@ function show(kind, text) {
   box.hidden = false
 }
 
-function normalizeServer(raw) {
-  let url
-  try {
-    url = new URL(raw.trim())
-  } catch {
-    return null
-  }
-  const local = ["localhost", "127.0.0.1"].includes(url.hostname)
-  if (url.protocol !== "https:" && !(local && url.protocol === "http:")) return null
-  return url.origin
-}
-
 async function activeNoteTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
   if (!tab || !tab.url) return null
@@ -43,15 +31,28 @@ async function loadSettings() {
   if (!saved.server || !saved.key) $("settings").open = true
 }
 
+async function saveConnection(origin, key) {
+  const granted = await chrome.permissions.request({ origins: [`${origin}/*`] })
+  if (!granted) return show("error", "没有授权访问这个系统地址，无法发送。")
+  await chrome.storage.local.set({ server: origin, key })
+  $("server").value = origin
+  $("key").value = key
+  show("ok", "已保存。")
+}
+
 $("save").addEventListener("click", async () => {
   const origin = normalizeServer($("server").value)
   const key = $("key").value.trim()
   if (!origin) return show("error", "系统地址需要是 https 地址（本机测试可用 http://localhost）。")
   if (!key.startsWith("rnk_")) return show("error", "插件密钥应以 rnk_ 开头。")
-  const granted = await chrome.permissions.request({ origins: [`${origin}/*`] })
-  if (!granted) return show("error", "没有授权访问这个系统地址，无法发送。")
-  await chrome.storage.local.set({ server: origin, key })
-  show("ok", "已保存。")
+  await saveConnection(origin, key)
+})
+
+$("useConfig").addEventListener("click", async () => {
+  const connection = parseConnection($("config").value)
+  if (!connection) return show("error", "这不是有效的连接配置。请在系统的密钥页复制整串，或在下面手动填写。")
+  $("config").value = ""
+  await saveConnection(connection.server, connection.key)
 })
 
 $("read").addEventListener("click", async () => {

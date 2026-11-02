@@ -1,7 +1,7 @@
 // Run: node --test extensions/results-helper/test
 const test = require("node:test")
 const assert = require("node:assert/strict")
-const { parseCount, parseCommentTotal, parseNoteDocument } = require("../parse.js")
+const { parseCount, parseCommentTotal, parseNoteDocument, normalizeServer, parseConnection } = require("../parse.js")
 
 // A page with only the elements the parser asks for: selector -> text.
 const page = (map) => ({
@@ -87,4 +87,44 @@ test("zero shown as a word", () => {
   )
   assert.equal(r.ok, true)
   assert.deepEqual([r.likes, r.collects, r.comments, r.approximate], [0, 0, 0, false])
+})
+
+const connection = (obj) =>
+  "rnk1." + Buffer.from(JSON.stringify(obj)).toString("base64url")
+
+test("server address: https, or http on this computer only", () => {
+  assert.equal(normalizeServer("https://app.example.com/path?x=1"), "https://app.example.com")
+  assert.equal(normalizeServer(" http://localhost:8011/ "), "http://localhost:8011")
+  assert.equal(normalizeServer("http://127.0.0.1:8000"), "http://127.0.0.1:8000")
+  for (const bad of ["http://app.example.com", "ftp://x", "localhost:8011", "", null]) {
+    assert.equal(normalizeServer(bad), null, String(bad))
+  }
+})
+
+test("connection string carries the address and the key", () => {
+  const good = connection({ s: "https://app.example.com/anything", k: "rnk_abc123" })
+  assert.deepEqual(parseConnection(` ${good}
+`), { server: "https://app.example.com", key: "rnk_abc123" })
+  assert.deepEqual(parseConnection(connection({ s: "http://localhost:8011", k: "rnk_x" })), {
+    server: "http://localhost:8011",
+    key: "rnk_x",
+  })
+})
+
+test("a bad connection string is refused, never half-applied", () => {
+  const bad = [
+    "",
+    null,
+    "rnk_abc123",
+    "rnk1.",
+    "rnk1.%%%",
+    "rnk1." + Buffer.from("not json").toString("base64url"),
+    connection({ s: "https://app.example.com" }),
+    connection({ k: "rnk_abc" }),
+    connection({ s: "http://app.example.com", k: "rnk_abc" }),
+    connection({ s: "https://app.example.com", k: "abc" }),
+    connection({ s: 5, k: "rnk_abc" }),
+    connection(null),
+  ]
+  for (const text of bad) assert.equal(parseConnection(text), null, String(text))
 })
