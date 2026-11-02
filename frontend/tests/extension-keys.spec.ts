@@ -156,7 +156,10 @@ test.describe("extension keys", () => {
       ).toBe(value)
     }
     expect(state.creates).toEqual([{ label: "新密钥" }])
-    await dialog.getByRole("button", { name: "关闭", exact: true }).click()
+    await dialog
+      .getByRole("button", { name: "关闭", exact: true })
+      .first()
+      .click()
     await expect(dialog).toHaveCount(0)
     expect(await page.content()).not.toContain(secret)
     await page.getByRole("button", { name: "创建密钥", exact: true }).click()

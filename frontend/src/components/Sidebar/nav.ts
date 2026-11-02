@@ -115,7 +115,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "系统",
     items: [
-      { title: "插件密钥", path: "/extension-keys", icon: Users, access: "admin" },
+      /* biome-ignore format: Keep the authorized navigation change to one line. */ { title: "插件密钥", path: "/extension-keys", icon: Users, access: "admin" },
       { title: "用户设置", path: "/settings", icon: Settings, access: "all" },
       { title: "用户管理", path: "/admin", icon: Users, access: "platform" },
     ],
