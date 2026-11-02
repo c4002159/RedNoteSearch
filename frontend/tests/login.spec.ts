@@ -53,9 +53,11 @@ test("Log in with valid email and password ", async ({ page }) => {
   await fillForm(page, firstSuperuser, firstSuperuserPassword)
   await page.getByRole("button", { name: "登录", exact: true }).click()
 
-  await page.waitForURL("/")
+  await page.waitForURL("/generate")
 
-  await expect(page.getByText("欢迎回来，很高兴再次见到你！")).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "生成工作台", exact: true }),
+  ).toBeVisible()
 })
 
 test("Log in with invalid email", async ({ page }) => {
@@ -83,9 +85,11 @@ test("Successful log out", async ({ page }) => {
   await fillForm(page, firstSuperuser, firstSuperuserPassword)
   await page.getByRole("button", { name: "登录", exact: true }).click()
 
-  await page.waitForURL("/")
+  await page.waitForURL("/generate")
 
-  await expect(page.getByText("欢迎回来，很高兴再次见到你！")).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "生成工作台", exact: true }),
+  ).toBeVisible()
 
   await page.getByTestId("user-menu").click()
   await page.getByRole("menuitem", { name: "退出登录" }).click()
@@ -98,9 +102,11 @@ test("Logged-out user cannot access protected routes", async ({ page }) => {
   await fillForm(page, firstSuperuser, firstSuperuserPassword)
   await page.getByRole("button", { name: "登录", exact: true }).click()
 
-  await page.waitForURL("/")
+  await page.waitForURL("/generate")
 
-  await expect(page.getByText("欢迎回来，很高兴再次见到你！")).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "生成工作台", exact: true }),
+  ).toBeVisible()
 
   await page.getByTestId("user-menu").click()
   await page.getByRole("menuitem", { name: "退出登录" }).click()
