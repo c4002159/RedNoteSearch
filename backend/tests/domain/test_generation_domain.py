@@ -146,7 +146,7 @@ def test_prompt_separates_verified_facts_from_unverified_points() -> None:
     )
     assert "第二人称" in user and "标签 3 个" in user and "语气：克制" in user
     assert "合规通过" not in system + user  # the prompt never claims compliance
-    assert PROMPT_VERSION == "gen-v6"
+    assert PROMPT_VERSION == "gen-v7"
 
 
 def test_prompt_handles_missing_context_and_adds_problems_on_retry() -> None:
@@ -204,3 +204,11 @@ def test_activity_prompt_tells_the_model_not_to_invent_steps() -> None:
     assert text.index("参与方式") < text.index("不要自己编写")
     plain = build_messages(PromptInput(**base, product_name="晨雾"))[1].content
     assert "不要自己编写" not in plain
+
+
+def test_prompt_does_not_invent_occasions_or_audiences() -> None:
+    from app.domain.generation.prompt import SYSTEM_PROMPT
+
+    for phrase in ("适用场合", "适合人群", "通勤", "直接不写"):
+        assert phrase in SYSTEM_PROMPT
+    assert "只写“具体适合的场合以品牌资料为准”" not in SYSTEM_PROMPT

@@ -1393,6 +1393,28 @@ export type HTTPValidationError = {
 };
 
 /**
+ * HistoryTone
+ */
+export type HistoryTone = {
+    /**
+     * Tone
+     */
+    tone: string;
+    /**
+     * Source
+     */
+    source: 'task' | 'preset';
+    /**
+     * Count
+     */
+    count: number | null;
+    /**
+     * Last Used At
+     */
+    last_used_at: string | null;
+};
+
+/**
  * HotStat
  */
 export type HotStat = {
@@ -2002,6 +2024,28 @@ export type ResultPublic = {
      * Cost
      */
     cost: number | null;
+};
+
+/**
+ * ResultTone
+ */
+export type ResultTone = {
+    /**
+     * Tone
+     */
+    tone: string;
+    /**
+     * Note Count
+     */
+    note_count: number;
+    /**
+     * Average Engagement
+     */
+    average_engagement: number;
+    /**
+     * Approximate
+     */
+    approximate: boolean;
 };
 
 /**
@@ -2885,6 +2929,24 @@ export type TasksPublic = {
 };
 
 /**
+ * TemplateTone
+ */
+export type TemplateTone = {
+    /**
+     * Tone
+     */
+    tone: string;
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * Sample Count
+     */
+    sample_count: number;
+};
+
+/**
  * Token
  */
 export type Token = {
@@ -2896,6 +2958,43 @@ export type Token = {
      * Token Type
      */
     token_type?: string;
+};
+
+/**
+ * ToneResults
+ */
+export type ToneResults = {
+    /**
+     * Enough Data
+     */
+    enough_data: boolean;
+    /**
+     * Notes With Metrics
+     */
+    notes_with_metrics: number;
+    /**
+     * Min Notes
+     */
+    min_notes: number;
+    /**
+     * Items
+     */
+    items: Array<ResultTone>;
+};
+
+/**
+ * ToneSuggestions
+ */
+export type ToneSuggestions = {
+    /**
+     * History
+     */
+    history: Array<HistoryTone>;
+    /**
+     * Template
+     */
+    template: Array<TemplateTone>;
+    results: ToneResults;
 };
 
 /**
@@ -4951,6 +5050,45 @@ export type resultsAddMetricResponses = {
 };
 
 export type resultsAddMetricResponse = resultsAddMetricResponses[keyof resultsAddMetricResponses];
+
+export type toneReadToneSuggestionsData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: {
+        /**
+         * Scene
+         */
+        scene?: string | null;
+        /**
+         * Limit
+         */
+        limit?: number;
+    };
+    url: '/api/v1/brands/{brand_id}/tone-suggestions';
+};
+
+export type toneReadToneSuggestionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type toneReadToneSuggestionsError = toneReadToneSuggestionsErrors[keyof toneReadToneSuggestionsErrors];
+
+export type toneReadToneSuggestionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: ToneSuggestions;
+};
+
+export type toneReadToneSuggestionsResponse = toneReadToneSuggestionsResponses[keyof toneReadToneSuggestionsResponses];
 
 export type extensionReadExtensionKeysData = {
     body?: never;

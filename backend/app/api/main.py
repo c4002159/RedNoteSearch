@@ -16,6 +16,7 @@ from app.api.routes import (
     rule_import,
     scenarios,
     tasks,
+    tone,
     users,
     utils,
     versions,
@@ -34,6 +35,7 @@ api_router.include_router(tasks.router)
 api_router.include_router(scenarios.router)
 api_router.include_router(creative_types.router)
 api_router.include_router(results.router)
+api_router.include_router(tone.router)
 api_router.include_router(extension.router)
 api_router.include_router(evidence.router)
 api_router.include_router(rule_import.router)
