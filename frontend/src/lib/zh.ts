@@ -1340,3 +1340,40 @@ export const PROMO_REVIEW_TEXT = {
   loadingTypes: "正在加载创作场景",
   loadFailed: "推广对象或创作场景加载失败，请重试。",
 } as const
+
+// 工作台语气推荐：来源分组、模型建议和状态。
+export const TONE_DIALOG_TEXT = {
+  title: "推荐语气",
+  description: "从品牌已有语气中选择，或让模型提供新的写作方式。",
+  history: "我们用过的",
+  template: "爆款模板里的语气",
+  results: "成绩较好的文案用过的语气",
+  task: (count: number, date: string) => `用过 ${count} 次，最近 ${date}`,
+  preset: "来自风格预设",
+  brandWide: "品牌通用",
+  samples: (count: number) => `来自 ${count} 个爆款样本`,
+  performance: (count: number, value: string) =>
+    `${count} 篇，平均互动${value}`,
+  tenThousand: "万",
+  approximately: "约",
+  use: "使用",
+  useTone: (tone: string) => `使用 ${tone}`,
+  insufficient: (minimum: number) =>
+    `数据不足，至少需要 ${minimum} 篇有读数的文案`,
+  allEmpty: "还没有可推荐的语气，可以先用模型建议",
+  emptyHistory: "暂无任务记录或风格预设中的语气",
+  emptyTemplate: "暂无爆款模板语气",
+  emptyResults: "暂无可归因的成绩语气",
+  sceneHint:
+    "场景只影响“我们用过的”里的任务记录和成绩，风格预设和爆款模板语气是品牌通用的。",
+  modelGroup: "模型建议",
+  modelHint: "模型建议，不是事实",
+  generate: "让模型再想几个",
+  generating: "正在生成建议…",
+  unavailable: "模型暂时不可用，稍后再试",
+  noValid: "这次没有得到可用的建议，请稍后再试",
+  failed: "语气建议读取失败，请重试。",
+  loading: "正在加载推荐语气",
+  disclaimer: "样本很少，只能说明方向，不能说明哪种语气更好。",
+  close: "关闭",
+} as const
