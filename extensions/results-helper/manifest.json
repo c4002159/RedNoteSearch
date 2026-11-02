@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "笔记成绩助手",
+  "description": "读取你已打开的小红书笔记页上显示的点赞、收藏、评论数，由你确认后发送到你自己的系统。不抓取、不后台运行。",
+  "version": "0.1.0",
+  "minimum_chrome_version": "110",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "action": {
+    "default_title": "笔记成绩助手",
+    "default_popup": "popup.html"
+  }
+}

@@ -36,6 +36,7 @@ from app.services import compliance as compliance_service
 from app.services import evidence as evidence_service
 from app.services.audit import record_audit
 from app.services.llm_structured import generate_structured
+from app.services.tasks import restricted_claims, task_products
 
 MAX_REWRITE_ROUNDS = 2
 REWRITE_ATTEMPTS = 2
@@ -57,12 +58,15 @@ class CheckOutcome:
 
 
 def constraint_terms(
-    *, task: Task, product: Product, deps: PipelineDeps
+    *, task: Task, products: list[Product], deps: PipelineDeps
 ) -> tuple[list[str], list[str]]:
     """Required and forbidden words for a task: the operator's required terms; the brand voice's
-    forbidden words and the product's restricted claims."""
+    forbidden words and the restricted claims of every product of the task."""
     voice = deps.voices.get_active(brand_id=task.brand_id)
-    forbidden = [*(voice.forbidden_words if voice else ()), *product.restricted_claims]
+    forbidden = [
+        *(voice.forbidden_words if voice else ()),
+        *restricted_claims(products),
+    ]
     return list(task.required_terms), forbidden
 
 
@@ -91,9 +95,8 @@ def run_checks(
 ) -> CheckOutcome:
     """Check the version's current text and set its state. Commits at each stage so a model outage
     part-way leaves the version in ``checking`` (a recheck can finish the job)."""
-    product = session.get(Product, task.product_id)
-    assert product is not None
-    required, forbidden = constraint_terms(task=task, product=product, deps=deps)
+    products = task_products(session=session, task=task)
+    required, forbidden = constraint_terms(task=task, products=products, deps=deps)
     try:
         report = evaluate_note(
             _note_of(version), required_words=required, forbidden_words=forbidden

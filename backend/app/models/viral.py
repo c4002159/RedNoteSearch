@@ -10,7 +10,6 @@ from sqlmodel import Field, SQLModel
 
 from app.domain.viral import ViralAnalysis
 from app.models.common import get_datetime_utc
-from app.models.generation import Scene
 
 
 class ViralSample(SQLModel, table=True):
@@ -139,7 +138,7 @@ class ViralSamplesDeleted(BaseModel):
 class ViralToTemplateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str = PydanticField(min_length=1, max_length=100)
-    scene: Scene
+    scene: str = PydanticField(min_length=1, max_length=20)
     # The person's edited wording; the model's own structure is used when it is left out.
     structure: str | None = PydanticField(default=None, min_length=1, max_length=2000)
     # "reject" answers 409 when the scene and name are taken, instead of adding a new version.
