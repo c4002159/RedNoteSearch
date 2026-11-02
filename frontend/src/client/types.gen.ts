@@ -1367,6 +1367,66 @@ export type ProductsPublic = {
 };
 
 /**
+ * ProviderPublic
+ */
+export type ProviderPublic = {
+    /**
+     * Provider
+     */
+    provider: 'deepseek' | 'dashscope';
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Key Source
+     */
+    key_source: 'database' | 'env' | 'none';
+    /**
+     * Key Hint
+     */
+    key_hint: string | null;
+    /**
+     * Models
+     */
+    models: Array<string>;
+    /**
+     * Models Source
+     */
+    models_source: 'database' | 'env' | 'none';
+    /**
+     * Updated At
+     */
+    updated_at: string | null;
+};
+
+/**
+ * ProviderUpdate
+ *
+ * Both fields are optional; a field left out is not changed.
+ */
+export type ProviderUpdate = {
+    /**
+     * Api Key
+     */
+    api_key?: string | null;
+    /**
+     * Models
+     */
+    models?: Array<string> | null;
+};
+
+/**
+ * ProvidersPublic
+ */
+export type ProvidersPublic = {
+    /**
+     * Items
+     */
+    items: Array<ProviderPublic>;
+};
+
+/**
  * RatingCreate
  */
 export type RatingCreate = {
@@ -5502,6 +5562,86 @@ export type viralConvertPatternResponses = {
 };
 
 export type viralConvertPatternResponse = viralConvertPatternResponses[keyof viralConvertPatternResponses];
+
+export type settingsReadProvidersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/settings/providers';
+};
+
+export type settingsReadProvidersResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProvidersPublic;
+};
+
+export type settingsReadProvidersResponse = settingsReadProvidersResponses[keyof settingsReadProvidersResponses];
+
+export type settingsClearProviderData = {
+    body?: never;
+    path: {
+        /**
+         * Provider
+         *
+         * deepseek or dashscope
+         */
+        provider: 'deepseek' | 'dashscope';
+    };
+    query?: never;
+    url: '/api/v1/settings/providers/{provider}';
+};
+
+export type settingsClearProviderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type settingsClearProviderError = settingsClearProviderErrors[keyof settingsClearProviderErrors];
+
+export type settingsClearProviderResponses = {
+    /**
+     * Successful Response
+     */
+    200: Message;
+};
+
+export type settingsClearProviderResponse = settingsClearProviderResponses[keyof settingsClearProviderResponses];
+
+export type settingsUpdateProviderData = {
+    body: ProviderUpdate;
+    path: {
+        /**
+         * Provider
+         *
+         * deepseek or dashscope
+         */
+        provider: 'deepseek' | 'dashscope';
+    };
+    query?: never;
+    url: '/api/v1/settings/providers/{provider}';
+};
+
+export type settingsUpdateProviderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type settingsUpdateProviderError = settingsUpdateProviderErrors[keyof settingsUpdateProviderErrors];
+
+export type settingsUpdateProviderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProviderPublic;
+};
+
+export type settingsUpdateProviderResponse = settingsUpdateProviderResponses[keyof settingsUpdateProviderResponses];
 
 export type privateCreateUserData = {
     body: PrivateUserCreate;

@@ -22,6 +22,7 @@ from app.ports.llm import (
     LlmResponse,
     LlmUsage,
 )
+from app.services import provider_keys
 from app.services.errors import ModelUnavailableError
 
 # Statuses worth retrying; everything else (401, 403, 400, 404...) is a configuration or request error.
@@ -204,7 +205,7 @@ def deepseek_client(
         provider="deepseek",
         model=model or settings.DEEPSEEK_MODEL,
         base_url=settings.DEEPSEEK_BASE_URL,
-        api_key=settings.DEEPSEEK_API_KEY,
+        api_key=provider_keys.resolve_key("deepseek"),
         price=price,
         recorder=recorder,
     )
