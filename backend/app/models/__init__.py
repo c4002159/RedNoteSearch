@@ -77,6 +77,7 @@ from app.models.evidence import (
     SourceLevel,
 )
 from app.models.generation import (
+    ActivityInfo,
     ConfirmVersion,
     EvidenceSummaryPublic,
     ExportCounts,
@@ -233,6 +234,7 @@ __all__ = [
     "StylePresetPublic",
     "StylePresetsPublic",
     "Task",
+    "ActivityInfo",
     "TaskCreate",
     "TaskCreated",
     "TaskMaterial",

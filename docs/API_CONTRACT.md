@@ -205,6 +205,13 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 ```
 响应 201：`{"id","status":"queued","brand_id","created_at"}`。快照保存内容与 `content_hash`，之后源文件变化不影响本任务。
 
+**推广对象（只增字段，旧请求不变）**：请求可带 `promo_type`，默认 `product`。
+- `product`：只带 `product_id`（与以前相同）。
+- `multi_product`：`product_id` 加 1 到 4 个 `extra_product_ids`（不得重复、不得含 `product_id`），都必须是本品牌、未归档的商品；否则 404 或 409。
+- `activity`：带 `activity: {"name"(1-100),"detail"(≤1000,可空),"perks"(≤10 条,每条 ≤200)}`，不带任何商品。活动文字是运营自己填的，不经知识库核对：福利里的说法会单独列在提示词里，模型写出的优惠、福利类断言若没有资料依据，按 ADR-011 进入人工逐条确认。
+- 组合不合法（活动带商品、单品带活动、多品缺少 extra、重复商品、未知类型、活动名为空）一律 422。
+- 任务返回新增 `promo_type`、`extra_product_ids`、`activity`；`product_id` 在活动任务里为 `null`；`product_name` 对多品是用“、”连起来的商品名，对活动是活动名。`GET /tasks?q=` 也搜活动名。
+- 多品任务：提示词里每个商品的卖点前面标出商品名，禁止宣称取各商品的并集；提示词版本为 `gen-v5`。
 约束检查（与发布页一致，ADR-004、ADR-005）：标题加权长度 `title_weight ≤ 20`（ASCII 可打印字符计 0.5，其余按 UTF-16 码元计 1，即汉字与全角标点 1、emoji 2，2026-11-01 发布页实测）；正文 `body_units ≤ 1000`（去掉换行后的 UTF-16 码元数，emoji 计 2）；标签 ≤10，且标签的可见字符计入正文预算。后端判定为准，前端镜像同一规则。
 
 ### F12：任务文件输入（已定稿，已实现）
@@ -299,7 +306,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - 一次生成最多 3 轮：第 1 轮正常生成，约束检查未通过则把问题告诉模型再生成，最多再 2 轮；每轮格式不符最多再问 1 次，因此一次生成最多 6 次模型调用。仍未通过时保存该版本并标 `constraint_failed`，检查结果里写明哪个标题、哪个字段、哪个词。
 - 约束检查对**每一个标题候选**单独判定，对正文加标签判定字数、标签数量、必含词和禁用词；禁用词包括品牌档案的禁用词和商品的“禁止宣称”。
 - 约束通过的版本状态为 `checking`，任务进度为 `evidence`：证据与合规检查是后续步骤，完成前版本不会变成 `checks_completed`，更不会是 `ready_to_copy`。
-- 版本记录 `template_version`、`prompt_version`（`gen-v4`）、`voice_version`、`checker_version`（`constraints-v1`）、`model`，以及当次检索到的资料快照 `retrieved_sources`（含来源级别、文档与版本、分块 id、哈希和 200 字摘录）。
+- 版本记录 `template_version`、`prompt_version`（`gen-v5`）、`voice_version`、`checker_version`（`constraints-v1`）、`model`，以及当次检索到的资料快照 `retrieved_sources`（含来源级别、文档与版本、分块 id、哈希和 200 字摘录）。
 - 提示词只把**有来源**的卖点当作事实；无来源的卖点标为“未核实，只可参考”；任务资料标为“未审核”。
 - 每次模型调用（含失败）写入 `llm_call_log`，用独立事务，调用失败回滚时也留痕。
 
@@ -369,7 +376,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 
 ### 给前端的补充说明（2026-11-01，回应 B 的对照审阅）
 - **我在当前品牌里的角色**：`GET /brands` 的每一项带 `role`（`admin` 或 `editor`，就是当前用户在该品牌里的角色），导航按角色显示或隐藏就用它；`GET /users/me` 没有品牌角色。
-- **任务列表项** `GET /tasks`：`id, brand_id, product_id, product_name, scenario_id, scenario_name, scene, style, brief, required_terms, flow_status, progress, latest_version_id, last_error, created_at`。`flow_status` 就是最新版本的状态。任务详情和 `generate` 的返回字段相同。
+- **任务列表项** `GET /tasks`：`id, brand_id, promo_type, product_id, extra_product_ids, activity, product_name, scenario_id, scenario_name, scene, style, brief, required_terms, flow_status, progress, latest_version_id, last_error, created_at`。`flow_status` 就是最新版本的状态。任务详情和 `generate` 的返回字段相同。
 - **版本列表项** `GET /tasks/{id}/versions`：`id, task_id, version_no, parent_version_id, origin（generated | edited | rewritten）, flow_status, title_candidates, body, hashtags, cover_candidates, constraint_checks, retrieved_sources, template_version, prompt_version, voice_version, checker_version, model, selected_title_index, selected_cover_index, confirmed_at, created_at`。版本对比没有专门接口，由前端比较两个版本。
 - **证据项**多了 `source_title`：已审核资料是文档标题，任务内资料是文件名；`quote` 是引用的原文。`document_id` 是逻辑文档 id（同一资料的所有版本共享），`document_version` 是版本号。
 - **风险提示项**多了 `source_url`（规则当前的来源链接，通过 `rule_id` 取；模型语境层发现的提示没有规则，为空）；`source_name`、`source_clause`、`region_scope` 在提示里随记录保存。

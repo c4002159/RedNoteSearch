@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from pydantic import Field as PydanticField
 from sqlalchemy import (
     CheckConstraint,
@@ -101,6 +101,10 @@ class Task(SQLModel, table=True):
         ),
         Index("ix_task_brand_created", "brand_id", "created_at"),
         Index("ix_task_brand_status", "brand_id", "flow_status"),
+        CheckConstraint(
+            "promo_type IN ('product', 'multi_product', 'activity')",
+            name="ck_task_promo_type",
+        ),
     )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -108,7 +112,16 @@ class Task(SQLModel, table=True):
         foreign_key="brand.id", nullable=False, ondelete="CASCADE"
     )
     # No ON DELETE rule: a product that has tasks is archived, never deleted (contract section 3).
-    product_id: uuid.UUID = Field(foreign_key="product.id", nullable=False)
+    # The (first) product being promoted; empty for an activity.
+    product_id: uuid.UUID | None = Field(default=None, foreign_key="product.id")
+    # What the note promotes: ``product``, ``multi_product`` or ``activity``.
+    promo_type: str = Field(default="product", max_length=20)
+    # The other products of a ``multi_product`` task (not foreign keys: products are only archived).
+    extra_product_ids: list[str] = Field(
+        default_factory=list, sa_column=Column(JSONB, nullable=False)
+    )
+    # ``{"name", "detail", "perks"}`` of an ``activity`` task, as the operator typed them.
+    activity: dict[str, Any] | None = Field(default=None, sa_column=Column(JSONB))
     scenario_id: uuid.UUID = Field(foreign_key="scenario_template.id", nullable=False)
     style: dict[str, Any] = Field(
         default_factory=dict, sa_column=Column(JSONB, nullable=False)
@@ -296,14 +309,60 @@ class TaskMaterial(BaseModel):
     text: str = Field(min_length=1, max_length=50_000)
 
 
+class ActivityInfo(BaseModel):
+    """An activity to promote when no single product is the subject. The text is the operator's own:
+    nothing in it is checked against the knowledge base."""
+
+    model_config = ConfigDict(extra="forbid")
+    name: str = PydanticField(min_length=1, max_length=100)
+    detail: str = PydanticField(default="", max_length=1000)
+    perks: list[str] = PydanticField(default_factory=list, max_length=10)
+
+    @field_validator("name", "detail", mode="before")
+    @classmethod
+    def stripped(cls, value: object) -> object:
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("perks")
+    @classmethod
+    def clean_perks(cls, value: list[str]) -> list[str]:
+        cleaned = [p.strip() for p in value if p.strip()]
+        if any(len(p) > 200 for p in cleaned):
+            raise ValueError("Each perk may have at most 200 characters")
+        return cleaned
+
+
 class TaskCreate(SQLModel):
     brand_id: uuid.UUID
-    product_id: uuid.UUID
+    # ``product``: ``product_id`` only. ``multi_product``: ``product_id`` plus 1 to 4
+    # ``extra_product_ids``. ``activity``: ``activity`` only.
+    promo_type: Literal["product", "multi_product", "activity"] = "product"
+    product_id: uuid.UUID | None = None
+    extra_product_ids: list[uuid.UUID] = Field(default_factory=list, max_length=4)
+    activity: ActivityInfo | None = None
     scenario_id: uuid.UUID
     style: StyleParams = Field(default_factory=StyleParams)
     brief: str = Field(default="", max_length=2000)
     required_terms: list[str] = Field(default_factory=list, max_length=20)
     task_materials: list[TaskMaterial] = Field(default_factory=list, max_length=5)
+
+    @model_validator(mode="after")
+    def promo_target(self) -> TaskCreate:
+        if self.promo_type == "activity":
+            if self.activity is None or self.product_id or self.extra_product_ids:
+                raise ValueError("An activity task has an activity and no product")
+            return self
+        if self.product_id is None or self.activity is not None:
+            raise ValueError("A product task needs product_id and no activity")
+        extras = self.extra_product_ids
+        if self.promo_type == "product":
+            if extras:
+                raise ValueError("extra_product_ids is only for multi_product")
+        elif not extras:
+            raise ValueError("multi_product needs at least one extra product")
+        if len({self.product_id, *extras}) != len(extras) + 1:
+            raise ValueError("Each product may appear once")
+        return self
 
 
 class TaskCreated(SQLModel):
@@ -316,7 +375,10 @@ class TaskCreated(SQLModel):
 class TaskPublic(SQLModel):
     id: uuid.UUID
     brand_id: uuid.UUID
-    product_id: uuid.UUID
+    promo_type: str = "product"
+    product_id: uuid.UUID | None
+    extra_product_ids: list[uuid.UUID] = []
+    activity: ActivityInfo | None = None
     scenario_id: uuid.UUID
     product_name: str = ""
     scenario_name: str = ""
