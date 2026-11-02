@@ -17,6 +17,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutBrandsRouteImport } from './routes/_layout/brands'
+import { Route as LayoutExtensionKeysRouteImport } from './routes/_layout/extension-keys'
 import { Route as LayoutGenerateRouteImport } from './routes/_layout/generate'
 import { Route as LayoutProductsRouteImport } from './routes/_layout/products'
 import { Route as LayoutScenariosRouteImport } from './routes/_layout/scenarios'
@@ -75,6 +76,11 @@ const LayoutAdminRoute = LayoutAdminRouteImport.update({
 const LayoutBrandsRoute = LayoutBrandsRouteImport.update({
   id: '/brands',
   path: '/brands',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutExtensionKeysRoute = LayoutExtensionKeysRouteImport.update({
+  id: '/extension-keys',
+  path: '/extension-keys',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutGenerateRoute = LayoutGenerateRouteImport.update({
@@ -191,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
   '/brands': typeof LayoutBrandsRoute
+  '/extension-keys': typeof LayoutExtensionKeysRoute
   '/generate': typeof LayoutGenerateRoute
   '/products': typeof LayoutProductsRoute
   '/scenarios': typeof LayoutScenariosRoute
@@ -219,6 +226,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
   '/brands': typeof LayoutBrandsRoute
+  '/extension-keys': typeof LayoutExtensionKeysRoute
   '/generate': typeof LayoutGenerateRoute
   '/products': typeof LayoutProductsRoute
   '/scenarios': typeof LayoutScenariosRoute
@@ -250,6 +258,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_layout/admin': typeof LayoutAdminRoute
   '/_layout/brands': typeof LayoutBrandsRoute
+  '/_layout/extension-keys': typeof LayoutExtensionKeysRoute
   '/_layout/generate': typeof LayoutGenerateRoute
   '/_layout/products': typeof LayoutProductsRoute
   '/_layout/scenarios': typeof LayoutScenariosRoute
@@ -282,6 +291,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/brands'
+    | '/extension-keys'
     | '/generate'
     | '/products'
     | '/scenarios'
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/brands'
+    | '/extension-keys'
     | '/generate'
     | '/products'
     | '/scenarios'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_layout/admin'
     | '/_layout/brands'
+    | '/_layout/extension-keys'
     | '/_layout/generate'
     | '/_layout/products'
     | '/_layout/scenarios'
@@ -427,6 +439,13 @@ declare module '@tanstack/react-router' {
       path: '/brands'
       fullPath: '/brands'
       preLoaderRoute: typeof LayoutBrandsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/extension-keys': {
+      id: '/_layout/extension-keys'
+      path: '/extension-keys'
+      fullPath: '/extension-keys'
+      preLoaderRoute: typeof LayoutExtensionKeysRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/generate': {
@@ -575,6 +594,7 @@ declare module '@tanstack/react-router' {
 interface LayoutRouteChildren {
   LayoutAdminRoute: typeof LayoutAdminRoute
   LayoutBrandsRoute: typeof LayoutBrandsRoute
+  LayoutExtensionKeysRoute: typeof LayoutExtensionKeysRoute
   LayoutGenerateRoute: typeof LayoutGenerateRoute
   LayoutProductsRoute: typeof LayoutProductsRoute
   LayoutScenariosRoute: typeof LayoutScenariosRoute
@@ -601,6 +621,7 @@ interface LayoutRouteChildren {
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAdminRoute: LayoutAdminRoute,
   LayoutBrandsRoute: LayoutBrandsRoute,
+  LayoutExtensionKeysRoute: LayoutExtensionKeysRoute,
   LayoutGenerateRoute: LayoutGenerateRoute,
   LayoutProductsRoute: LayoutProductsRoute,
   LayoutScenariosRoute: LayoutScenariosRoute,
