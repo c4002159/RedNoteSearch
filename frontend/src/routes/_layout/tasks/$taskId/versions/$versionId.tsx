@@ -26,7 +26,9 @@ import {
   SeverityBadge,
   SourceLevelBadge,
 } from "@/components/Common/StatusBadge"
+import { EvidenceBatchActions } from "@/components/Evidence/BatchActions"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -47,6 +49,7 @@ import { formatTime } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import {
   COUNT_LABEL,
+  EVIDENCE_BATCH_TEXT as EB,
   LAYER_LABEL,
   label,
   ORIGIN_LABEL,
@@ -302,18 +305,26 @@ function ConstraintPanel({
 // ---- evidence
 
 function EvidencePanel({
+  versionId,
+  onSaved,
   items,
   editable,
   busyText,
   onDecide,
   bare = false,
 }: {
+  versionId: string
+  onSaved: () => Promise<void>
   items: ClaimEvidencePublic[]
   editable: boolean
   busyText: string | null
   onDecide: (item: ClaimEvidencePublic, ok: boolean) => void
   bare?: boolean
 }) {
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const selectedIds = items
+    .filter((item) => selected.has(item.id))
+    .map((item) => item.id)
   return (
     <section
       className={cn("space-y-3", !bare && "rounded-xl border bg-card p-4")}
@@ -324,6 +335,14 @@ function EvidencePanel({
       <p className="text-xs text-muted-foreground">
         “系统判定支持”只表示资料与断言匹配，不是事实保证。没有系统依据的断言需要你逐条判断。
       </p>
+      <EvidenceBatchActions
+        versionId={versionId}
+        items={items}
+        selectedIds={selectedIds}
+        enabled={editable && !busyText}
+        onSaved={onSaved}
+        onClear={() => setSelected(new Set())}
+      />
       {items.length === 0 && (
         <p className="text-sm text-muted-foreground">
           {busyText ?? "没有需要核对的断言。"}
@@ -334,7 +353,31 @@ function EvidencePanel({
           const needs = e.status !== "system_supported"
           return (
             <li key={e.id} className="space-y-2 rounded-lg border p-3">
-              <p className="text-sm font-medium">{e.claim_text}</p>
+              <div className="flex items-start gap-3">
+                {editable && !busyText && (
+                  <Checkbox
+                    className="mt-1"
+                    aria-label={EB.select(e.claim_text)}
+                    checked={selected.has(e.id)}
+                    disabled={!selected.has(e.id) && selectedIds.length >= 100}
+                    onCheckedChange={(checked) =>
+                      setSelected((previous) => {
+                        const next = new Set(
+                          [...previous].filter((id) =>
+                            items.some((item) => item.id === id),
+                          ),
+                        )
+                        if (checked === true) next.add(e.id)
+                        else next.delete(e.id)
+                        return next
+                      })
+                    }
+                  />
+                )}
+                <p className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">
+                  {e.claim_text}
+                </p>
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 <EvidenceStatusBadge status={e.status} />
                 {e.source_level && <SourceLevelBadge level={e.source_level} />}
@@ -1045,6 +1088,9 @@ function ResultPage() {
                   />
                 ) : (
                   <EvidencePanel
+                    key={versionId}
+                    versionId={versionId}
+                    onSaved={refresh}
                     bare
                     items={items}
                     editable={editable}

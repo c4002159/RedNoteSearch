@@ -1046,3 +1046,23 @@ export const SCENARIO_TEXT = {
   adopted: "采用结构：",
   manage: "管理场景模板",
 } as const
+
+// 证据批量人工决定：成立必须逐条勾选。
+export const EVIDENCE_BATCH_TEXT = {
+  reject: "全部判为不成立",
+  accept: "把选中的判为成立",
+  rejectTitle: "将本版全部断言判为不成立？",
+  acceptTitle: "确认选中的断言成立",
+  rejectHint:
+    "这会覆盖本版已有的人工判断，包含原先判为成立的断言；系统判定状态保持不变。",
+  acceptHint: "只提交你逐条勾选的断言，请核对下方清单并填写判断备注。",
+  manual: "人工确认，不是系统验证",
+  note: "判断备注（必填）",
+  cancel: "取消",
+  confirmReject: "确认全部不成立",
+  confirmAccept: "确认选中的成立",
+  limit: "每次最多提交 100 条决定。",
+  selection: (count: number) =>
+    `已选 ${count} 条；成立只作用于逐条勾选的断言。`,
+  select: (claim: string) => `选择断言：${claim}`,
+} as const
