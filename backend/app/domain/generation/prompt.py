@@ -12,7 +12,7 @@ from typing import Any, Literal
 from app.domain.constraints import BODY_LIMIT, TAG_LIMIT, TITLE_LIMIT
 from app.ports.llm import LlmMessage
 
-PROMPT_VERSION = "gen-v4"
+PROMPT_VERSION = "gen-v5"
 
 # A conservative guess of what one tag costs in the body budget (``#`` + a short name + a space).
 APPROX_TAG_COST = 8
@@ -63,6 +63,10 @@ class PromptInput:
     preferred_words: tuple[str, ...] = ()
     forbidden_words: tuple[str, ...] = ()
     sources: tuple[SourceSnippet, ...] = ()
+    # ``product`` (one product), ``multi_product`` (``product_name`` lists them) or ``activity``.
+    promo_type: str = "product"
+    activity_detail: str = ""
+    activity_perks: tuple[str, ...] = ()
 
 
 SYSTEM_PROMPT = f"""你是小红书美妆香氛品牌的文案助手，为运营人员起草笔记。你只负责起草，发布前由人审核。
@@ -99,6 +103,23 @@ def _style_text(style: dict[str, Any]) -> str:
     return "；".join(parts)
 
 
+def _target_text(inp: PromptInput, notes: str) -> str:
+    """Who or what the note promotes."""
+    if inp.promo_type == "activity":
+        detail = f"活动说明：{inp.activity_detail}\n" if inp.activity_detail else ""
+        return f"推广对象：活动「{inp.product_name}」（不是某个单品）\n{detail}\n"
+    if inp.promo_type == "multi_product":
+        return (
+            f"推广对象：以下几款商品放在同一篇笔记里：{inp.product_name}。"
+            "每款的信息分别标明商品名，不要把一款的卖点写成另一款的。\n\n"
+        )
+    return (
+        f"商品：{inp.product_name}"
+        f"{'（' + inp.product_line + '）' if inp.product_line else ''}，品类 {inp.category}\n"
+        f"{('香调：' + notes + chr(10)) if notes else ''}\n"
+    )
+
+
 def body_budget(style: dict[str, Any]) -> int:
     """Roughly how many body characters remain once the requested tags are counted."""
     return BODY_LIMIT - int(style.get("hashtag_count", 5)) * APPROX_TAG_COST
@@ -132,11 +153,13 @@ def build_messages(
     user = (
         f"品牌：{inp.brand_name}\n"
         f"{voice}\n"
-        f"商品：{inp.product_name}"
-        f"{'（' + inp.product_line + '）' if inp.product_line else ''}，品类 {inp.category}\n"
-        f"{('香调：' + notes + chr(10)) if notes else ''}\n"
+        + _target_text(inp, notes)
         + _lines("已核实的商品信息（可以当作事实）", inp.verified_points)
         + _lines("未核实的卖点（只可参考，不要写成事实）", inp.unverified_points)
+        + _lines(
+            "运营提供的活动福利（只能照写，不得夸大或增加；未经系统核实，发布前由人确认）",
+            inp.activity_perks,
+        )
         + _lines("禁止宣称（不得出现）", inp.restricted_claims)
         + _lines("禁用词（不得出现）", inp.forbidden_words)
         + _lines("必含词（必须自然出现）", inp.required_terms)

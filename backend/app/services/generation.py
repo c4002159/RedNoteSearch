@@ -44,6 +44,7 @@ from app.services.audit import record_audit
 from app.services.errors import InvalidStateError, ModelUnavailableError, NotFoundError
 from app.services.llm_structured import LlmOutputError, generate_structured
 from app.services.pipeline import PipelineDeps, run_pipeline
+from app.services.tasks import restricted_claims, task_product_ids, task_products
 
 MAX_ROUNDS = 3  # one first try and two corrections after a failed constraint check
 STRUCTURED_ATTEMPTS = 2
@@ -112,30 +113,47 @@ def _sources_snapshot(chunks: list[KnowledgeChunk]) -> list[dict[str, Any]]:
     ]
 
 
+def _point_lines(
+    products: list[Product], *, linked: bool, named: bool
+) -> tuple[str, ...]:
+    """Selling points that do (or do not) have a source; with several products each is tagged with
+    its product's name so a point is never read as another product's."""
+    return tuple(
+        f"{p.name}：{sp['text']}" if named else sp["text"]
+        for p in products
+        for sp in p.selling_points
+        if bool(sp.get("source_document_id")) is linked
+    )
+
+
 def build_prompt_input(
     *,
     task: Task,
-    product: Product,
+    products: list[Product],
     brand: Brand,
     scenario: ScenarioTemplate,
     voice: VoiceProfile | None,
     chunks: list[KnowledgeChunk],
 ) -> PromptInput:
-    verified = tuple(
-        p["text"] for p in product.selling_points if p.get("source_document_id")
-    )
-    unverified = tuple(
-        p["text"] for p in product.selling_points if not p.get("source_document_id")
-    )
+    named = len(products) > 1
+    first = products[0] if products else None
+    activity = task.activity or {}
     return PromptInput(
         brand_name=brand.name,
-        product_name=product.name,
-        product_line=product.product_line,
-        category=product.category,
-        notes=product.notes,
-        verified_points=verified,
-        unverified_points=unverified,
-        restricted_claims=tuple(product.restricted_claims),
+        product_name=(
+            activity.get("name", "")
+            if task.promo_type == "activity"
+            else "、".join(p.name for p in products)
+        ),
+        product_line=first.product_line if first and not named else None,
+        category=first.category if first and not named else "",
+        notes=first.notes if first and not named else {},
+        verified_points=_point_lines(products, linked=True, named=named),
+        unverified_points=_point_lines(products, linked=False, named=named),
+        restricted_claims=restricted_claims(products),
+        promo_type=task.promo_type,
+        activity_detail=activity.get("detail", ""),
+        activity_perks=tuple(activity.get("perks", ())),
         scene_name=scenario.name,
         scene_structure=scenario.structure,
         style=task.style,
@@ -176,10 +194,14 @@ def run_generation(
     task = session.get(Task, task_id)
     if task is None:
         raise NotFoundError("Task not found")
-    product = session.get(Product, task.product_id)
+    products = task_products(session=session, task=task)
     scenario = session.get(ScenarioTemplate, task.scenario_id)
     brand = session.get(Brand, task.brand_id)
-    if product is None or scenario is None or brand is None:
+    if (
+        len(products) != len(task_product_ids(task))
+        or scenario is None
+        or brand is None
+    ):
         raise NotFoundError("The task refers to something that no longer exists")
     previous_status = (
         FlowStatus.CONSTRAINT_FAILED.value
@@ -191,14 +213,23 @@ def run_generation(
         voice = deps.voices.get_active(brand_id=task.brand_id)
         chunks = deps.search.search(
             brand_id=task.brand_id,
-            query=" ".join(filter(None, [product.name, task.brief])),
-            product_id=product.id,
+            query=" ".join(
+                filter(
+                    None,
+                    [
+                        *(p.name for p in products),
+                        (task.activity or {}).get("name"),
+                        task.brief,
+                    ],
+                )
+            ),
+            product_id=products[0].id if products else None,
             task_id=task.id,
             limit=SOURCE_LIMIT,
         )
         prompt_input = build_prompt_input(
             task=task,
-            product=product,
+            products=products,
             brand=brand,
             scenario=scenario,
             voice=voice,
@@ -206,7 +237,7 @@ def run_generation(
         )
         forbidden = [
             *(voice.forbidden_words if voice else ()),
-            *product.restricted_claims,
+            *restricted_claims(products),
         ]
         required = list(task.required_terms)
 

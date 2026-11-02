@@ -5,6 +5,27 @@ export type ClientOptions = {
 };
 
 /**
+ * ActivityInfo
+ *
+ * An activity to promote when no single product is the subject. The text is the operator's own:
+ * nothing in it is checked against the knowledge base.
+ */
+export type ActivityInfo = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Detail
+     */
+    detail?: string;
+    /**
+     * Perks
+     */
+    perks?: Array<string>;
+};
+
+/**
  * AgreementPublic
  */
 export type AgreementPublic = {
@@ -2220,9 +2241,18 @@ export type TaskCreate = {
      */
     brand_id: string;
     /**
+     * Promo Type
+     */
+    promo_type?: 'product' | 'multi_product' | 'activity';
+    /**
      * Product Id
      */
-    product_id: string;
+    product_id?: string | null;
+    /**
+     * Extra Product Ids
+     */
+    extra_product_ids?: Array<string>;
+    activity?: ActivityInfo | null;
     /**
      * Scenario Id
      */
@@ -2343,9 +2373,18 @@ export type TaskPublic = {
      */
     brand_id: string;
     /**
+     * Promo Type
+     */
+    promo_type?: string;
+    /**
      * Product Id
      */
-    product_id: string;
+    product_id: string | null;
+    /**
+     * Extra Product Ids
+     */
+    extra_product_ids?: Array<string>;
+    activity?: ActivityInfo | null;
     /**
      * Scenario Id
      */
