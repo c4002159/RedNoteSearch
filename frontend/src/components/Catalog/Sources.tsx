@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { KnowledgeService, type SellingPoint } from "@/client"
 import { BrandError } from "@/components/Brands/Feedback"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { TextSourceDialog } from "@/components/Knowledge/TextSourceDialog"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -13,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { CATALOG_TEXT as T } from "@/lib/zh"
+import { R6_KNOWLEDGE_UI_TEXT as R, CATALOG_TEXT as T } from "@/lib/zh"
 export function SourceReference({
   point,
   admin,
@@ -98,6 +99,8 @@ export function SourcePicker({
   onClose: () => void
   onSelect: (documentId: string, chunkId: string | null) => void
 }) {
+  const cache = useQueryClient()
+  const [adding, setAdding] = useState(false)
   const [page, setPage] = useState(1),
     [documentId, setDocumentId] = useState(""),
     [chunkId, setChunkId] = useState(""),
@@ -142,6 +145,10 @@ export function SourcePicker({
           className="h-10 w-full rounded-lg border border-transparent bg-surface-low px-2 text-sm"
           value={documentId}
           onChange={(e) => {
+            if (e.target.value === "__add_note__") {
+              setAdding(true)
+              return
+            }
             setDocumentId(e.target.value)
             setChunkId("")
             setChunkPage(1)
@@ -149,13 +156,25 @@ export function SourcePicker({
         >
           <option value="">{T.sourceChoose}</option>
           {docs.data?.items
-            .filter((d) => d.is_current)
+            .filter(
+              (d) =>
+                d.is_current &&
+                d.status === "approved" &&
+                d.index_status === "ready",
+            )
+            .sort(
+              (a, b) =>
+                (Date.parse(b.created_at || "") || 0) -
+                (Date.parse(a.created_at || "") || 0),
+            )
             .map((d) => (
               <option key={d.id} value={d.id}>
                 {d.title} · v{d.version}
               </option>
             ))}
+          <option value="__add_note__">{R.addNote}</option>
         </select>
+        <p className="text-xs text-muted-foreground">{R.sourceOrder}</p>
         {docs.data && (
           <>
             <div className="flex justify-end gap-2">
@@ -245,6 +264,17 @@ export function SourcePicker({
               {chunks.data?.items.find((c) => c.id === chunkId)?.content}
             </p>
           </>
+        )}
+        {adding && (
+          <TextSourceDialog
+            brandId={brandId}
+            onClose={() => setAdding(false)}
+            onSaved={() => {
+              setAdding(false)
+              void cache.invalidateQueries({ queryKey: ["knowledge"] })
+              void cache.invalidateQueries({ queryKey: ["knowledge-pending"] })
+            }}
+          />
         )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
