@@ -152,6 +152,13 @@ from app.models.product import (
     VoiceProfilePublic,
     VoiceProfilesPublic,
 )
+from app.models.provider_credential import (
+    Provider,
+    ProviderCredential,
+    ProviderPublic,
+    ProvidersPublic,
+    ProviderUpdate,
+)
 from app.models.task_input import AuditLog, TaskInput, TaskInputChunk
 from app.models.viral import ViralPattern as ViralPattern
 from app.models.viral import ViralSample as ViralSample
@@ -271,6 +278,11 @@ __all__ = [
     "MembersPublic",
     "Message",
     "NewPassword",
+    "Provider",
+    "ProviderCredential",
+    "ProviderPublic",
+    "ProviderUpdate",
+    "ProvidersPublic",
     "ReviewAction",
     "SQLModel",
     "Tenant",
