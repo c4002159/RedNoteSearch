@@ -6,6 +6,7 @@ import { type FlowStatus, TasksService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { HeaderFilter } from "@/components/Common/FilterSelect"
+import { SearchBox } from "@/components/Common/SearchBox"
 import { FlowStatusBadge } from "@/components/Common/StatusBadge"
 import { Button } from "@/components/ui/button"
 import {
@@ -170,11 +171,12 @@ function TasksPage() {
   const brandId = current?.id ?? ""
   const [status, setStatus] = useState<FlowStatus | "">("")
   const [sort, setSort] = useState("-created_at")
+  const [q, setQ] = useState("")
   const [page, setPage] = useState(1)
   const [open, setOpen] = useState<string | null>(null)
 
   const tasks = useQuery({
-    queryKey: ["tasks", brandId, status, sort, page],
+    queryKey: ["tasks", brandId, status, sort, q, page],
     queryFn: async () =>
       (
         await TasksService.readTasks({
@@ -182,6 +184,7 @@ function TasksPage() {
             brand_id: brandId,
             status: status || undefined,
             sort,
+            q: q || undefined,
             page,
             page_size: PAGE_SIZE,
           },
@@ -211,11 +214,21 @@ function TasksPage() {
             当前品牌的全部生成任务。点开任务可查看每个版本、对比两个版本。
           </p>
         </div>
-        <Button asChild>
-          <Link to="/generate" search={{ task: undefined }}>
-            新建任务
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchBox
+            value={q}
+            placeholder="搜索商品名或创作要求"
+            onChange={(v) => {
+              setQ(v)
+              setPage(1)
+            }}
+          />
+          <Button asChild>
+            <Link to="/generate" search={{ task: undefined }}>
+              新建任务
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {!current && (
@@ -274,7 +287,7 @@ function TasksPage() {
                     colSpan={6}
                     className="py-10 text-center text-sm text-muted-foreground"
                   >
-                    {status
+                    {status || q
                       ? "没有符合条件的任务。"
                       : "还没有任务，到生成工作台创建第一个。"}
                   </TableCell>

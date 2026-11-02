@@ -14,6 +14,7 @@ import { SourceReference } from "@/components/Catalog/Sources"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { FilterSelect } from "@/components/Common/FilterSelect"
 import { LoadingState } from "@/components/Common/LoadingState"
+import { SearchBox } from "@/components/Common/SearchBox"
 import { Pager } from "@/components/Knowledge/Feedback"
 import { Button } from "@/components/ui/button"
 import {
@@ -43,17 +44,18 @@ function ProductsPage() {
     id = brand.current!.id,
     cache = useQueryClient()
   const [status, setStatus] = useState<ProductStatus>("active"),
+    [q, setQ] = useState(""),
     [page, setPage] = useState(1),
     [editing, setEditing] = useState<ProductPublic | "new" | null>(null),
     [viewing, setViewing] = useState<ProductPublic | null>(null),
     [archive, setArchive] = useState<ProductPublic | null>(null)
   const query = useQuery({
-    queryKey: ["catalog-products", id, status, page],
+    queryKey: ["catalog-products", id, status, q, page],
     queryFn: async ({ signal }) =>
       (
         await ProductsService.readProducts({
           path: { brand_id: id },
-          query: { status, page, page_size: 20 },
+          query: { status, q: q || undefined, page, page_size: 20 },
           signal,
         })
       ).data,
@@ -92,9 +94,19 @@ function ProductsPage() {
           </div>
           <p className="text-sm text-muted-foreground">{T.productHint}</p>
         </div>
-        {brand.isAdmin && (
-          <Button onClick={() => setEditing("new")}>{T.newProduct}</Button>
-        )}
+        <div className="flex flex-wrap items-start gap-2">
+          <SearchBox
+            value={q}
+            placeholder="搜索商品名称或产品线"
+            onChange={(v) => {
+              setQ(v)
+              setPage(1)
+            }}
+          />
+          {brand.isAdmin && (
+            <Button onClick={() => setEditing("new")}>{T.newProduct}</Button>
+          )}
+        </div>
       </div>
       {query.isLoading && <LoadingState className="h-40 w-full" />}
       {query.isError && (

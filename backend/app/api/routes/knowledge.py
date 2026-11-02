@@ -30,6 +30,7 @@ from app.ports.embedding import EmbeddingProvider
 from app.services import knowledge as kb
 from app.services.errors import NotFoundError
 from app.services.parsing import check_size, size_limit_for
+from app.services.search import SEARCH_MAX_LENGTH
 
 router = APIRouter(tags=["knowledge"])
 
@@ -216,6 +217,7 @@ def read_documents(
     session: SessionDep,
     status: DocumentStatus | None = None,
     doc_type: DocumentType | None = None,
+    q: Annotated[str | None, Query(max_length=SEARCH_MAX_LENGTH)] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> DocumentsPublic:
@@ -226,6 +228,7 @@ def read_documents(
         doc_type=doc_type.value if doc_type else None,
         page=page,
         page_size=page_size,
+        q=q,
     )
     names = _user_names(session, [d.submitted_by for d in rows])
     return DocumentsPublic(

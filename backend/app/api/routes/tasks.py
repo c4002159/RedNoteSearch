@@ -55,6 +55,7 @@ from app.services import task_materials as material_service
 from app.services import tasks as task_service
 from app.services.knowledge_search import DbKnowledgeSearch
 from app.services.llm_log import DbLlmCallRecorder
+from app.services.search import SEARCH_MAX_LENGTH
 from app.services.voice_profiles import DbVoiceProfileProvider
 
 logger = logging.getLogger(__name__)
@@ -298,6 +299,7 @@ def read_tasks(
     brand_id: uuid.UUID,
     status: FlowStatus | None = None,
     sort: Annotated[str, Query(pattern="^-?created_at$")] = "-created_at",
+    q: Annotated[str | None, Query(max_length=SEARCH_MAX_LENGTH)] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> TasksPublic:
@@ -309,6 +311,7 @@ def read_tasks(
         newest_first=sort.startswith("-"),
         page=page,
         page_size=page_size,
+        q=q,
     )
     names = task_service.task_labels(session=session, tasks=rows)
     return TasksPublic(

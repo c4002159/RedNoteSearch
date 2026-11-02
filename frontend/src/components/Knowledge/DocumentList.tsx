@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/Common/EmptyState"
 import { HeaderFilter } from "@/components/Common/FilterSelect"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { LoadingState } from "@/components/Common/LoadingState"
+import { SearchBox } from "@/components/Common/SearchBox"
 import { DocumentStatusBadge } from "@/components/Common/StatusBadge"
 import { Button } from "@/components/ui/button"
 import {
@@ -71,16 +72,18 @@ function BrandDocuments({
     navigate = useNavigate()
   const [status, setStatus] = useState<DocumentStatus | "">("")
   const [type, setType] = useState<DocumentType | "">("")
+  const [q, setQ] = useState("")
   const [page, setPage] = useState(1)
   const [upload, setUpload] = useState(false)
   const clear = () => {
+    setQ("")
     setType("")
     setStatus("")
     setPage(1)
   }
-  const filtered = Boolean(type || (!review && status))
+  const filtered = Boolean(q || type || (!review && status))
   const documents = useQuery({
-    queryKey: ["knowledge", brandId, review, status, type, page],
+    queryKey: ["knowledge", brandId, review, status, type, q, page],
     queryFn: async ({ signal }) =>
       (
         await KnowledgeService.readDocuments({
@@ -88,6 +91,7 @@ function BrandDocuments({
           query: {
             status: review ? "pending_review" : status || undefined,
             doc_type: type || undefined,
+            q: q || undefined,
             page,
             page_size: 20,
           },
@@ -121,7 +125,15 @@ function BrandDocuments({
             {brandName}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchBox
+            value={q}
+            placeholder="搜索资料标题或文件名"
+            onChange={(v) => {
+              setQ(v)
+              setPage(1)
+            }}
+          />
           {filtered && (
             <Button variant="ghost" onClick={clear}>
               {T.clear}

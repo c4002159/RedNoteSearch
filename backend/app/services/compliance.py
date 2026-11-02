@@ -39,6 +39,7 @@ from app.ports.llm import LlmClient, LlmRequest
 from app.services.audit import record_audit
 from app.services.errors import InvalidInputError, NotFoundError
 from app.services.llm_structured import generate_structured
+from app.services.search import contains_any
 
 SAMPLE_SOURCE = "示例规则（来源待人工核对，不是正式依据）"
 
@@ -339,6 +340,7 @@ def list_rules(
     page: int,
     page_size: int,
     scope_filter: str | None = None,
+    q: str | None = None,
 ) -> tuple[list[ComplianceRule], int]:
     """Global rules plus the brand rules the user may see (one brand when ``brand_id`` is given).
 
@@ -361,6 +363,14 @@ def list_rules(
             col(ComplianceRule.brand_id).in_(mine),
         )
     where: list[Any] = [scope]
+    match = contains_any(
+        q,
+        col(ComplianceRule.pattern),
+        col(ComplianceRule.suggestion),
+        col(ComplianceRule.source_name),
+    )
+    if match is not None:
+        where.append(match)
     if layer:
         where.append(ComplianceRule.layer == layer)
     if rule_type:

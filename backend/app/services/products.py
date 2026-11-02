@@ -18,6 +18,7 @@ from app.models.common import get_datetime_utc
 from app.models.knowledge import DocumentStatus
 from app.services.audit import record_audit
 from app.services.errors import ConflictError, NotFoundError
+from app.services.search import contains_any
 
 _REQUIRED = {"name", "category", "notes", "selling_points", "restricted_claims"}
 
@@ -86,8 +87,12 @@ def list_products(
     status: ProductStatus,
     page: int,
     page_size: int,
+    q: str | None = None,
 ) -> tuple[list[Product], int]:
-    where = (Product.brand_id == brand_id, Product.status == status.value)
+    where: list[Any] = [Product.brand_id == brand_id, Product.status == status.value]
+    match = contains_any(q, col(Product.name), col(Product.product_line))
+    if match is not None:
+        where.append(match)
     total = session.exec(select(func.count()).select_from(Product).where(*where)).one()
     rows = session.exec(
         select(Product)

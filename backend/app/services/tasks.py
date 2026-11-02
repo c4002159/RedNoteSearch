@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from sqlmodel import Session, col, func, select
 
@@ -14,6 +15,7 @@ from app.models.common import get_datetime_utc
 from app.ports.embedding import EmbeddingProvider
 from app.services.audit import record_audit
 from app.services.errors import ConflictError, NotFoundError
+from app.services.search import contains_any
 from app.services.task_input import DbTaskInputRepository
 
 
@@ -99,14 +101,24 @@ def list_tasks(
     newest_first: bool,
     page: int,
     page_size: int,
+    q: str | None = None,
 ) -> tuple[list[Task], int]:
-    where = [Task.brand_id == brand_id]
+    where: list[Any] = [Task.brand_id == brand_id]
     if status:
         where.append(Task.flow_status == status)
-    total = session.exec(select(func.count()).select_from(Task).where(*where)).one()
+    match = contains_any(q, col(Product.name), col(Task.brief))
+    if match is not None:
+        where.append(match)
+    joined = (
+        select(func.count())
+        .select_from(Task)
+        .join(Product, col(Product.id) == col(Task.product_id))
+    )
+    total = session.exec(joined.where(*where)).one()
     order = col(Task.created_at).desc() if newest_first else col(Task.created_at).asc()
     rows = session.exec(
         select(Task)
+        .join(Product, col(Product.id) == col(Task.product_id))
         .where(*where)
         .order_by(order, col(Task.id))
         .offset((page - 1) * page_size)

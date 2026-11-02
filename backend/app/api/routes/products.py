@@ -16,6 +16,7 @@ from app.models import (
     ProductUpdate,
 )
 from app.services import products as product_service
+from app.services.search import SEARCH_MAX_LENGTH
 
 router = APIRouter(tags=["products"])
 
@@ -47,6 +48,7 @@ def read_products(
     access: BrandAccessDep,
     session: SessionDep,
     status: ProductStatus = ProductStatus.ACTIVE,
+    q: Annotated[str | None, Query(max_length=SEARCH_MAX_LENGTH)] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> ProductsPublic:
@@ -56,6 +58,7 @@ def read_products(
         status=status,
         page=page,
         page_size=page_size,
+        q=q,
     )
     return ProductsPublic(
         items=[product_service.to_public(p) for p in rows],

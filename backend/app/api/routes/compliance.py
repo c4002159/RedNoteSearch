@@ -22,6 +22,7 @@ from app.models import (
     RuleUpdate,
 )
 from app.services import compliance as compliance_service
+from app.services.search import SEARCH_MAX_LENGTH
 
 router = APIRouter(tags=["compliance"])
 
@@ -107,6 +108,7 @@ def read_rules(
     rule_type: RuleType | None = None,
     severity: Severity | None = None,
     scope: Literal["global", "brand"] | None = None,
+    q: Annotated[str | None, Query(max_length=SEARCH_MAX_LENGTH)] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> RulesPublic:
@@ -126,6 +128,7 @@ def read_rules(
         page=page,
         page_size=page_size,
         scope_filter=scope,
+        q=q,
     )
     return RulesPublic(
         items=[RulePublic.model_validate(r, from_attributes=True) for r in rows],
