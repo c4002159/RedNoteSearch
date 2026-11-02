@@ -10,6 +10,7 @@ import {
   ComplianceService,
   EvidenceService,
   type GenerationVersionPublic,
+  type RewriteRequest,
   TasksService,
   VersionsService,
   type XhsPartsExport,
@@ -44,12 +45,14 @@ import {
   titleWeight,
 } from "@/lib/count"
 import { formatTime } from "@/lib/format"
+import { riskRewriteInstruction } from "@/lib/riskRewrite"
 import { cn } from "@/lib/utils"
 import {
   COUNT_LABEL,
   LAYER_LABEL,
   label,
   ORIGIN_LABEL,
+  RESULT_REWRITE_TEXT as RW,
   SCENARIO_TEXT,
 } from "@/lib/zh"
 
@@ -395,14 +398,20 @@ function RiskPanel({
   editable,
   busyText,
   onResolve,
+  onRewrite,
+  rewriting,
   bare = false,
 }: {
   items: ComplianceCheckPublic[]
   editable: boolean
   busyText: string | null
   onResolve: (item: ComplianceCheckPublic) => void
+  onRewrite: (items: ComplianceCheckPublic[]) => void
+  rewriting: boolean
   bare?: boolean
 }) {
+  const pendingRisks = items.filter((item) => !item.resolved)
+  const missingSuggestion = pendingRisks.some((item) => !item.suggestion.trim())
   return (
     <section
       className={cn("space-y-3", !bare && "rounded-xl border bg-card p-4")}
@@ -413,6 +422,24 @@ function RiskPanel({
       <p className="text-xs text-muted-foreground">
         这些是基于规则的提示，不是合规结论，不能替代人工和法务判断。
       </p>
+      {editable && !busyText && items.length > 0 && (
+        <div className="space-y-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={
+              rewriting || pendingRisks.length === 0 || missingSuggestion
+            }
+            onClick={() => onRewrite(pendingRisks)}
+          >
+            {RW.allRisks}
+          </Button>
+          <p className="text-xs leading-6 text-muted-foreground">{RW.hint}</p>
+          {missingSuggestion && (
+            <p className="text-xs text-tone-warn">{RW.noSuggestion}</p>
+          )}
+        </div>
+      )}
       {items.length === 0 && (
         <p className="text-sm text-muted-foreground">
           {busyText ?? "没有发现需要提示的内容。"}
@@ -441,11 +468,27 @@ function RiskPanel({
             {c.resolved_note && (
               <p className="text-xs">处理说明：{c.resolved_note}</p>
             )}
-            {!c.resolved && editable && (
-              <Button size="sm" variant="outline" onClick={() => onResolve(c)}>
-                标记为已处理
-              </Button>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {!c.resolved && editable && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onResolve(c)}
+                >
+                  标记为已处理
+                </Button>
+              )}
+              {editable && !busyText && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={rewriting || !c.suggestion.trim()}
+                  onClick={() => onRewrite([c])}
+                >
+                  {RW.risk}
+                </Button>
+              )}
+            </div>
           </li>
         ))}
       </ul>
@@ -463,25 +506,15 @@ const REWRITE_TARGETS = [
 ] as const
 
 function RewriteBar({
-  versionId,
-  onDone,
+  onRewrite,
+  pending,
 }: {
-  versionId: string
-  onDone: (v: Version) => void
+  onRewrite: (body: RewriteRequest) => void
+  pending: boolean
 }) {
   const [target, setTarget] =
     useState<(typeof REWRITE_TARGETS)[number]["value"]>("titles")
   const [instruction, setInstruction] = useState("")
-  const rewrite = useMutation({
-    mutationFn: async () =>
-      (
-        await VersionsService.rewritePart({
-          path: { version_id: versionId },
-          body: { target, instruction: instruction.trim() || undefined },
-        })
-      ).data,
-    onSuccess: onDone,
-  })
   return (
     <section className="space-y-2 rounded-xl border bg-card p-4">
       <h2 className="text-base font-semibold">局部重写</h2>
@@ -490,6 +523,7 @@ function RewriteBar({
           aria-label="重写部分"
           className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
           value={target}
+          disabled={pending}
           onChange={(e) => setTarget(e.target.value as typeof target)}
         >
           {REWRITE_TARGETS.map((t) => (
@@ -503,12 +537,15 @@ function RewriteBar({
           aria-label="重写要求"
           placeholder="可选：想要怎么改"
           value={instruction}
+          disabled={pending}
           onChange={(e) => setInstruction(e.target.value)}
         />
         <LoadingButton
           variant="outline"
-          loading={rewrite.isPending}
-          onClick={() => rewrite.mutate()}
+          loading={pending}
+          onClick={() =>
+            onRewrite({ target, instruction: instruction.trim() || undefined })
+          }
         >
           重写
         </LoadingButton>
@@ -516,7 +553,6 @@ function RewriteBar({
       <p className="text-xs text-muted-foreground">
         重写会生成新版本，原版本保留。
       </p>
-      {rewrite.isError && <ErrorBanner error={parseApiError(rewrite.error)} />}
     </section>
   )
 }
@@ -661,6 +697,18 @@ function ResultPage() {
     })
   }
 
+  const rewrite = useMutation({
+    mutationFn: async (body: RewriteRequest) =>
+      (
+        await VersionsService.rewritePart({
+          path: { version_id: versionId },
+          body,
+          timeout: 180_000,
+        })
+      ).data,
+    onSuccess: goTo,
+  })
+
   const recheck = useMutation({
     mutationFn: async () =>
       (
@@ -781,6 +829,12 @@ function ResultPage() {
           </Button>
         </div>
       </div>
+      {rewrite.isPending && (
+        <p role="status" className="rounded-lg bg-surface-low p-3 text-sm">
+          {RW.pending}
+        </p>
+      )}
+      {rewrite.isError && <ErrorBanner error={parseApiError(rewrite.error)} />}
       <p className="text-xs text-muted-foreground">
         创建于 {formatTime(v.created_at)}
         {v.model ? ` · 模型 ${v.model}` : ""}
@@ -860,26 +914,39 @@ function ResultPage() {
                 </p>
               </section>
 
-              {v.hashtags.length > 0 && (
-                <section className={CARD}>
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold">推荐标签</h2>
-                    <span className="text-xs text-muted-foreground">
-                      已选 {v.hashtags.length} / 10
-                    </span>
-                  </div>
-                  <ul className="mt-4 flex flex-wrap gap-2">
-                    {v.hashtags.map((t) => (
-                      <li
-                        key={t}
-                        className="rounded-full bg-surface-low px-3.5 py-1.5 text-sm font-medium"
-                      >
-                        #{normalizeTag(t)}
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
+              <section className={CARD}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-lg font-semibold">推荐标签</h2>
+                  {editable && !inProgress && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={rewrite.isPending}
+                      onClick={() => rewrite.mutate({ target: "hashtags" })}
+                    >
+                      {RW.tags}
+                    </Button>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    已选 {v.hashtags.length} / 10
+                  </span>
+                </div>
+                {v.hashtags.length === 0 && (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    {RW.emptyTags}
+                  </p>
+                )}
+                <ul className="mt-4 flex flex-wrap gap-2">
+                  {v.hashtags.map((t) => (
+                    <li
+                      key={t}
+                      className="rounded-full bg-surface-low px-3.5 py-1.5 text-sm font-medium"
+                    >
+                      #{normalizeTag(t)}
+                    </li>
+                  ))}
+                </ul>
+              </section>
 
               {v.cover_candidates.length > 0 && (
                 <section className={CARD}>
@@ -921,8 +988,11 @@ function ResultPage() {
             </>
           )}
 
-          {editable && !editing && (
-            <RewriteBar versionId={v.id} onDone={goTo} />
+          {editable && !editing && !inProgress && (
+            <RewriteBar
+              pending={rewrite.isPending}
+              onRewrite={(body) => rewrite.mutate(body)}
+            />
           )}
           {ready && <ExportPanel versionId={v.id} />}
         </div>
@@ -1070,6 +1140,12 @@ function ResultPage() {
                     editable={editable}
                     busyText={busyText}
                     onResolve={(item) => setDialog({ kind: "risk", item })}
+                    rewriting={rewrite.isPending}
+                    onRewrite={(risks) => {
+                      const instruction = riskRewriteInstruction(risks)
+                      if (instruction)
+                        rewrite.mutate({ target: "body", instruction })
+                    }}
                   />
                 )}
               </TabsContent>

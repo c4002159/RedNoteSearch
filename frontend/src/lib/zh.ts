@@ -1046,3 +1046,16 @@ export const SCENARIO_TEXT = {
   adopted: "采用结构：",
   manage: "管理场景模板",
 } as const
+
+// 结果页按建议改写与标签重写。
+export const RESULT_REWRITE_TEXT = {
+  risk: "按建议改写",
+  allRisks: "一键处理全部风险",
+  tags: "换一批标签",
+  emptyTags: "暂无推荐标签",
+  pending: "正在改写，完成后将打开新版本；原版本保留。",
+  hint: "改写会生成新版本并重新检查。建议超过 500 字时会截断，请在新版本核对剩余风险。",
+  noSuggestion: "部分待处理风险没有改写建议，请先人工处理；不会替你编造建议。",
+  instruction: (matched: string, suggestion: string) =>
+    `把‘${matched}’改为：${suggestion}`,
+} as const
