@@ -3,13 +3,13 @@ import { useState } from "react"
 
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard"
 
-// Error request number with a copy button. Unknown numbers show a dash and no button.
+// Error request number with a copy button; absent numbers have no visual placeholder.
 export function RequestId({ id }: { id: string | null | undefined }) {
   const [, copy] = useCopyToClipboard()
   const [state, setState] = useState<"idle" | "done" | "failed">("idle")
 
   if (!id) {
-    return <span className="text-xs text-muted-foreground">请求编号 —</span>
+    return null
   }
   const onCopy = async () => {
     const ok = await copy(id)

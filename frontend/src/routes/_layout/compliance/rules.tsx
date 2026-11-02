@@ -17,7 +17,15 @@ import { MissingPage } from "@/components/Common/ForbiddenPage"
 import { LoadingState } from "@/components/Common/LoadingState"
 import { ReasonDialog } from "@/components/Common/ReasonDialog"
 import { SearchBox } from "@/components/Common/SearchBox"
+import { SimplePager } from "@/components/Common/SimplePager"
 import { Pill, SeverityBadge } from "@/components/Common/StatusBadge"
+import {
+  TableBatchBar,
+  TableSelectAll,
+  TableSelectRow,
+} from "@/components/Common/TableBatchBar"
+import { TableBatchDialog } from "@/components/Common/TableBatchDialog"
+import { TableName } from "@/components/Common/TableName"
 import { RuleErrors } from "@/components/Compliance/RuleErrors"
 import { RuleForm } from "@/components/Compliance/RuleForm"
 import { RuleImportDialog } from "@/components/Compliance/RuleImportDialog"
@@ -54,7 +62,7 @@ import {
 import useAuth from "@/hooks/useAuth"
 import { useBrand } from "@/hooks/useBrand"
 import { parseApiError } from "@/lib/apiError"
-import { LAYER_LABEL, label, SEVERITY_LABEL } from "@/lib/zh"
+import { TABLE_TEXT as B, LAYER_LABEL, label, SEVERITY_LABEL } from "@/lib/zh"
 
 export const Route = createFileRoute("/_layout/compliance/rules")({
   component: RulesPage,
@@ -101,13 +109,13 @@ function RuleDetail({ id, onClose }: { id: string; onClose: () => void }) {
                 ["类型", label(RULE_TYPE_LABEL, query.data.rule_type)],
                 ["严重度", label(SEVERITY_LABEL, query.data.severity)],
                 ["匹配方式", query.data.is_regex ? "正则表达式" : "普通文字"],
-                ["修改建议", query.data.suggestion || "—"],
+                ["修改建议", query.data.suggestion || ""],
                 ["来源", sourceText(query.data)],
-                ["出处条款", query.data.source_clause || "—"],
-                ["来源链接（纯文本）", query.data.source_url || "—"],
-                ["适用地区", query.data.region_scope || "—"],
-                ["生效日期", query.data.effective_from || "—"],
-                ["失效日期", query.data.effective_to || "—"],
+                ["出处条款", query.data.source_clause || ""],
+                ["来源链接（纯文本）", query.data.source_url || ""],
+                ["适用地区", query.data.region_scope || ""],
+                ["生效日期", query.data.effective_from || ""],
+                ["失效日期", query.data.effective_to || ""],
                 ["版本", `v${query.data.rule_version}`],
                 ["状态", query.data.enabled ? "启用" : "已停用"],
               ] as const
@@ -172,6 +180,8 @@ function ScopedRules({
   const [severity, setSeverity] = useState<Severity | "">("")
   const [q, setQ] = useState("")
   const [page, setPage] = useState(1)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [batch, setBatch] = useState<string[] | null>(null)
   const [editing, setEditing] = useState<RulePublic | "new" | null>(null)
   const [detail, setDetail] = useState<string | null>(null)
   const [reasonTarget, setReasonTarget] = useState<RulePublic | null>(null)
@@ -218,7 +228,6 @@ function ScopedRules({
       attempt < 2,
   })
   const pages = Math.max(1, Math.ceil((rules.data?.total ?? 0) / PAGE_SIZE))
-  const activePage = page
   const shown = rules.data?.items ?? []
   useEffect(() => {
     if (rules.data && page > pages) setPage(pages)
@@ -276,6 +285,43 @@ function ScopedRules({
     },
     onSuccess: () => toast.success("下载已开始"),
   })
+  const selection = {
+    selected,
+    onChange: setSelected,
+    pageIds: shown
+      .filter((row) => row.enabled && row.layer !== "context")
+      .map((row) => row.id),
+  }
+  const loadAll = async () => {
+    const ids: string[] = []
+    for (let nextPage = 1; ; nextPage++) {
+      const result = (
+        await ComplianceService.readRules({
+          query: {
+            scope,
+            brand_id: scope === "brand" ? brandId : undefined,
+            layer: layer || undefined,
+            rule_type: type || undefined,
+            severity: severity || undefined,
+            q: q || undefined,
+            page: nextPage,
+            page_size: 100,
+          },
+        })
+      ).data
+      ids.push(
+        ...result.items
+          .filter((row) => row.enabled && row.layer !== "context")
+          .map((row) => row.id),
+      )
+      if (
+        ids.length >= 50 ||
+        nextPage * 100 >= result.total ||
+        !result.items.length
+      )
+        return ids.slice(0, 50)
+    }
+  }
   return (
     <div className="min-w-0 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -387,6 +433,7 @@ function ScopedRules({
                 title="规则范围"
                 value={scope}
                 onChange={(v) => {
+                  setSelected(new Set())
                   setScope(v as "global" | "brand")
                   setPage(1)
                   toggle.reset()
@@ -480,9 +527,31 @@ function ScopedRules({
         )}
         {!rules.isError && shown.length > 0 && (
           <div className="min-w-0 overflow-hidden">
+            {canEdit && (
+              <div className="p-3">
+                <TableBatchBar
+                  key={scope}
+                  {...selection}
+                  total={rules.data?.total ?? 0}
+                  loadAll={loadAll}
+                  actions={[
+                    {
+                      label: B.disable,
+                      destructive: true,
+                      onSelect: () => setBatch([...selected]),
+                    },
+                  ]}
+                />
+              </div>
+            )}
             <Table className="w-full table-fixed">
               <TableHeader>
                 <TableRow>
+                  {canEdit && (
+                    <TableHead className="w-12">
+                      <TableSelectAll {...selection} />
+                    </TableHead>
+                  )}
                   <TableHead className="w-2/5">规则内容与来源</TableHead>
                   <TableHead>严重度</TableHead>
                   <TableHead>版本 / 状态</TableHead>
@@ -492,6 +561,16 @@ function ScopedRules({
               <TableBody>
                 {shown.map((row) => (
                   <TableRow key={row.id}>
+                    {canEdit && (
+                      <TableCell>
+                        <TableSelectRow
+                          {...selection}
+                          id={row.id}
+                          label={row.pattern}
+                          disabled={!row.enabled || row.layer === "context"}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="whitespace-normal [overflow-wrap:anywhere]">
                       <button
                         type="button"
@@ -507,7 +586,9 @@ function ScopedRules({
                       </p>
                       <div className="mt-2 flex flex-wrap items-start gap-1 text-xs text-muted-foreground">
                         {row.is_sample && <Pill tone="warn">示例</Pill>}
-                        <span>{sourceText(row)}</span>
+                        <span>
+                          {row.is_sample ? sourceText(row) : row.source_name}
+                        </span>
                       </div>
                       {row.source_clause && (
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -519,7 +600,9 @@ function ScopedRules({
                       <SeverityBadge severity={row.severity} />
                     </TableCell>
                     <TableCell>
-                      <span className="block text-sm">v{row.rule_version}</span>
+                      <span className="block text-sm text-muted-foreground tabular-nums">
+                        v{row.rule_version}
+                      </span>
                       <Pill tone={row.enabled ? "ok" : "gray"}>
                         {row.enabled ? "启用" : "已停用"}
                       </Pill>
@@ -528,14 +611,9 @@ function ScopedRules({
                       <div className="flex flex-wrap justify-end gap-1">
                         {canEdit && row.layer !== "context" ? (
                           <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditing(row)}
-                              className="text-link"
-                            >
-                              编辑
-                            </Button>
+                            <TableName editable onClick={() => setEditing(row)}>
+                              {B.edit}
+                            </TableName>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -565,29 +643,30 @@ function ScopedRules({
         )}
       </div>
       {rules.data && !rules.isError && (
-        <div className="flex flex-wrap items-center justify-end gap-3 rounded-xl bg-card p-6 text-sm shadow-sm">
-          <span className="text-muted-foreground">
-            第 {activePage} / {pages} 页，共 {rules.data.total} 条，每页{" "}
-            {PAGE_SIZE} 条{rules.isFetching ? " · 正在刷新…" : ""}
-          </span>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={activePage <= 1}
-            onClick={() => setPage(activePage - 1)}
-          >
-            上一页
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={activePage >= pages}
-            onClick={() => setPage(activePage + 1)}
-          >
-            下一页
-          </Button>
-        </div>
+        <SimplePager page={page} total={rules.data.total} onPage={setPage} />
       )}
+      {batch && canEdit && (
+        <TableBatchDialog
+          ids={batch}
+          title={B.disable}
+          reasonRequired
+          execute={(rule_id, reason) =>
+            ComplianceService.updateRule({
+              path: { rule_id },
+              body: { enabled: false, reason },
+            })
+          }
+          onClose={() => setBatch(null)}
+          onApplied={(ids) => {
+            setSelected(
+              (previous) =>
+                new Set([...previous].filter((id) => !ids.includes(id))),
+            )
+            void refresh()
+          }}
+        />
+      )}
+
       {editing && canEdit && (
         <RuleForm
           key={editing === "new" ? "new" : editing.id}
