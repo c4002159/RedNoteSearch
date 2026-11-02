@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { ForbiddenPage, MissingPage } from "@/components/Common/ForbiddenPage"
-import { Pager } from "@/components/Knowledge/Feedback"
+import { SimplePager } from "@/components/Common/SimplePager"
 import { parseApiError } from "@/lib/apiError"
 import {
   label,
@@ -11,8 +11,7 @@ import {
   VIRAL_REASON_LABEL,
 } from "@/lib/zh"
 export const VIRAL_CARD = "min-w-0 space-y-4 rounded-xl bg-card p-6 shadow-sm"
-export const VIRAL_TABLE =
-  "min-w-[860px] text-sm [&_th]:bg-surface-low [&_th]:text-[13px] [&_th]:font-bold [&_th]:text-on-surface-variant [&_tr]:border-border/30"
+export const VIRAL_TABLE = "min-w-[860px] text-sm [&_tr]:border-border/30"
 export function ViralBreadcrumb({
   current,
   sampleId,
@@ -83,5 +82,5 @@ export function ViralPager({
   total: number
   onPage: (p: number) => void
 }) {
-  return <Pager page={page} total={total} onPage={onPage} />
+  return <SimplePager page={page} total={total} onPage={onPage} />
 }

@@ -75,8 +75,8 @@ export function HeaderFilter({
       <SelectTrigger
         aria-label={`按${title}筛选`}
         className={cn(
-          "-ml-2 h-8 w-auto min-w-fit gap-1 border-0 bg-transparent px-2 py-0 text-[13px] font-bold shadow-none hover:bg-surface focus-visible:ring-2",
-          value ? "text-link" : "text-on-surface-variant",
+          "-ml-2 h-8 w-auto min-w-fit gap-1 border-0 bg-transparent px-2 py-0 text-xs font-semibold shadow-none hover:bg-surface focus-visible:ring-2",
+          value ? "text-link" : "text-muted-foreground",
         )}
       >
         <SelectValue>

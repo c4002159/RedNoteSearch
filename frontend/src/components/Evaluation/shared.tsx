@@ -3,8 +3,8 @@ import { Link } from "@tanstack/react-router"
 import type { ReactNode } from "react"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { ForbiddenPage, MissingPage } from "@/components/Common/ForbiddenPage"
+import { SimplePager } from "@/components/Common/SimplePager"
 import { Pill } from "@/components/Common/StatusBadge"
-import { Pager } from "@/components/Knowledge/Feedback"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useBrand } from "@/hooks/useBrand"
 import { parseApiError } from "@/lib/apiError"
@@ -16,8 +16,7 @@ import {
 } from "@/lib/zh"
 
 export const EVAL_CARD = "min-w-0 rounded-xl bg-card p-6 shadow-sm"
-export const EVAL_TABLE =
-  "min-w-[780px] text-sm [&_th]:bg-surface-low [&_th]:text-[13px] [&_th]:font-bold [&_th]:text-on-surface-variant [&_tr]:border-border/30"
+export const EVAL_TABLE = "min-w-[780px] text-sm [&_tr]:border-border/30"
 export function EvalBreadcrumb({
   current,
   runs = false,
@@ -62,8 +61,8 @@ export function EvaluationError({
         <ul className="space-y-1 text-sm [overflow-wrap:anywhere]">
           {errors.map((e, i) => (
             <li key={i}>
-              {Array.isArray(e.loc) ? e.loc.join(" / ") : "—"}：
-              {String(e.msg ?? "—")}
+              {Array.isArray(e.loc) ? e.loc.join(" / ") : ""}：
+              {String(e.msg ?? "")}
             </li>
           ))}
         </ul>
@@ -116,10 +115,10 @@ export function EvalPager({
   total: number
   onPage: (p: number) => void
 }) {
-  return <Pager page={page} total={total} onPage={onPage} />
+  return <SimplePager page={page} total={total} onPage={onPage} />
 }
 export function display(value: unknown): string {
-  if (value === null || value === undefined) return "—"
+  if (value === null || value === undefined) return ""
   return typeof value === "number"
     ? value.toLocaleString("zh-CN", { maximumFractionDigits: 6 })
     : typeof value === "string"
