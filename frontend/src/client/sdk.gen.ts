@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import type { brandsAddMemberData, brandsAddMemberErrors, brandsAddMemberResponses, brandsCreateBrandData, brandsCreateBrandErrors, brandsCreateBrandResponses, brandsReadBrandsData, brandsReadBrandsResponses, brandsReadMembersData, brandsReadMembersErrors, brandsReadMembersResponses, brandsRemoveMemberData, brandsRemoveMemberErrors, brandsRemoveMemberResponses, brandsUpdateBrandData, brandsUpdateBrandErrors, brandsUpdateBrandResponses, brandsUpdateMemberData, brandsUpdateMemberErrors, brandsUpdateMemberResponses, complianceCreateBrandRuleData, complianceCreateBrandRuleErrors, complianceCreateBrandRuleResponses, complianceCreateGlobalRuleData, complianceCreateGlobalRuleErrors, complianceCreateGlobalRuleResponses, complianceDownloadRuleTemplateData, complianceDownloadRuleTemplateErrors, complianceDownloadRuleTemplateResponses, complianceExportBrandRulesData, complianceExportBrandRulesErrors, complianceExportBrandRulesResponses, complianceExportGlobalRulesData, complianceExportGlobalRulesErrors, complianceExportGlobalRulesResponses, complianceImportBrandRulesData, complianceImportBrandRulesErrors, complianceImportBrandRulesResponses, complianceImportGlobalRulesData, complianceImportGlobalRulesErrors, complianceImportGlobalRulesResponses, complianceReadRuleData, complianceReadRuleErrors, complianceReadRuleResponses, complianceReadRulesData, complianceReadRulesErrors, complianceReadRulesResponses, complianceReadVersionComplianceData, complianceReadVersionComplianceErrors, complianceReadVersionComplianceResponses, complianceResolveCheckData, complianceResolveCheckErrors, complianceResolveCheckResponses, complianceUpdateRuleData, complianceUpdateRuleErrors, complianceUpdateRuleResponses, evaluationCreateDatasetData, evaluationCreateDatasetErrors, evaluationCreateDatasetResponses, evaluationCreateRunData, evaluationCreateRunErrors, evaluationCreateRunResponses, evaluationRateData, evaluationRateErrors, evaluationRateResponses, evaluationReadAgreementData, evaluationReadAgreementErrors, evaluationReadAgreementResponses, evaluationReadCasesData, evaluationReadCasesErrors, evaluationReadCasesResponses, evaluationReadDatasetsData, evaluationReadDatasetsErrors, evaluationReadDatasetsResponses, evaluationReadModelsData, evaluationReadModelsResponses, evaluationReadResultsData, evaluationReadResultsErrors, evaluationReadResultsResponses, evaluationReadRubricsData, evaluationReadRubricsResponses, evaluationReadRunData, evaluationReadRunErrors, evaluationReadRunResponses, evaluationReadRunsData, evaluationReadRunsErrors, evaluationReadRunsResponses, evidenceConfirmEvidenceData, evidenceConfirmEvidenceErrors, evidenceConfirmEvidenceResponses, evidenceConfirmVersionEvidenceData, evidenceConfirmVersionEvidenceErrors, evidenceConfirmVersionEvidenceResponses, evidenceReadVersionEvidenceData, evidenceReadVersionEvidenceErrors, evidenceReadVersionEvidenceResponses, knowledgeDeactivateDocumentData, knowledgeDeactivateDocumentErrors, knowledgeDeactivateDocumentResponses, knowledgeIngestDocumentData, knowledgeIngestDocumentErrors, knowledgeIngestDocumentResponses, knowledgeIngestNewVersionData, knowledgeIngestNewVersionErrors, knowledgeIngestNewVersionResponses, knowledgeReadChunksData, knowledgeReadChunksErrors, knowledgeReadChunksResponses, knowledgeReadDocumentData, knowledgeReadDocumentErrors, knowledgeReadDocumentResponses, knowledgeReadDocumentsData, knowledgeReadDocumentsErrors, knowledgeReadDocumentsResponses, knowledgeReindexDocumentData, knowledgeReindexDocumentErrors, knowledgeReindexDocumentResponses, knowledgeReviewDocumentData, knowledgeReviewDocumentErrors, knowledgeReviewDocumentResponses, knowledgeSubmitDocumentData, knowledgeSubmitDocumentErrors, knowledgeSubmitDocumentResponses, loginLoginAccessTokenData, loginLoginAccessTokenErrors, loginLoginAccessTokenResponses, loginRecoverPasswordData, loginRecoverPasswordErrors, loginRecoverPasswordHtmlContentData, loginRecoverPasswordHtmlContentErrors, loginRecoverPasswordHtmlContentResponses, loginRecoverPasswordResponses, loginResetPasswordData, loginResetPasswordErrors, loginResetPasswordResponses, loginTestTokenData, loginTestTokenResponses, privateCreateUserData, privateCreateUserErrors, privateCreateUserResponses, productsArchiveProductData, productsArchiveProductErrors, productsArchiveProductResponses, productsCreateProductData, productsCreateProductErrors, productsCreateProductResponses, productsReadProductsData, productsReadProductsErrors, productsReadProductsResponses, productsUpdateProductData, productsUpdateProductErrors, productsUpdateProductResponses, scenariosCreateBrandTemplateData, scenariosCreateBrandTemplateErrors, scenariosCreateBrandTemplateResponses, scenariosReadBrandTemplatesData, scenariosReadBrandTemplatesErrors, scenariosReadBrandTemplatesResponses, scenariosUpdateTemplateData, scenariosUpdateTemplateErrors, scenariosUpdateTemplateResponses, settingsClearProviderData, settingsClearProviderErrors, settingsClearProviderResponses, settingsReadProvidersData, settingsReadProvidersResponses, settingsUpdateProviderData, settingsUpdateProviderErrors, settingsUpdateProviderResponses, tasksCreateStylePresetData, tasksCreateStylePresetErrors, tasksCreateStylePresetResponses, tasksCreateTaskData, tasksCreateTaskErrors, tasksCreateTaskResponses, tasksGenerateTaskData, tasksGenerateTaskErrors, tasksGenerateTaskResponses, tasksReadScenariosData, tasksReadScenariosResponses, tasksReadStylePresetsData, tasksReadStylePresetsErrors, tasksReadStylePresetsResponses, tasksReadTaskData, tasksReadTaskErrors, tasksReadTaskMaterialsData, tasksReadTaskMaterialsErrors, tasksReadTaskMaterialsResponses, tasksReadTaskResponses, tasksReadTasksData, tasksReadTasksErrors, tasksReadTasksResponses, tasksReadTaskVersionsData, tasksReadTaskVersionsErrors, tasksReadTaskVersionsResponses, tasksReadVersionData, tasksReadVersionErrors, tasksReadVersionResponses, tasksUploadTaskMaterialData, tasksUploadTaskMaterialErrors, tasksUploadTaskMaterialResponses, usersCreateUserData, usersCreateUserErrors, usersCreateUserResponses, usersDeleteUserData, usersDeleteUserErrors, usersDeleteUserMeData, usersDeleteUserMeResponses, usersDeleteUserResponses, usersReadUserByIdData, usersReadUserByIdErrors, usersReadUserByIdResponses, usersReadUserMeData, usersReadUserMeResponses, usersReadUsersData, usersReadUsersErrors, usersReadUsersResponses, usersRegisterUserData, usersRegisterUserErrors, usersRegisterUserResponses, usersUpdatePasswordMeData, usersUpdatePasswordMeErrors, usersUpdatePasswordMeResponses, usersUpdateUserData, usersUpdateUserErrors, usersUpdateUserMeData, usersUpdateUserMeErrors, usersUpdateUserMeResponses, usersUpdateUserResponses, utilsHealthCheckData, utilsHealthCheckResponses, utilsTestEmailData, utilsTestEmailErrors, utilsTestEmailResponses, versionsConfirmVersionData, versionsConfirmVersionErrors, versionsConfirmVersionResponses, versionsEditVersionData, versionsEditVersionErrors, versionsEditVersionResponses, versionsExportVersionData, versionsExportVersionErrors, versionsExportVersionResponses, versionsRecheckVersionData, versionsRecheckVersionErrors, versionsRecheckVersionResponses, versionsRewritePartData, versionsRewritePartErrors, versionsRewritePartResponses, viralAnalyzeSampleData, viralAnalyzeSampleErrors, viralAnalyzeSampleResponses, viralConvertPatternData, viralConvertPatternErrors, viralConvertPatternResponses, viralCreateSampleData, viralCreateSampleErrors, viralCreateSampleResponses, viralDeleteSamplesData, viralDeleteSamplesErrors, viralDeleteSamplesResponses, viralReadPatternData, viralReadPatternErrors, viralReadPatternResponses, viralReadPatternsData, viralReadPatternsErrors, viralReadPatternsResponses, viralReadSampleData, viralReadSampleErrors, viralReadSampleResponses, viralReadSamplesData, viralReadSamplesErrors, viralReadSamplesResponses, voiceProfileActivateVersionData, voiceProfileActivateVersionErrors, voiceProfileActivateVersionResponses, voiceProfileCreateVersionData, voiceProfileCreateVersionErrors, voiceProfileCreateVersionResponses, voiceProfileReadActiveProfileData, voiceProfileReadActiveProfileErrors, voiceProfileReadActiveProfileResponses, voiceProfileReadVersionsData, voiceProfileReadVersionsErrors, voiceProfileReadVersionsResponses } from './types.gen';
+import type { brandsAddMemberData, brandsAddMemberErrors, brandsAddMemberResponses, brandsCreateBrandData, brandsCreateBrandErrors, brandsCreateBrandResponses, brandsReadBrandsData, brandsReadBrandsResponses, brandsReadMembersData, brandsReadMembersErrors, brandsReadMembersResponses, brandsRemoveMemberData, brandsRemoveMemberErrors, brandsRemoveMemberResponses, brandsUpdateBrandData, brandsUpdateBrandErrors, brandsUpdateBrandResponses, brandsUpdateMemberData, brandsUpdateMemberErrors, brandsUpdateMemberResponses, complianceCreateBrandRuleData, complianceCreateBrandRuleErrors, complianceCreateBrandRuleResponses, complianceCreateGlobalRuleData, complianceCreateGlobalRuleErrors, complianceCreateGlobalRuleResponses, complianceDownloadRuleTemplateData, complianceDownloadRuleTemplateErrors, complianceDownloadRuleTemplateResponses, complianceExportBrandRulesData, complianceExportBrandRulesErrors, complianceExportBrandRulesResponses, complianceExportGlobalRulesData, complianceExportGlobalRulesErrors, complianceExportGlobalRulesResponses, complianceImportBrandRulesData, complianceImportBrandRulesErrors, complianceImportBrandRulesResponses, complianceImportGlobalRulesData, complianceImportGlobalRulesErrors, complianceImportGlobalRulesResponses, complianceReadRuleData, complianceReadRuleErrors, complianceReadRuleResponses, complianceReadRulesData, complianceReadRulesErrors, complianceReadRulesResponses, complianceReadVersionComplianceData, complianceReadVersionComplianceErrors, complianceReadVersionComplianceResponses, complianceResolveCheckData, complianceResolveCheckErrors, complianceResolveCheckResponses, complianceUpdateRuleData, complianceUpdateRuleErrors, complianceUpdateRuleResponses, creativeTypesCreateCreativeTypeData, creativeTypesCreateCreativeTypeErrors, creativeTypesCreateCreativeTypeResponses, creativeTypesDeleteCreativeTypeData, creativeTypesDeleteCreativeTypeErrors, creativeTypesDeleteCreativeTypeResponses, creativeTypesReadCreativeTypesData, creativeTypesReadCreativeTypesErrors, creativeTypesReadCreativeTypesResponses, creativeTypesRenameCreativeTypeData, creativeTypesRenameCreativeTypeErrors, creativeTypesRenameCreativeTypeResponses, evaluationCreateDatasetData, evaluationCreateDatasetErrors, evaluationCreateDatasetResponses, evaluationCreateRunData, evaluationCreateRunErrors, evaluationCreateRunResponses, evaluationRateData, evaluationRateErrors, evaluationRateResponses, evaluationReadAgreementData, evaluationReadAgreementErrors, evaluationReadAgreementResponses, evaluationReadCasesData, evaluationReadCasesErrors, evaluationReadCasesResponses, evaluationReadDatasetsData, evaluationReadDatasetsErrors, evaluationReadDatasetsResponses, evaluationReadModelsData, evaluationReadModelsResponses, evaluationReadResultsData, evaluationReadResultsErrors, evaluationReadResultsResponses, evaluationReadRubricsData, evaluationReadRubricsResponses, evaluationReadRunData, evaluationReadRunErrors, evaluationReadRunResponses, evaluationReadRunsData, evaluationReadRunsErrors, evaluationReadRunsResponses, evidenceConfirmEvidenceData, evidenceConfirmEvidenceErrors, evidenceConfirmEvidenceResponses, evidenceConfirmVersionEvidenceData, evidenceConfirmVersionEvidenceErrors, evidenceConfirmVersionEvidenceResponses, evidenceReadVersionEvidenceData, evidenceReadVersionEvidenceErrors, evidenceReadVersionEvidenceResponses, extensionCreateExtensionKeyData, extensionCreateExtensionKeyErrors, extensionCreateExtensionKeyResponses, extensionReadExtensionKeysData, extensionReadExtensionKeysErrors, extensionReadExtensionKeysResponses, extensionRecordExtensionMetricData, extensionRecordExtensionMetricErrors, extensionRecordExtensionMetricResponses, extensionRevokeExtensionKeyData, extensionRevokeExtensionKeyErrors, extensionRevokeExtensionKeyResponses, knowledgeDeactivateDocumentData, knowledgeDeactivateDocumentErrors, knowledgeDeactivateDocumentResponses, knowledgeIngestDocumentData, knowledgeIngestDocumentErrors, knowledgeIngestDocumentResponses, knowledgeIngestNewVersionData, knowledgeIngestNewVersionErrors, knowledgeIngestNewVersionResponses, knowledgeReadChunksData, knowledgeReadChunksErrors, knowledgeReadChunksResponses, knowledgeReadDocumentData, knowledgeReadDocumentErrors, knowledgeReadDocumentResponses, knowledgeReadDocumentsData, knowledgeReadDocumentsErrors, knowledgeReadDocumentsResponses, knowledgeReindexDocumentData, knowledgeReindexDocumentErrors, knowledgeReindexDocumentResponses, knowledgeReviewDocumentData, knowledgeReviewDocumentErrors, knowledgeReviewDocumentResponses, knowledgeSubmitDocumentData, knowledgeSubmitDocumentErrors, knowledgeSubmitDocumentResponses, loginLoginAccessTokenData, loginLoginAccessTokenErrors, loginLoginAccessTokenResponses, loginRecoverPasswordData, loginRecoverPasswordErrors, loginRecoverPasswordHtmlContentData, loginRecoverPasswordHtmlContentErrors, loginRecoverPasswordHtmlContentResponses, loginRecoverPasswordResponses, loginResetPasswordData, loginResetPasswordErrors, loginResetPasswordResponses, loginTestTokenData, loginTestTokenResponses, privateCreateUserData, privateCreateUserErrors, privateCreateUserResponses, productsArchiveProductData, productsArchiveProductErrors, productsArchiveProductResponses, productsCreateProductData, productsCreateProductErrors, productsCreateProductResponses, productsReadProductsData, productsReadProductsErrors, productsReadProductsResponses, productsUpdateProductData, productsUpdateProductErrors, productsUpdateProductResponses, resultsAddMetricData, resultsAddMetricErrors, resultsAddMetricResponses, resultsReadConfirmedCopiesData, resultsReadConfirmedCopiesErrors, resultsReadConfirmedCopiesResponses, resultsReadConfirmedCopyData, resultsReadConfirmedCopyErrors, resultsReadConfirmedCopyResponses, resultsReadMetricsData, resultsReadMetricsErrors, resultsReadMetricsResponses, resultsReadResultsSummaryData, resultsReadResultsSummaryErrors, resultsReadResultsSummaryResponses, resultsUpdateConfirmedCopyData, resultsUpdateConfirmedCopyErrors, resultsUpdateConfirmedCopyResponses, scenariosCreateBrandTemplateData, scenariosCreateBrandTemplateErrors, scenariosCreateBrandTemplateResponses, scenariosReadBrandTemplatesData, scenariosReadBrandTemplatesErrors, scenariosReadBrandTemplatesResponses, scenariosUpdateTemplateData, scenariosUpdateTemplateErrors, scenariosUpdateTemplateResponses, settingsClearProviderData, settingsClearProviderErrors, settingsClearProviderResponses, settingsReadProvidersData, settingsReadProvidersResponses, settingsUpdateProviderData, settingsUpdateProviderErrors, settingsUpdateProviderResponses, tasksCreateStylePresetData, tasksCreateStylePresetErrors, tasksCreateStylePresetResponses, tasksCreateTaskData, tasksCreateTaskErrors, tasksCreateTaskResponses, tasksGenerateTaskData, tasksGenerateTaskErrors, tasksGenerateTaskResponses, tasksReadScenariosData, tasksReadScenariosResponses, tasksReadStylePresetsData, tasksReadStylePresetsErrors, tasksReadStylePresetsResponses, tasksReadTaskData, tasksReadTaskErrors, tasksReadTaskMaterialsData, tasksReadTaskMaterialsErrors, tasksReadTaskMaterialsResponses, tasksReadTaskResponses, tasksReadTasksData, tasksReadTasksErrors, tasksReadTasksResponses, tasksReadTaskVersionsData, tasksReadTaskVersionsErrors, tasksReadTaskVersionsResponses, tasksReadVersionData, tasksReadVersionErrors, tasksReadVersionResponses, tasksUploadTaskMaterialData, tasksUploadTaskMaterialErrors, tasksUploadTaskMaterialResponses, usersCreateUserData, usersCreateUserErrors, usersCreateUserResponses, usersDeleteUserData, usersDeleteUserErrors, usersDeleteUserMeData, usersDeleteUserMeResponses, usersDeleteUserResponses, usersReadUserByIdData, usersReadUserByIdErrors, usersReadUserByIdResponses, usersReadUserMeData, usersReadUserMeResponses, usersReadUsersData, usersReadUsersErrors, usersReadUsersResponses, usersRegisterUserData, usersRegisterUserErrors, usersRegisterUserResponses, usersUpdatePasswordMeData, usersUpdatePasswordMeErrors, usersUpdatePasswordMeResponses, usersUpdateUserData, usersUpdateUserErrors, usersUpdateUserMeData, usersUpdateUserMeErrors, usersUpdateUserMeResponses, usersUpdateUserResponses, utilsHealthCheckData, utilsHealthCheckResponses, utilsTestEmailData, utilsTestEmailErrors, utilsTestEmailResponses, versionsConfirmVersionData, versionsConfirmVersionErrors, versionsConfirmVersionResponses, versionsEditVersionData, versionsEditVersionErrors, versionsEditVersionResponses, versionsExportVersionData, versionsExportVersionErrors, versionsExportVersionResponses, versionsRecheckVersionData, versionsRecheckVersionErrors, versionsRecheckVersionResponses, versionsRewritePartData, versionsRewritePartErrors, versionsRewritePartResponses, viralAnalyzeSampleData, viralAnalyzeSampleErrors, viralAnalyzeSampleResponses, viralConvertPatternData, viralConvertPatternErrors, viralConvertPatternResponses, viralCreateSampleData, viralCreateSampleErrors, viralCreateSampleResponses, viralDeleteSamplesData, viralDeleteSamplesErrors, viralDeleteSamplesResponses, viralReadPatternData, viralReadPatternErrors, viralReadPatternResponses, viralReadPatternsData, viralReadPatternsErrors, viralReadPatternsResponses, viralReadSampleData, viralReadSampleErrors, viralReadSampleResponses, viralReadSamplesData, viralReadSamplesErrors, viralReadSamplesResponses, voiceProfileActivateVersionData, voiceProfileActivateVersionErrors, voiceProfileActivateVersionResponses, voiceProfileCreateVersionData, voiceProfileCreateVersionErrors, voiceProfileCreateVersionResponses, voiceProfileReadActiveProfileData, voiceProfileReadActiveProfileErrors, voiceProfileReadActiveProfileResponses, voiceProfileReadVersionsData, voiceProfileReadVersionsErrors, voiceProfileReadVersionsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -649,6 +649,221 @@ export class ScenariosService {
             responseType: 'json',
             security: [{ scheme: 'bearer', type: 'http' }],
             url: '/api/v1/scenario-templates/{template_id}',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+}
+
+export class CreativeTypesService {
+    /**
+     * Read Creative Types
+     *
+     * The six built-in types, then the brand's own.
+     */
+    public static typesReadCreativeTypes<ThrowOnError extends boolean = true>(options: Options<creativeTypesReadCreativeTypesData, ThrowOnError>) {
+        return (options.client ?? client).get<creativeTypesReadCreativeTypesResponses, creativeTypesReadCreativeTypesErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/creative-types',
+            ...options
+        });
+    }
+    
+    /**
+     * Create Creative Type
+     *
+     * Brand admins only. The name may not repeat a built-in or an existing own type (409).
+     */
+    public static typesCreateCreativeType<ThrowOnError extends boolean = true>(options: Options<creativeTypesCreateCreativeTypeData, ThrowOnError>) {
+        return (options.client ?? client).post<creativeTypesCreateCreativeTypeResponses, creativeTypesCreateCreativeTypeErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/creative-types',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Delete Creative Type
+     *
+     * Brand admins only. A type that templates or confirmed notes use cannot be deleted (409).
+     */
+    public static typesDeleteCreativeType<ThrowOnError extends boolean = true>(options: Options<creativeTypesDeleteCreativeTypeData, ThrowOnError>) {
+        return (options.client ?? client).delete<creativeTypesDeleteCreativeTypeResponses, creativeTypesDeleteCreativeTypeErrors, ThrowOnError>({
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/creative-types/{key}',
+            ...options
+        });
+    }
+    
+    /**
+     * Rename Creative Type
+     *
+     * Brand admins only. Templates keep using the type under its new name.
+     */
+    public static typesRenameCreativeType<ThrowOnError extends boolean = true>(options: Options<creativeTypesRenameCreativeTypeData, ThrowOnError>) {
+        return (options.client ?? client).patch<creativeTypesRenameCreativeTypeResponses, creativeTypesRenameCreativeTypeErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/creative-types/{key}',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+}
+
+export class ResultsService {
+    /**
+     * Read Confirmed Copies
+     *
+     * Confirmed notes, newest first. ``needs_metrics=true`` lists the posts that are three days old
+     * or more and have no numbers since, oldest first.
+     */
+    public static readConfirmedCopies<ThrowOnError extends boolean = true>(options: Options<resultsReadConfirmedCopiesData, ThrowOnError>) {
+        return (options.client ?? client).get<resultsReadConfirmedCopiesResponses, resultsReadConfirmedCopiesErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/confirmed-copies',
+            ...options
+        });
+    }
+    
+    /**
+     * Read Results Summary
+     */
+    public static readResultsSummary<ThrowOnError extends boolean = true>(options: Options<resultsReadResultsSummaryData, ThrowOnError>) {
+        return (options.client ?? client).get<resultsReadResultsSummaryResponses, resultsReadResultsSummaryErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/results/summary',
+            ...options
+        });
+    }
+    
+    /**
+     * Read Confirmed Copy
+     */
+    public static readConfirmedCopy<ThrowOnError extends boolean = true>(options: Options<resultsReadConfirmedCopyData, ThrowOnError>) {
+        return (options.client ?? client).get<resultsReadConfirmedCopyResponses, resultsReadConfirmedCopyErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/confirmed-copies/{copy_id}',
+            ...options
+        });
+    }
+    
+    /**
+     * Update Confirmed Copy
+     *
+     * Record where and when it was published. The link is only stored, never opened.
+     */
+    public static updateConfirmedCopy<ThrowOnError extends boolean = true>(options: Options<resultsUpdateConfirmedCopyData, ThrowOnError>) {
+        return (options.client ?? client).patch<resultsUpdateConfirmedCopyResponses, resultsUpdateConfirmedCopyErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/confirmed-copies/{copy_id}',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Read Metrics
+     */
+    public static readMetrics<ThrowOnError extends boolean = true>(options: Options<resultsReadMetricsData, ThrowOnError>) {
+        return (options.client ?? client).get<resultsReadMetricsResponses, resultsReadMetricsErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/confirmed-copies/{copy_id}/metrics',
+            ...options
+        });
+    }
+    
+    /**
+     * Add Metric
+     *
+     * Add one reading of the post's numbers. Readings are only added; the newest counts.
+     */
+    public static addMetric<ThrowOnError extends boolean = true>(options: Options<resultsAddMetricData, ThrowOnError>) {
+        return (options.client ?? client).post<resultsAddMetricResponses, resultsAddMetricErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/confirmed-copies/{copy_id}/metrics',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+}
+
+export class ExtensionService {
+    /**
+     * Read Extension Keys
+     */
+    public static readExtensionKeys<ThrowOnError extends boolean = true>(options: Options<extensionReadExtensionKeysData, ThrowOnError>) {
+        return (options.client ?? client).get<extensionReadExtensionKeysResponses, extensionReadExtensionKeysErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/extension-keys',
+            ...options
+        });
+    }
+    
+    /**
+     * Create Extension Key
+     *
+     * Brand admins only. The key is in this response and nowhere else: it cannot be read again.
+     */
+    public static createExtensionKey<ThrowOnError extends boolean = true>(options: Options<extensionCreateExtensionKeyData, ThrowOnError>) {
+        return (options.client ?? client).post<extensionCreateExtensionKeyResponses, extensionCreateExtensionKeyErrors, ThrowOnError>({
+            responseType: 'json',
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/extension-keys',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Revoke Extension Key
+     */
+    public static revokeExtensionKey<ThrowOnError extends boolean = true>(options: Options<extensionRevokeExtensionKeyData, ThrowOnError>) {
+        return (options.client ?? client).delete<extensionRevokeExtensionKeyResponses, extensionRevokeExtensionKeyErrors, ThrowOnError>({
+            security: [{ scheme: 'bearer', type: 'http' }],
+            url: '/api/v1/brands/{brand_id}/extension-keys/{key_id}',
+            ...options
+        });
+    }
+    
+    /**
+     * Record Extension Metric
+     *
+     * For the browser extension only: adds one reading to the confirmed note of the key's brand whose
+     * saved post link has the same note id. The key cannot read anything.
+     */
+    public static recordExtensionMetric<ThrowOnError extends boolean = true>(options: Options<extensionRecordExtensionMetricData, ThrowOnError>) {
+        return (options.client ?? client).post<extensionRecordExtensionMetricResponses, extensionRecordExtensionMetricErrors, ThrowOnError>({
+            responseType: 'json',
+            url: '/api/v1/extension/metrics',
             ...options,
             headers: {
                 'Content-Type': 'application/json',

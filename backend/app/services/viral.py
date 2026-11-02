@@ -207,7 +207,7 @@ def to_template(
     if data.on_name_conflict == "reject" and scenarios.template_exists(
         session,
         brand_id=pattern.brand_id,
-        scene=data.scene.value,
+        scene=data.scene,
         name=data.name,
     ):
         raise ConflictError("A template with this scene and name already exists")
@@ -216,7 +216,7 @@ def to_template(
         row = scenarios.add_brand_template(
             session,
             brand_id=pattern.brand_id,
-            scene=data.scene.value,
+            scene=data.scene,
             name=data.name,
             structure=structure,
             source_pattern_id=pattern.id,

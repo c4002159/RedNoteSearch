@@ -12,6 +12,7 @@ from app.models import (
     StylePresetCreate,
 )
 from app.models.viral import ViralPattern
+from app.services import creative_types
 from app.services.audit import record_audit
 from app.services.errors import ConflictError
 
@@ -170,6 +171,7 @@ def add_brand_template(
     version number.
     """
     session.exec(select(Brand.id).where(Brand.id == brand_id).with_for_update()).one()
+    creative_types.ensure_known_scene(session, brand_id, scene)
     same = (
         ScenarioTemplate.brand_id == brand_id,
         ScenarioTemplate.scene == scene,
