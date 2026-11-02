@@ -1,14 +1,18 @@
-import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useRef, useState } from "react"
+import { toast } from "sonner"
 import { type CasePublic, EvaluationService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { MissingPage } from "@/components/Common/ForbiddenPage"
+import { Pill } from "@/components/Common/StatusBadge"
 import {
   TableBatchBar,
   TableSelectAll,
   TableSelectRow,
 } from "@/components/Common/TableBatchBar"
+import { CaseEditDialog } from "@/components/Evaluation/CaseEditDialog"
 import { CreateRun } from "@/components/Evaluation/CreateRun"
 import {
   EVAL_TABLE,
@@ -16,7 +20,6 @@ import {
   EvalPager,
   EvaluationError,
   EvaluationGuard,
-  JsonBlock,
   retryEval,
 } from "@/components/Evaluation/shared"
 import { Button } from "@/components/ui/button"
@@ -37,12 +40,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import useAuth from "@/hooks/useAuth"
 import { useBrand } from "@/hooks/useBrand"
+import { parseApiError } from "@/lib/apiError"
 import { formatTime } from "@/lib/format"
 import {
   EVAL_DESIGN_TEXT,
   EVAL_KIND_LABEL,
   label,
+  R6_EVAL_TEXT as R,
   EVAL_TEXT as T,
   ANALYSIS_VISUAL_TEXT as V,
 } from "@/lib/zh"
@@ -56,10 +67,14 @@ export const Route = createFileRoute("/_layout/evaluation/datasets/$id")({
 })
 function DatasetPage() {
   const brand = useBrand()
+  const { user } = useAuth()
+  const cache = useQueryClient()
   const { id } = Route.useParams(),
     navigate = useNavigate()
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [viewing, setViewing] = useState<CasePublic | null>(null)
+  const [editing, setEditing] = useState<CasePublic | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const indexes = useRef(new Map<string, number>())
   const [page, setPage] = useState(1),
     [run, setRun] = useState(false)
   const datasets = useQuery({
@@ -81,6 +96,49 @@ function DatasetPage() {
     enabled: !!dataset,
     retry: retryEval,
   })
+  for (const row of cases.data?.items ?? [])
+    indexes.current.set(row.id, row.case_index)
+  // The server decides; this only hides controls the caller cannot use.
+  const canEdit =
+    !!dataset &&
+    (dataset.brand_id === null
+      ? !!user?.is_superuser
+      : brand.isAdmin && brand.current?.id === dataset.brand_id)
+  const goNew = (newId: string) => {
+    setEditing(null)
+    setDeleting(false)
+    setSelected(new Set())
+    setPage(1)
+    void navigate({ to: "/evaluation/datasets/$id", params: { id: newId } })
+  }
+  const remove = useMutation({
+    mutationFn: async () =>
+      (
+        await EvaluationService.reviseDataset({
+          path: { dataset_id: id },
+          body: {
+            delete_case_indexes: [...selected]
+              .map((caseId) => indexes.current.get(caseId))
+              .filter((n): n is number => n !== undefined),
+          },
+        })
+      ).data,
+    onSuccess: async (created) => {
+      await cache.invalidateQueries({ queryKey: ["evaluation-datasets"] })
+      toast.success(R.revised(created.version))
+      goNew(created.id)
+    },
+  })
+  const loadAll = async () => {
+    const items = (
+      await EvaluationService.readCases({
+        path: { dataset_id: id },
+        query: { page: 1, page_size: 50 },
+      })
+    ).data.items
+    for (const row of items) indexes.current.set(row.id, row.case_index)
+    return items.map((row) => row.id)
+  }
   const selection = {
     selected,
     onChange: setSelected,
@@ -98,176 +156,183 @@ function DatasetPage() {
   return (
     <div className="min-w-0 space-y-6 [&_[data-slot=table-container]]:border-0">
       <EvalBreadcrumb current={dataset.name} />
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="break-words text-2xl font-bold">{dataset.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            {label(EVAL_KIND_LABEL, dataset.kind)} · v{dataset.version} ·{" "}
-            {dataset.case_count} {T.cases}
-          </p>
-        </div>
-      </div>
-
+      <h1 className="break-words text-2xl font-bold">{dataset.name}</h1>
       <section className="space-y-3 rounded-xl bg-card p-6 shadow-sm">
-        <h2 className="font-semibold">{T.metadata}</h2>
-        <p className="text-xs text-muted-foreground">{T.immutable}</p>
-        <dl className="grid gap-5 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            [V.name, dataset.name],
-            [T.kind, label(EVAL_KIND_LABEL, dataset.kind)],
-            [T.version, `v${dataset.version}`],
-            [T.cases, String(dataset.case_count)],
-            [T.group, dataset.group_id],
-            [T.hash, dataset.content_hash],
-            [T.created, formatTime(dataset.created_at)],
-            [
-              T.scope,
-              dataset.brand_id === null
-                ? T.global
-                : (brand.brands.find((b) => b.id === dataset.brand_id)?.name ??
-                  EVAL_DESIGN_TEXT.otherBrand),
-            ],
-          ].map(([k, v]) => (
-            <div key={k} className="min-w-0">
-              <dt className="text-muted-foreground">{k}</dt>
-              <dd className="[overflow-wrap:anywhere]">{v}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="min-w-0 space-y-6">
-          {" "}
-          <section className="space-y-3 rounded-xl bg-card p-6 shadow-sm">
-            <h2 className="font-semibold">{T.cases}</h2>
-            <TableBatchBar
-              {...selection}
-              total={cases.data?.total ?? 0}
-              loadAll={async () =>
-                (
-                  await EvaluationService.readCases({
-                    path: { dataset_id: id },
-                    query: { page: 1, page_size: 50 },
-                  })
-                ).data.items.map((row) => row.id)
-              }
-            />
-            <div className="overflow-x-auto">
-              <Table className={`${EVAL_TABLE} min-w-[720px]`}>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <TableSelectAll {...selection} />
-                    </TableHead>
-                    <TableHead>{V.number}</TableHead>
-                    <TableHead>{V.inputSummary}</TableHead>
-                    <TableHead>{T.expected}</TableHead>
-                    <TableHead>{T.annotators}</TableHead>
-                    <TableHead className="text-right">{V.actions}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {cases.isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={6}>
-                        <Skeleton className="h-24 w-full" />
-                      </TableCell>
-                    </TableRow>
-                  ) : cases.isError ? (
-                    <TableRow>
-                      <TableCell colSpan={6}>
-                        <EvaluationError
-                          error={cases.error}
-                          retry={() => cases.refetch()}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ) : !cases.data?.items.length ? (
-                    <TableRow>
-                      <TableCell colSpan={6}>
-                        <EmptyState title={T.emptyCases} />
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    cases.data.items.map((c) => (
-                      <TableRow key={c.id}>
-                        <TableCell>
-                          <TableSelectRow
-                            {...selection}
-                            id={c.id}
-                            label={`${T.sample} ${c.case_index}`}
-                          />
-                        </TableCell>
-                        <TableCell className="text-muted-foreground tabular-nums">
-                          {T.sample} {c.case_index}
-                        </TableCell>
-                        <TableCell className="max-w-72 whitespace-normal">
-                          <p className="line-clamp-2 break-words">
-                            {JSON.stringify(c.input)}
-                          </p>
-                        </TableCell>
-                        <TableCell className="max-w-56 whitespace-normal">
-                          <p className="line-clamp-2 break-words">
-                            {JSON.stringify(c.expected)}
-                          </p>
-                        </TableCell>
-                        <TableCell className="whitespace-normal">
-                          {c.annotators.join("、")}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-link hover:underline"
-                            onClick={() => setViewing(c)}
-                          >
-                            {V.viewJson}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-            {cases.data && !cases.isError && (
-              <EvalPager
-                page={page}
-                total={cases.data.total}
-                onPage={setPage}
-              />
-            )}
-          </section>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-semibold">{T.sample}</h2>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="flex flex-wrap gap-2">
+                  <Pill>{label(EVAL_KIND_LABEL, dataset.kind)}</Pill>
+                  <Pill>v{dataset.version}</Pill>
+                  <Pill>
+                    {dataset.case_count} {T.cases}
+                  </Pill>
+                  <Pill>
+                    {dataset.brand_id === null
+                      ? T.global
+                      : (brand.brands.find((b) => b.id === dataset.brand_id)
+                          ?.name ?? EVAL_DESIGN_TEXT.otherBrand)}
+                  </Pill>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-sm break-all">
+                <p>
+                  {R.groupLabel}：{dataset.group_id}
+                </p>
+                <p>
+                  {R.hashLabel}：{dataset.content_hash}
+                </p>
+                <p>
+                  {R.createdLabel}：{formatTime(dataset.created_at)}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <TableBatchBar
+            {...selection}
+            total={cases.data?.total ?? 0}
+            loadAll={loadAll}
+            actions={
+              canEdit
+                ? [
+                    {
+                      label: R.delete,
+                      destructive: true,
+                      onSelect: () => setDeleting(true),
+                    },
+                  ]
+                : []
+            }
+          />
         </div>
-        <aside className="space-y-4 rounded-xl bg-card p-6 shadow-sm">
-          <h2 className="text-base font-semibold">{V.next}</h2>
-          <p className="text-xs leading-6 text-muted-foreground">
-            {T.immutable}
-          </p>
-          <Button className="w-full" onClick={() => setRun(true)}>
-            {T.newRun}
-          </Button>
-          <Button variant="outline" className="w-full" asChild>
-            <Link to="/evaluation/datasets">{T.backDatasets}</Link>
-          </Button>
-        </aside>
-      </div>
-      {viewing && (
-        <Dialog open onOpenChange={(open) => !open && setViewing(null)}>
-          <DialogContent className="max-h-[85vh] overflow-y-auto border-0 sm:max-w-3xl">
+        {!canEdit && (
+          <p className="text-xs text-muted-foreground">{R.readOnly}</p>
+        )}
+        <div className="overflow-x-auto">
+          <Table className={`${EVAL_TABLE} min-w-[720px]`}>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <TableSelectAll {...selection} />
+                </TableHead>
+                <TableHead>{V.number}</TableHead>
+                <TableHead>{V.inputSummary}</TableHead>
+                <TableHead>{T.expected}</TableHead>
+                <TableHead>{T.annotators}</TableHead>
+                <TableHead className="text-right">{V.actions}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cases.isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <Skeleton className="h-24 w-full" />
+                  </TableCell>
+                </TableRow>
+              ) : cases.isError ? (
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <EvaluationError
+                      error={cases.error}
+                      retry={() => cases.refetch()}
+                    />
+                  </TableCell>
+                </TableRow>
+              ) : !cases.data?.items.length ? (
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <EmptyState title={T.emptyCases} />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                cases.data.items.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell>
+                      <TableSelectRow
+                        {...selection}
+                        id={c.id}
+                        label={`${T.sample} ${c.case_index}`}
+                      />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">
+                      {T.sample} {c.case_index}
+                    </TableCell>
+                    <TableCell className="max-w-72 whitespace-normal">
+                      <p className="line-clamp-2 break-words">
+                        {JSON.stringify(c.input)}
+                      </p>
+                    </TableCell>
+                    <TableCell className="max-w-56 whitespace-normal">
+                      <p className="line-clamp-2 break-words">
+                        {JSON.stringify(c.expected)}
+                      </p>
+                    </TableCell>
+                    <TableCell className="whitespace-normal">
+                      {c.annotators.join("、")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-link hover:underline"
+                        onClick={() => setEditing(c)}
+                      >
+                        {canEdit ? R.edit : V.viewJson}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        {cases.data && !cases.isError && (
+          <EvalPager page={page} total={cases.data.total} onPage={setPage} />
+        )}
+        <div className="flex justify-end pt-2">
+          <Button onClick={() => setRun(true)}>{T.newRun}</Button>
+        </div>
+      </section>
+      {editing && (
+        <CaseEditDialog
+          datasetId={id}
+          row={editing}
+          readOnly={!canEdit}
+          onClose={() => setEditing(null)}
+          onSaved={goNew}
+        />
+      )}
+      {deleting && (
+        <Dialog
+          open
+          onOpenChange={(open) =>
+            !open && !remove.isPending && setDeleting(false)
+          }
+        >
+          <DialogContent className="border-0">
             <DialogHeader>
-              <DialogTitle>
-                {T.sample} {viewing.case_index}
-              </DialogTitle>
-              <DialogDescription>{T.immutable}</DialogDescription>
+              <DialogTitle>{R.deleteTitle(selected.size)}</DialogTitle>
+              <DialogDescription>{R.deleteNotice}</DialogDescription>
             </DialogHeader>
-            <h3 className="text-sm font-semibold">{T.input}</h3>
-            <JsonBlock value={viewing.input} />
-            <h3 className="text-sm font-semibold">{T.expected}</h3>
-            <JsonBlock value={viewing.expected} />
+            {remove.isError && (
+              <ErrorBanner error={parseApiError(remove.error)} />
+            )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setViewing(null)}>
-                {V.close}
+              <Button
+                variant="outline"
+                disabled={remove.isPending}
+                onClick={() => setDeleting(false)}
+              >
+                {T.cancel}
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={remove.isPending}
+                onClick={() => remove.mutate()}
+              >
+                {R.confirmDelete}
               </Button>
             </DialogFooter>
           </DialogContent>

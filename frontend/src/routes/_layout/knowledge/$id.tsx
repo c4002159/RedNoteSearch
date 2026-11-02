@@ -2,7 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { toast } from "sonner"
-import { type DocumentDetail, KnowledgeService } from "@/client"
+import {
+  type DocumentDetail,
+  KnowledgeService,
+  type ReviewCreate,
+} from "@/client"
+import { BrandError } from "@/components/Brands/Feedback"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { LoadingState } from "@/components/Common/LoadingState"
@@ -13,6 +18,13 @@ import {
   KnowledgeError,
   Pager,
 } from "@/components/Knowledge/Feedback"
+import {
+  readSimilarityConflict,
+  SimilarItems,
+  type SimilarityConflict,
+  SimilarityReview,
+} from "@/components/Knowledge/SimilarityReview"
+import { TextSourceDialog } from "@/components/Knowledge/TextSourceDialog"
 import { UploadDocument } from "@/components/Knowledge/UploadDocument"
 import { Button } from "@/components/ui/button"
 import { LoadingButton } from "@/components/ui/loading-button"
@@ -22,6 +34,7 @@ import { formatTime } from "@/lib/format"
 import {
   DOCUMENT_TYPE_LABEL,
   label,
+  R6_KNOWLEDGE_UI_TEXT as R,
   REVIEW_ACTION_LABEL,
   KB_TEXT as T,
 } from "@/lib/zh"
@@ -128,6 +141,19 @@ function DocumentView({
   const client = useQueryClient(),
     navigate = useNavigate()
   const [upload, setUpload] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [conflict, setConflict] = useState<
+    (SimilarityConflict & { revision: number }) | null
+  >(null)
+  const preview = useMutation({
+    mutationFn: async () =>
+      (
+        await KnowledgeService.previewSimilarDocuments({
+          path: { document_id: row.id },
+          timeout: 600_000,
+        })
+      ).data,
+  })
   const [action, setAction] = useState<
     "approve" | "reject" | "deactivate" | null
   >(null)
@@ -143,9 +169,11 @@ function DocumentView({
     mutationFn: async ({
       kind,
       reason,
+      reviewBody,
     }: {
-      kind: "approve" | "reject" | "deactivate" | "reindex"
+      kind: "approve" | "reject" | "deactivate" | "reindex" | "cancel"
       reason?: string
+      reviewBody?: ReviewCreate
     }) => {
       const path = { document_id: row.id }
       return kind === "reindex"
@@ -162,28 +190,40 @@ function DocumentView({
           : (
               await KnowledgeService.reviewDocument({
                 path,
-                body: { action: kind, reason },
+                body: reviewBody ?? { action: kind, reason },
                 timeout: 600_000,
               })
             ).data
     },
     onSuccess: (_, variables) => {
       setAction(null)
+      setConflict(null)
+      preview.reset()
       toast.success(
-        variables.kind === "reindex"
-          ? T.reindexed
-          : variables.kind === "deactivate"
-            ? T.deactivated
-            : T.reviewSaved,
+        variables.kind === "cancel"
+          ? R.cancelled
+          : variables.kind === "reindex"
+            ? T.reindexed
+            : variables.kind === "deactivate"
+              ? T.deactivated
+              : T.reviewSaved,
       )
       void refresh()
     },
-    onError: () => {
+    onError: (error) => {
       setAction(null)
+      const next = readSimilarityConflict(error)
+      if (next) {
+        setConflict((previous) => ({
+          ...next,
+          revision: (previous?.revision ?? 0) + 1,
+        }))
+        return
+      }
       void refresh()
     },
   })
-  const busy = operation.isPending
+  const busy = operation.isPending || preview.isPending
   return (
     <div className="min-w-0 space-y-5">
       <Button asChild variant="ghost">
@@ -205,6 +245,14 @@ function DocumentView({
         <div className="flex flex-wrap gap-2">
           {admin && row.status === "pending_review" && (
             <>
+              <LoadingButton
+                variant="outline"
+                loading={preview.isPending}
+                disabled={busy}
+                onClick={() => preview.mutate()}
+              >
+                {R.preview}
+              </LoadingButton>
               <Button
                 disabled={busy}
                 onClick={() => {
@@ -250,10 +298,19 @@ function DocumentView({
           <Button
             disabled={busy}
             variant="outline"
-            onClick={() => setUpload(true)}
+            onClick={() => setEditing(true)}
           >
-            {admin ? T.uploadVersion : T.submitVersion}
+            {R.edit}
           </Button>
+          {row.source_kind !== "note" && (
+            <Button
+              disabled={busy}
+              variant="outline"
+              onClick={() => setUpload(true)}
+            >
+              {admin ? T.uploadVersion : T.submitVersion}
+            </Button>
+          )}
         </div>
       </div>
       {row.status === "deactivated" && (
@@ -276,7 +333,34 @@ function DocumentView({
           {T.processing} {T.longRequest}
         </p>
       )}
-      {operation.isError && <KnowledgeError error={operation.error} />}
+      {admin && row.status === "pending_review" && (
+        <p className="text-xs text-muted-foreground">{R.previewHint}</p>
+      )}
+      {preview.isError && <KnowledgeError error={preview.error} />}
+      {preview.data &&
+        (preview.data.status === "unavailable" ? (
+          <p role="status">{R.unavailable}</p>
+        ) : (
+          <section className="space-y-3 rounded-xl border bg-card p-4">
+            <h2 className="font-semibold">{R.similarTitle}</h2>
+            {preview.data.items?.length ? (
+              <SimilarItems items={preview.data.items} />
+            ) : (
+              <p>{R.noSimilar}</p>
+            )}
+          </section>
+        ))}
+      {operation.isError && !conflict && (
+        <BrandError
+          error={operation.error}
+          message={
+            parseApiError(operation.error).status === 503 &&
+            row.status === "pending_review"
+              ? R.ingestUnavailable
+              : undefined
+          }
+        />
+      )}
       <section className="rounded-xl border bg-card p-4">
         <h2 className="mb-3 font-semibold">{T.metadata}</h2>
         <dl className="grid gap-3 text-sm md:grid-cols-2">
@@ -284,6 +368,9 @@ function DocumentView({
             [T.id, row.id],
             [T.group, row.group_id],
             [T.filename, row.source_filename || "—"],
+            ...(row.source_description
+              ? [[R.description, row.source_description]]
+              : []),
             [T.author, row.submitted_by_name || T.unknown],
           ].map(([name, value]) => (
             <div className="min-w-0" key={name}>
@@ -329,7 +416,11 @@ function DocumentView({
                 className="space-y-1 rounded-lg border p-3 text-sm"
               >
                 <div className="flex flex-wrap justify-between gap-2">
-                  <strong>{label(REVIEW_ACTION_LABEL, entry.action)}</strong>
+                  <strong>
+                    {entry.action === "cancel"
+                      ? R.cancelReview
+                      : label(REVIEW_ACTION_LABEL, entry.action)}
+                  </strong>
                   <span className="text-muted-foreground">
                     {formatTime(entry.created_at)}
                   </span>
@@ -345,6 +436,29 @@ function DocumentView({
           </ol>
         )}
       </section>
+      {editing && (
+        <TextSourceDialog
+          brandId={brandId}
+          previous={row}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false)
+            void refresh()
+          }}
+        />
+      )}
+      {conflict && admin && (
+        <SimilarityReview
+          key={conflict.revision}
+          title={row.title}
+          conflict={conflict}
+          pending={operation.isPending}
+          error={operation.error}
+          onSubmit={(reviewBody) =>
+            operation.mutate({ kind: reviewBody.action, reviewBody })
+          }
+        />
+      )}
       {upload && (
         <UploadDocument
           brandId={brandId}

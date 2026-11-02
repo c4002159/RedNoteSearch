@@ -220,7 +220,7 @@ test.describe("Change password validation", () => {
     expect((await response).status()).toBe(400)
     await expect(page.getByRole("alert")).toContainText("当前密码不正确")
     await expect(page.getByRole("alert").locator("code")).not.toHaveText("")
-    await expect(page).toHaveURL(/\/settings$/)
+    await expect(page).toHaveURL(/\/settings(\?tab=password)?$/)
   })
 })
 

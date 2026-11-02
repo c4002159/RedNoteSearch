@@ -108,6 +108,9 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 - `GET /brands/{brand_id}/products?status=active|archived&page=`：品牌成员。
 - `POST /brands/{brand_id}/products`、`PATCH /products/{product_id}`：品牌 admin。
 - `POST /products/{product_id}/archive`：软删除，不物理删除；已被历史任务引用的商品保留。
+- 商品 `category` 为可自定义字符串（默认 `other`），去首尾空白后 1–30 个 Unicode 码点；不允许换行、Unicode 控制字符或格式控制字符（Cc/Cf，及 U+2028/U+2029）。非字符串、空白、超长或含上述字符返回 422。预设中文名精确归一化：香水→`perfume`、护肤→`skincare`、彩妆→`makeup`、家居香氛→`home_fragrance`、其他→`other`；其余文字只去首尾空白，保留大小写和原文。旧五个键继续有效；品牌自己的 category 仍为原枚举，不变。
+- 创建/更新使用同一校验；PATCH 未传 category 或显式 null 仍保持原值。响应 `ProductPublic.category` 保持字符串；前端已知键显示中文、自定义值显示原文字。香调字段及其含义不变，隐藏输入框不删除已有香调。
+- 迁移只去掉商品表 `ck_product_category`，不动品牌约束。降级先把自定义值转为 `other` 再恢复原五值约束；降级会丢失自定义种类文字，执行前应备份相关商品。
 
 ```json
 {"id":"p-uuid","brand_id":"b-uuid","name":"…","product_line":"…","category":"perfume",
@@ -918,3 +921,24 @@ GET /compliance-rules增加include_inactive，默认true以兼容现有包含停
 样本列表、创建、读取及PATCH响应增加structures_stale：有结构且没有任何结构的sample_revision等于当前revision时为true；无结构为false。分析捕获开始时的文字和revision，新结构保存该revision；重新分析当前文字成功后自然变false，旧结构保留。并发编辑不会把旧文字分析误标成当前版本。迁移后原样本和旧结构均为0，不显示过期。
 
 成功写viral.sample_update审计，只含字段名、是否改文字、修订号和字数，不含正文或网址；与更新原子提交。PATCH不调用模型、不自动分析、不改提示词或已有模板。
+
+## R6 B2：临时来源、文本版本与审核相近提示
+
+文档新增source_kind=file|note（旧资料回填file）及source_description（可空，note必填1–1000码点）。沿用doc_type分类，两者独立。所有原文件上传接口保持file；新临时来源即使由admin提交也必须待审，不允许直接入库。
+
+- POST /brands/{brand_id}/knowledge-notes：品牌成员，JSON {title:1–200码点,source_description:1–1000码点,text:1–50000码点,doc_type:可选DocumentType默认sample_note}，非空白；不接收brand_id。201 DocumentPublic，source_kind=note、pending_review、is_current=false、index_status=pending；只解析分块，不嵌入，不可检索/作为证据。
+- POST /knowledge-documents/{document_id}/text-versions：资源所在品牌成员，{title?,source_description?,text?,doc_type?}至少一项；产生同group_id的下一版本，继承source_kind。元数据编辑原样复制分块文字，不重建原文件；未提供正文时保留原checksum。新版本始终待审，旧当前版在批准前不变；note来源说明不得清空。200/201统一为201 DocumentPublic；不修改旧版本，不接受品牌/group/version覆盖。
+- GET /brands/{brand_id}/knowledge-documents新增source_kind可选筛选（先过滤再分页）；DocumentPublic/详情增加source_kind和source_description，旧字段含义不变。
+
+POST /knowledge-documents/{document_id}/similarity-preview：仅品牌admin，明确按钮触发，不在页面打开时自动调用。只用于待审版本；临时嵌入前20个分块，不写入分块表或任何资料状态，不写审核/调用日志；返回{status:ready|unavailable,message,items:[{id,title,similarity:数字或null,reasons:[title_match|content_near]}],token:可空}。失败返回200 status=unavailable、message=相似检查暂不可用，审核按钮仍可用；原入库必须嵌入的503语义保持不变。
+
+比较使用同品牌已审核、当前、已索引且向量非空的资料，排除同group_id的所有版本；新分块最多前20个，每块仅取5个近邻，不做全库两两比较；每份资料取最大余弦相似度，阈值配置KB_SIMILARITY_THRESHOLD默认0.90、范围0–1。最多10份，内容相近按相似度降序；标题完全相同单独标title_match，未命中近邻时similarity=null，不编造数值。为保证标题相同也可见，最多先预留10个同标题名额，再填充高相似资料，最终按已有相似度排序、无数值的放后。这里只提示内容相近，请核对，不判断事实矛盾，不自动替换，不改变现有检索规则。
+
+原POST /knowledge-documents/{id}/reviews扩展：action新增cancel；similar_decision=coexist|new_wins可选、related_document_ids最多10个不同UUID、similarity_token可选。指定决定或取消时理由必填（≤500码点）。approve先生成原入库所需全部向量，用其中前20块重算提示，不额外嵌入；只有成功提交时才写入向量。
+- 找到相近资料但没有处理决定时，返回409 KB_SIMILAR_CONTENT，details含items、token、status，资料状态、索引、旧资料均不变。
+- token由服务器签名、绑定品牌/资料及提示资料id集合，10分钟有效，不写库。确认时重算；新集合未被已签名集合覆盖，或token无效/过期时，再返回409和新提示，不信前端自报覆盖范围。
+- coexist并存，不停用其他资料；new_wins必须提供related_document_ids和理由。只允许同品牌且仍在本次提示中的已审核当前资料；非本品牌或不存在id404。停用复用原逻辑，但与新资料批准同事务，任何一项失败全部回滚。相近检查降级不额外阻断正常批准；new_wins仍需有效签名覆盖所选id并通过同品牌及可停用状态检查，不能凭未知id停用。
+- cancel不是reject：保持待审，不调用模型，只追加cancel审核日志及理由。
+- 相近检查失败只降级提示；原入库嵌入不可用仍503并保持待审。正常批准、拒绝、停用及取消日志只增不改，新增similar_decision和related_document_ids；不修改或删除旧审核记录。
+
+迁移与ADR-015：来源默认file；审核动作新增cancel，新增决定与关联id字段。downgrade不能删改取消记录：若已有cancel日志则明确拒绝降级，待人工安排兼容方案。迁移接开工时唯一head；若B1先合并须同步main并重接当时head，不使用alembic merge。

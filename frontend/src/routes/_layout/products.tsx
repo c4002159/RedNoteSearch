@@ -307,7 +307,7 @@ function ProductsPage() {
             <DialogHeader>
               <DialogTitle>{viewing.name}</DialogTitle>
               <DialogDescription>
-                {viewing.product_line} ·{" "}
+                {viewing.product_line ? `${viewing.product_line} · ` : ""}
                 {label(BRAND_CATEGORY_LABEL, viewing.category)}
               </DialogDescription>
             </DialogHeader>
@@ -318,7 +318,7 @@ function ProductsPage() {
                   {T[k]}：{viewing.notes[k]?.join("、")}
                 </p>
               ))}
-            <h3>{T.points}</h3>
+            {viewing.selling_points.length > 0 && <h3>{T.points}</h3>}
             {viewing.selling_points.map((p, i) => (
               <div key={i} className="space-y-2 rounded-lg border p-3">
                 <p className="break-words text-sm">{p.text}</p>

@@ -3,9 +3,11 @@ import { Link, useNavigate } from "@tanstack/react-router"
 import { FileText } from "lucide-react"
 import { useState } from "react"
 import {
+  type DocumentPublic,
   type DocumentStatus,
   type DocumentType,
   KnowledgeService,
+  type SourceKind,
 } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { HeaderFilter } from "@/components/Common/FilterSelect"
@@ -22,16 +24,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useBrand } from "@/hooks/useBrand"
 import { formatTime } from "@/lib/format"
 import {
   DOCUMENT_STATUS_LABEL,
   DOCUMENT_TYPE_LABEL,
   label,
+  R6_KNOWLEDGE_UI_TEXT as R,
   KB_TEXT as T,
   T5_VISUAL_TEXT as V,
 } from "@/lib/zh"
 import { IndexBadge, KnowledgeError, Pager } from "./Feedback"
+import { TextSourceDialog } from "./TextSourceDialog"
 import { UploadDocument } from "./UploadDocument"
 
 export function DocumentList({ review = false }: { review?: boolean }) {
@@ -75,6 +80,9 @@ function BrandDocuments({
   const [q, setQ] = useState("")
   const [page, setPage] = useState(1)
   const [upload, setUpload] = useState(false)
+  const [sourceKind, setSourceKind] = useState<SourceKind>("file")
+  const [editing, setEditing] = useState<DocumentPublic | null>(null)
+  const [addingNote, setAddingNote] = useState(false)
   const clear = () => {
     setQ("")
     setType("")
@@ -83,7 +91,7 @@ function BrandDocuments({
   }
   const filtered = Boolean(q || type || (!review && status))
   const documents = useQuery({
-    queryKey: ["knowledge", brandId, review, status, type, q, page],
+    queryKey: ["knowledge", brandId, review, status, type, q, page, sourceKind],
     queryFn: async ({ signal }) =>
       (
         await KnowledgeService.readDocuments({
@@ -91,6 +99,7 @@ function BrandDocuments({
           query: {
             status: review ? "pending_review" : status || undefined,
             doc_type: type || undefined,
+            source_kind: review ? undefined : sourceKind,
             q: q || undefined,
             page,
             page_size: 20,
@@ -160,6 +169,25 @@ function BrandDocuments({
           )}
         </div>
       </div>
+      {!review && (
+        <Tabs
+          value={sourceKind}
+          onValueChange={(value) => {
+            setSourceKind(value as SourceKind)
+            setPage(1)
+          }}
+        >
+          <TabsList aria-label={R.sourceKind}>
+            <TabsTrigger value="file">{R.file}</TabsTrigger>
+            <TabsTrigger value="note">{R.note}</TabsTrigger>
+          </TabsList>
+          {sourceKind === "note" && (
+            <Button className="ml-3" onClick={() => setAddingNote(true)}>
+              {R.addNote}
+            </Button>
+          )}
+        </Tabs>
+      )}
       {documents.isLoading && <LoadingState className="h-48 w-full" />}
       {documents.isError && (
         <KnowledgeError
@@ -294,6 +322,15 @@ function BrandDocuments({
                     >
                       {review ? T.review : V.viewDetails}
                     </Link>
+                    {!review && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => setEditing(row)}
+                      >
+                        {R.edit}
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -303,6 +340,22 @@ function BrandDocuments({
       )}
       {documents.data && !documents.isError && (
         <Pager page={page} total={documents.data.total} onPage={setPage} />
+      )}
+      {(editing || addingNote) && (
+        <TextSourceDialog
+          brandId={brandId}
+          previous={editing ?? undefined}
+          onClose={() => {
+            setEditing(null)
+            setAddingNote(false)
+          }}
+          onSaved={() => {
+            setEditing(null)
+            setAddingNote(false)
+            void client.invalidateQueries({ queryKey: ["knowledge"] })
+            void client.invalidateQueries({ queryKey: ["knowledge-pending"] })
+          }}
+        />
       )}
       {upload && (
         <UploadDocument

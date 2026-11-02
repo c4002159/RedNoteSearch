@@ -92,9 +92,11 @@ test("Dataset detail scope uses name, global and missing-name fallback", async (
     [unknown, "其他品牌"],
   ]) {
     await page.goto(`/evaluation/datasets/${id}`)
-    const scope = page.getByText("范围", { exact: true }).locator("..")
-    await expect(scope).toContainText(name)
-    await expect(scope).not.toContainText("66666666")
+    const tags = page.getByRole("button", {
+      name: new RegExp(`v2 1 样本 ${name}`),
+    })
+    await expect(tags).toBeVisible()
+    await expect(tags).not.toContainText("66666666")
   }
 })
 

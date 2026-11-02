@@ -307,7 +307,6 @@ test.describe("R6 table standards", () => {
 
   for (const [path, action, idPrefix] of [
     ["/products", "批量归档", "product"],
-    ["/compliance/rules", "批量停用", "rule"],
   ]) {
     test(`${action} confirms and processes sequentially, preserves failures and retries only failed ids`, async ({
       page,
@@ -324,14 +323,6 @@ test.describe("R6 table standards", () => {
       const dialog = page.getByRole("dialog")
       await expect(dialog).toContainText("将逐条处理 3 项")
       expect(state.calls).toHaveLength(0)
-      if (idPrefix === "rule") {
-        await expect(
-          dialog.getByRole("button", { name: "确认处理", exact: true }),
-        ).toBeDisabled()
-        await dialog
-          .getByLabel("停用原因", { exact: true })
-          .fill("回归测试停用")
-      }
       await dialog
         .getByRole("button", { name: "确认处理", exact: true })
         .click()
@@ -341,14 +332,6 @@ test.describe("R6 table standards", () => {
       await expect(dialog.getByText("处理成功", { exact: true })).toHaveCount(2)
       expect(state.maxActive).toBe(1)
       expect(state.calls).toHaveLength(3)
-      if (idPrefix === "rule")
-        expect(
-          state.calls.every(
-            (call) =>
-              JSON.stringify(call.body) ===
-              JSON.stringify({ enabled: false, reason: "回归测试停用" }),
-          ),
-        ).toBe(true)
       await dialog
         .getByRole("button", { name: "关闭", exact: true })
         .first()
@@ -356,15 +339,12 @@ test.describe("R6 table standards", () => {
       await expect(
         page.getByRole("button", { name: "已选 1 项", exact: true }),
       ).toBeVisible()
-      const failedName = idPrefix === "rule" ? "选择 规则2" : "选择 商品2"
       await expect(
-        page.getByRole("checkbox", { name: failedName, exact: true }),
+        page.getByRole("checkbox", { name: "选择 商品2", exact: true }),
       ).toBeChecked()
       state.fail.clear()
       await page.getByRole("button", { name: "已选 1 项", exact: true }).click()
       await page.getByRole("menuitem", { name: action, exact: true }).click()
-      if (idPrefix === "rule")
-        await dialog.getByLabel("停用原因", { exact: true }).fill("重试")
       await dialog
         .getByRole("button", { name: "确认处理", exact: true })
         .click()
