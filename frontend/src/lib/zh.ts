@@ -742,6 +742,7 @@ export const SHELL_TEXT = {
   manageUsers: "管理用户账号与权限",
   addUser: "新增用户",
   addUserHint: "填写下方表单，为系统新增用户。",
+  userActions: "用户操作",
   editUser: "编辑用户",
   editUserHint: "修改下方用户资料。",
   deleteUser: "删除用户",

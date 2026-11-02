@@ -83,7 +83,7 @@ test.describe("Admin user management", () => {
     await expect(page.getByRole("dialog")).not.toBeVisible()
 
     const userRow = page.getByRole("row").filter({ hasText: email })
-    await userRow.getByRole("button").click()
+    await userRow.getByRole("button", { name: "用户操作" }).click()
 
     await page.getByRole("menuitem", { name: "编辑用户" }).click()
 
@@ -111,7 +111,7 @@ test.describe("Admin user management", () => {
     await expect(page.getByRole("dialog")).not.toBeVisible()
 
     const userRow = page.getByRole("row").filter({ hasText: email })
-    await userRow.getByRole("button").click()
+    await userRow.getByRole("button", { name: "用户操作" }).click()
 
     await page.getByRole("menuitem", { name: "删除用户" }).click()
 

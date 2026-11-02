@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import useAuth from "@/hooks/useAuth"
+import { SHELL_TEXT } from "@/lib/zh"
 import DeleteUser from "./DeleteUser"
 import EditUser from "./EditUser"
 
@@ -27,7 +28,7 @@ export const UserActionsMenu = ({ user }: UserActionsMenuProps) => {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" aria-label={SHELL_TEXT.userActions}>
           <EllipsisVertical />
         </Button>
       </DropdownMenuTrigger>
