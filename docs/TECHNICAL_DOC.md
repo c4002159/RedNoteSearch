@@ -13,7 +13,7 @@
 | 项目名称： | 小红书美妆香氛文案智能体 |  |  |
 | 编制： | 成员 A / 成员 B | 编制日期： | 2026年10月 |
 | 联系方式： | 待定 |  |  |
-| 文档版本： | 1.3（同步仓库、CI 与分支保护的实际状态） | 版本日期： | 2026年10月 |
+| 文档版本： | 1.4（对照 2026-11-02 的代码、接口与页面做了一次对账） | 版本日期： | 2026年11月 |
 |  |  |  |  |
 
 版本历史
@@ -21,6 +21,7 @@
 | 版本 | 日期 | 修订人 | 说明 |
 |---|---|---|---|
 | 1.3 | 2026.10.30 | 产品经理 | 同步实际状态：仓库已私有并推送；CI 与分支保护已启用，不要求他人批准（ADR-009）；Items 已移除、models 已拆包；接口与 fake 已合入；覆盖率 93%；Python 3.14 与迁移已在 Linux CI 验证 |
+| 1.4 | 2026.11.02 | A 与 AI 助手 | 对账：功能表补 F20 并标注 F15 不做；页面表改成实际路由；接口表补全 90 个接口里此前缺的分组；用例数 270；ADR 到 014。团队编号仍待补 |
 
 # 0. 文档说明
 
@@ -31,7 +32,7 @@
 | 需求范围与指标 | 需求规格说明书 v1.0 | 本文第 1–2 章是其执行视图；范围变更须更新规格书 |
 | API 字段、状态码、示例 | docs/API_CONTRACT.md（v1.1） | 字段以契约为准；本文第 6 章只做摘要 |
 | AI 编码边界 | AI_TEAM_GUIDE.md | 本文第 11 章为整合版，二者须保持一致 |
-| 测试用例 | docs/TEST_CASES.csv（67 条） | 本文第 10 章引用全部；TC-037 已并入 TC-005 |
+| 测试用例 | docs/TEST_CASES.csv（270 条，P0 135、P1 135） | 本文第 10 章引用全部；TC-037 已并入 TC-005 |
 | 流程、分支、CI、前端约束、技术栈 | 本文 | 修改须经 PR；GitHub 不强制批准（ADR-009），敏感路径须在评论里 @ 对方并等到确认 |
 
 *表 0-1 文档权威来源*
@@ -79,11 +80,12 @@
 | F12 | P1：PDF/DOCX/CSV 作为任务输入。与知识库共用解析器，但存储、索引、生命周期独立；格式、大小、失败处理分别验收 | A 解析 / B 消费 | 任务页上传区 | 解析器复用 | TC-036 |
 | F13 | P1：爆款结构分析（用户贴样本）。分析结构，不复刻原文；样本不入公共知识库；不爬取平台 | B | 分析页 | 分析服务；viral_sample、viral_pattern | TC-034 |
 | F14 | P1：品牌隔离与串味测试。先做跨品牌检索拒绝与固定串味集；RLS 视时间 | A | 串味测试结果展示 | 检索过滤；可选 RLS | TC-033 |
-| F15 | P1：多模型成本对比。同输入 2–3 个模型，并列约束通过率、人工评分、延迟、费用；失败模型单独显示 | B | 对比页 | 模型适配器复用 | TC-035 |
+| F15 | **不做（2026-11 决定）**。原计划：多模型成本对比，同输入 2–3 个模型并列约束通过率、人工评分、延迟、费用。评测运行已能按模型并列指标，未做单独的对比页 | — | — | — | TC-035（未实现） |
 | F16 | 推广对象：任务可以推单品、多个商品（主推加最多 4 个搭配商品）或一场活动（名称、说明、福利）；多品和活动的卖点与限制宣称取并集；活动里没写的时间、规则、步骤不得编造（提示词 gen-v6） | A | 工作台里的推广对象选择（设计稿待 B） | `POST /tasks` 的 promo_type、extra_product_ids、activity；task 表三列 | TC-201–204 |
 | F17 | 自定义创作类型：品牌 admin 在内置 6 类之外加自己的笔记类型（键 c+8 位十六进制），可用于品牌模板；仍被模板或已确认文案使用的类型不能删 | A | 创作类型管理（设计稿待 B） | creative-types 接口；creative_type 表 | TC-212–217 |
 | F18 | 成绩记录：确认文案时自动留一份“已确认文案”；填发布时间、帖子网址、点赞收藏评论读数（只增不改，来源 manual / extension / screenshot）；发布满 3 天无读数提示待补；“最热”至少 3 篇有读数才排序，否则写“数据不足”。网址只存不抓取 | A | 成绩记录页（设计稿待 B） | confirmed-copies、metrics、summary 接口；confirmed_copy、post_metric 表 | TC-205–211 |
 | F19 | 浏览器插件：用户在自己的 Chrome 里打开笔记页，插件读出页面已显示的三个数字，用户点“发送”后记到对应的已确认文案；只写不读的密钥，库里只存哈希；不抓取、不后台运行 | A | 插件密钥管理页（设计稿待 B）；插件本身在 `extensions/results-helper` | extension-keys 与 `POST /extension/metrics`；extension_key 表 | TC-218–224 |
+| F20 | 平台管理员在网页设置模型密钥与可用模型清单（ADR-013）：只有平台管理员可读写；密钥用 Fernet 加密，库里只存密文和末 4 位，接口、日志、审计都不出现明文；库里的值优先，清除后回到 `.env` | A | 用户设置页里的模型设置 | `GET /settings/providers`、`PUT、DELETE /settings/providers/{provider}` | 见 TEST_CASES.csv 的 settings 用例 |
 
 *表 2-1 功能需求与归属*
 
@@ -237,22 +239,27 @@ RedNoteSearch/
 
 ## 4.3 导航与页面清单
 
-| 分组 | 页面 | 路由（建议） | 角色 | 负责 | 级别 |
+| 分组 | 页面 | 路由（实际） | 可见角色 | 负责 | 级别 |
 |---|---|---|---|---|---|
-| 创作 | 生成工作台 | /generate | editor、admin | B | P0 |
-| 创作 | 任务与版本历史 | /tasks | editor、admin | B | P0 |
-| 创作 | 结果页：四类字段、证据面板、风险面板、编辑、复检、确认、复制 | /tasks/:id/versions/:vid | editor、admin | B | P0 |
+| 创作 | 生成工作台 | /generate | 品牌成员 | B | P0 |
+| 创作 | 任务与版本历史 | /tasks | 品牌成员 | B | P0 |
+| 创作 | 任务详情；版本结果页（四类字段、证据面板、风险面板、编辑、重写、复检、确认、复制、导出）；版本对比 | /tasks/:taskId；/tasks/:taskId/versions/:versionId；/tasks/:taskId/compare | 品牌成员 | B | P0 |
 | 品牌与商品 | 品牌与切换 | /brands | 全部 | A | P0 |
-| 品牌与商品 | 商品管理 | /brands/:id/products | editor 只读、admin 编辑 | A | P0 |
-| 品牌与商品 | 品牌档案（版本） | /brands/:id/voice-profile | editor 只读、admin 编辑 | A | P0 |
-| 知识库 | 资料列表与上传 | /knowledge | editor 提交、admin 直入库 | A | P0 |
-| 知识库 | 待审队列与审核 | /knowledge/review | admin | A | P0 |
+| 品牌与商品 | 商品管理 | /products | 成员只读、admin 编辑 | A | P0 |
+| 品牌与商品 | 场景模板（内置模板与品牌自建模板） | /scenarios | 品牌成员 | A | P1 |
+| 品牌与商品 | 爆款结构分析：样本列表；样本与结构详情；转模板 | /viral-samples；/viral-samples/:id；/viral-patterns/:id | 品牌成员（删除样本仅 admin） | A | P1 |
+| 品牌与商品 | 品牌档案（版本） | /voice-profile | 成员只读、admin 编辑 | A | P0 |
+| 知识库 | 资料列表与上传 | /knowledge | 成员提交、admin 直入库 | A | P0 |
+| 知识库 | 待审队列与审核 | /knowledge/review | 品牌 admin | A | P0 |
 | 知识库 | 资料详情：版本与审核记录、停用 | /knowledge/:id | 全部查看、admin 操作 | A | P0 |
-| 质量与评测 | 评测集 | /evaluation/datasets | admin | B | P0 |
-| 质量与评测 | 评测运行与报告 | /evaluation/runs、/evaluation/runs/:id | admin | B | P0 |
-| 质量与评测 | 合规规则：查看与维护（新增、修改、停用，示例规则标注来源待核对） | /compliance/rules | 全部查看、admin 维护 | A | P0 |
-| 增强（P1） | 爆款结构分析；多模型对比 | /analysis/viral、/compare | editor、admin | B | P1 |
-| 系统 | 用户设置（模板自带）；审计日志 | /settings、/admin/audit | 全部、admin | A | P0 / P2 |
+| 质量与评测 | 评测集；评测集详情 | /evaluation/datasets；/evaluation/datasets/:id | 品牌 admin | B | P0 |
+| 质量与评测 | 评测运行与报告；运行详情 | /evaluation/runs；/evaluation/runs/:id | 品牌 admin | B | P0 |
+| 质量与评测 | 风险提示规则：查看与维护（新增、修改、停用、批量导入、导出、下载模板；示例规则标注来源待核对） | /compliance/rules | 全部查看、admin 维护 | A | P0 |
+| 系统 | 用户设置（含平台管理员的模型设置，ADR-013） | /settings | 全部 | A | P0 |
+| 系统 | 用户管理 | /admin | 平台管理员 | A | P0 |
+| 系统 | 登录、找回密码、重置密码；未知路径显示 404 页 | /login、/recover-password、/reset-password | 公开 | A | P0 |
+| **尚无页面（接口已有，等设计稿）** | 推广对象选择（单品、多品、活动）、创作类型管理、成绩记录页、插件密钥管理页（含复制连接配置） | 待定 | — | B 出稿，A 或 B 实现 | 待定 |
+| 未做 | 多模型对比；审计日志查看 | — | — | — | 不做 / P2 |
 
 *表 4-3 导航与页面*
 
@@ -331,22 +338,26 @@ RedNoteSearch/
 | 分组 | 端点 | 负责 | 权限 |
 |---|---|---|---|
 | 认证（沿用模板） | POST /login/access-token；POST /login/test-token；GET、PATCH /users/me；用户管理 /users…。公开注册 /users/signup 必须关闭 | A | 登录 / 平台管理员 |
-| 品牌 | GET /brands；POST、PATCH /brands；成员 GET、POST、PATCH、DELETE /brands/{id}/members（不得移除最后一位 admin） | A | 成员 / 平台管理员 / 品牌 admin |
+| 品牌 | GET、POST /brands；PATCH /brands/{id}；成员 GET、POST（`user_id` 或 `email` 二选一）、PATCH、DELETE /brands/{id}/members（不得移除最后一位 admin） | A | 成员 / 平台管理员 / 品牌 admin |
 | 商品 | GET、POST /brands/{id}/products；PATCH /products/{id}；POST /products/{id}/archive（软删除） | A | 成员读 / admin 写 |
-| 品牌档案 | GET voice-profile；GET、POST versions；POST versions/{v}/activate；POST drafts（P1，须人工确认） | A | 成员读 / admin 写 |
+| 品牌档案 | GET /brands/{id}/voice-profile；GET、POST …/versions；POST …/versions/{v}/activate | A | 成员读 / admin 写 |
 | 知识资料 | POST knowledge-documents（admin 直入库，approved）；POST knowledge-documents/{id}/versions；POST knowledge-submissions（运营，pending_review）；GET 列表与详情；GET chunks；POST reindex；POST reviews；POST deactivate | A | 见权限矩阵 |
-| 场景与风格 | GET /scenarios；GET、POST /brands/{id}/style-presets | B | 登录 / 成员 |
-| 任务与生成 | POST、GET /tasks；POST /tasks/{id}/generate（202，幂等）；GET /tasks/{id}；GET versions；GET /generation-versions/{id} | B | 品牌成员 |
-| 编辑与确认 | POST edit、rewrite、recheck、confirm（需选定标题与封面）；POST /claim-evidence/{id}/confirm；GET export?format=xhs_parts\|markdown（仅 ready_to_copy） | B | 品牌成员 |
-| 合规规则 | GET /compliance-rules；GET /compliance-rules/{id}（增改属 P2） | B | 登录 |
-| 评测 | GET、POST /evaluation/datasets；GET cases；GET rubrics；POST、GET runs；POST ratings；GET agreement | B | 品牌 admin |
-| 模型 | GET /models（价格为配置数据） | B | 登录 |
+| 场景与风格 | GET /scenarios；GET、POST /brands/{id}/style-presets；GET、POST /brands/{id}/scenario-templates；PATCH /scenario-templates/{id} | A | 登录 / 成员 / 品牌 admin 写 |
+| 任务与生成 | POST、GET /tasks；POST /tasks/{id}/generate（202，幂等）；GET /tasks/{id}；GET versions；GET /generation-versions/{id}；POST、GET /tasks/{id}/materials（任务资料文件，F12） | A | 品牌成员 |
+| 编辑与确认 | POST /generation-versions/{id}/edit、rewrite、recheck、confirm（需选定标题与封面）；GET export?format=xhs_parts\|markdown（仅 ready_to_copy） | A | 品牌成员 |
+| 证据与风险提示 | GET /generation-versions/{id}/evidence；POST …/evidence/confirm-batch（逐条人工决定，ADR-011）；POST /claim-evidence/{id}/confirm；GET /generation-versions/{id}/compliance；POST /compliance-checks/{id}/resolve | A | 品牌成员 |
+| 合规规则 | GET /compliance-rules（`scope=global\|brand`）；GET、PATCH /compliance-rules/{id}；POST /compliance-rules（全局，平台管理员）；POST /brands/{id}/compliance-rules（品牌规则）；批量：POST /compliance-rules/import 与 /brands/{id}/compliance-rules/import、GET …/export、GET /compliance-rules/import-template | A | 登录读；全局写平台管理员，品牌写品牌 admin |
+| 评测 | GET、POST /evaluation/datasets；GET …/{id}/cases；GET /evaluation/rubrics；POST、GET /evaluation/runs；GET runs/{id}、runs/{id}/results；POST runs/{id}/ratings；GET runs/{id}/agreement | A | 品牌 admin |
+| 模型 | GET /models（价格为配置数据）；GET /settings/providers；PUT、DELETE /settings/providers/{provider}（网页设置密钥与模型清单，ADR-013） | A | 登录读模型；设置仅平台管理员 |
+| 爆款结构分析 | POST、GET /brands/{id}/viral-samples；POST …/viral-samples/delete（批量删除）；GET /viral-samples/{id}、…/patterns；POST …/analyze；GET /viral-patterns/{id}；POST …/to-template | A | 品牌成员（删除仅 admin） |
 | 创作类型 | GET、POST /brands/{id}/creative-types；PATCH、DELETE /brands/{id}/creative-types/{key}（被引用时不能删） | A | 成员读 / admin 写 |
 | 成绩记录 | GET /brands/{id}/confirmed-copies（可筛待补）；GET、PATCH /confirmed-copies/{id}（发布时间、帖子网址）；POST、GET /confirmed-copies/{id}/metrics；GET /brands/{id}/results/summary（最常用、最热） | A | 品牌成员 |
 | 浏览器插件 | POST、GET、DELETE /brands/{id}/extension-keys（密钥只在创建时返回一次）；POST /extension/metrics（请求头 X-Extension-Key，不带用户令牌） | A | 品牌 admin / 插件密钥 |
-| 审计（P2） | GET /audit-logs | A | 品牌 admin |
+| 审计 | 审计日志只写入（`audit_log` 表，关键动作都会写）；**查看接口 `GET /audit-logs` 未实现（P2）** | A | — |
 
 *表 6-1 端点摘要*
+
+2026-11-02 对账：后端共 90 个路由，本表现已覆盖全部分组；字段、示例与错误码仍以 `docs/API_CONTRACT.md` 为准。
 
 ## 6.3 通用约定（v1.1 新增）
 
@@ -755,7 +766,7 @@ gh api -X PUT repos/c4002159/RedNoteSearch/branches/main/protection --input prot
 | 需求规格说明书_小红书美妆香氛文案智能体.docx | 需求与架构基线 v1.0 |
 | 两人开发分工与协作手册_….docx | 本文第 7、8、10 章的来源（原件在 Codex 输出目录） |
 | docs/API_CONTRACT.md | v1.1，接口字段权威来源 |
-| docs/TEST_CASES.csv | 67 条用例，本文 10.2 的来源 |
-| docs/decisions/ADR-001 至 ADR-009 | 迁移、覆盖率、Python、字数口径、标签写法、模型与嵌入、仓库与客户资料、视觉基线、分支保护（不要求他人批准） |
+| docs/TEST_CASES.csv | 270 条用例（截至 2026-11-02），本文 10.2 的来源 |
+| docs/decisions/ADR-001 至 ADR-014 | 迁移、覆盖率、Python、字数口径、标签写法、模型与嵌入、仓库与客户资料、视觉基线、分支保护（不要求他人批准）、表结构细化、人在回路、后端分工、网页设置模型密钥、浏览器插件边界 |
 | AI_TEAM_GUIDE.md | 更新版，放仓库根目录 |
 | 本文 | 整合版技术文档；与上述文件冲突按第 0 章规则处理 |
