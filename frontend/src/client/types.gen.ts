@@ -1905,7 +1905,10 @@ export type ProductCreate = {
      * Product Line
      */
     product_line?: string | null;
-    category?: BrandCategory;
+    /**
+     * Category
+     */
+    category?: string;
     notes?: ProductNotes;
     /**
      * Selling Points
@@ -1991,7 +1994,10 @@ export type ProductUpdate = {
      * Product Line
      */
     product_line?: string | null;
-    category?: BrandCategory | null;
+    /**
+     * Category
+     */
+    category?: string | null;
     notes?: ProductNotes | null;
     /**
      * Selling Points

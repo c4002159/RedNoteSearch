@@ -9,8 +9,8 @@ export function label(
   group = "enum",
 ): string {
   if (key === null || key === undefined || key === "") return "—"
-  const text = map[key]
-  if (text !== undefined) return text
+  const text = Object.getOwnPropertyDescriptor(map, key)?.value
+  if (typeof text === "string") return text
   const id = `${group}:${key}`
   if (!reported.has(id)) {
     reported.add(id)
@@ -1411,3 +1411,22 @@ export const TABLE_TEXT = {
   status: "状态",
   actions: "操作",
 } as const
+
+// 商品自定义种类与按需填写香调。
+export const PRODUCT_CATEGORY_TEXT = {
+  required: "请填写商品种类",
+  limit: "商品种类最多 30 字",
+  invalid: "商品种类不能包含换行或控制字符",
+  placeholder: "选择预设种类或输入自定义种类",
+  hint: "可选预设，也可填写自定义种类，最多 30 字",
+  addNotes: "这是香水/香氛类？添加香调",
+} as const
+
+export function productCategoryValue(text: string): string {
+  const value = text.trim()
+  return (
+    Object.entries(BRAND_CATEGORY_LABEL).find(
+      ([, title]) => title === value,
+    )?.[0] ?? value
+  )
+}
