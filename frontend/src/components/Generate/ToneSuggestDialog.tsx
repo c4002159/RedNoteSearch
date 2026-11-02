@@ -45,10 +45,21 @@ function ToneError({
   )
 }
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
+function Group({
+  title,
+  children,
+  hint,
+}: {
+  title: string
+  children: ReactNode
+  hint?: string
+}) {
   return (
     <section aria-label={title} className="space-y-3">
-      <h3 className="text-sm font-semibold">{title}</h3>
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+      </div>
       {children}
     </section>
   )
@@ -260,8 +271,7 @@ export function ToneSuggestDialog({
             )
           )}
           {(model.isPending || model.isError || model.data) && (
-            <Group title={T.modelGroup}>
-              <p className="text-xs text-muted-foreground">{T.modelHint}</p>
+            <Group title={T.modelGroup} hint={T.modelHint}>
               {model.isPending ? (
                 <div
                   role="status"

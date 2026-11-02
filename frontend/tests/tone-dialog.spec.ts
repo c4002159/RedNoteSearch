@@ -284,7 +284,10 @@ test("Tone requests selected scene and primary product and prevents duplicate mo
   let dialog = await open(page)
   await expect(dialog.getByText("亲切自然", { exact: true })).toBeVisible()
   expect(fixture.reads[0].searchParams.has("scene")).toBe(false)
-  await dialog.getByRole("button", { name: "关闭", exact: true }).click()
+  await dialog
+    .locator('[data-slot="dialog-footer"]')
+    .getByRole("button", { name: "关闭", exact: true })
+    .click()
   await page.getByRole("combobox", { name: "选择商品", exact: true }).click()
   await page.getByRole("option", { name: "日常香氛", exact: true }).click()
   await page
@@ -395,10 +398,19 @@ for (const width of [1440, 1280])
     await setup(page)
     const dialog = await open(page)
     await expect(dialog.getByText("来自 2 个爆款样本")).toBeVisible()
+    await expect
+      .poll(() => dialog.evaluate((el) => getComputedStyle(el).opacity))
+      .toBe("1")
+    await page.screenshot({
+      path: test.info().outputPath(`tone-${width}-sources.png`),
+    })
     await dialog
       .getByRole("button", { name: "让模型再想几个", exact: true })
       .click()
     await expect(dialog.getByText("沿用品牌的克制表达方式")).toBeVisible()
+    await dialog
+      .getByRole("region", { name: "模型建议", exact: true })
+      .scrollIntoViewIfNeeded()
     await expect
       .poll(() => dialog.evaluate((el) => getComputedStyle(el).opacity))
       .toBe("1")
