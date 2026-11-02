@@ -1182,3 +1182,22 @@ export const CREATIVE_TYPES_TEXT = {
   deleteHint: "自定义类型如被模板版本或已确认文案使用，将无法删除。",
   readonlyHint: "自定义类型维护需联系品牌管理员进行创建、重命名或删除。",
 } as const
+
+export const CREATIVE_TYPE_DIALOG_TEXT = {
+  create: "新建类型",
+  rename: "重命名",
+  remove: "删除类型",
+  confirmDelete: "确认删除",
+  cancel: "取消",
+  save: "保存",
+  name: "类型名称",
+  createHint:
+    "名称为 1 到 20 字，去掉首尾空白；不能与内置或已有类型重名，每个品牌最多 20 个自定义类型。",
+  renameHint: "只修改显示名称，类型标识保持不变，模板会跟随新名称。",
+  deleteHint: (name: string) =>
+    `确认删除“${name}”？有模板版本或已确认文案使用时不能删除。`,
+  used: (templates: number, copies: number) =>
+    `还有 ${templates} 个模板版本、${copies} 篇已确认文案在使用，不能删除。`,
+  conflict: "名称重复或已达到品牌类型数量上限，请检查后重试。",
+  menu: (name: string) => `管理类型：${name}`,
+} as const

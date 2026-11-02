@@ -1,10 +1,23 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
+import { MoreHorizontal, Plus } from "lucide-react"
+import { useState } from "react"
 import { CreativeTypesService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { Pill } from "@/components/Common/StatusBadge"
+import {
+  type TypeAction,
+  TypeDialog,
+} from "@/components/CreativeTypes/TypeDialog"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -16,7 +29,11 @@ import {
 } from "@/components/ui/table"
 import { useBrand } from "@/hooks/useBrand"
 import { parseApiError } from "@/lib/apiError"
-import { PAGE_ERROR_TEXT, CREATIVE_TYPES_TEXT as T } from "@/lib/zh"
+import {
+  CREATIVE_TYPE_DIALOG_TEXT as D,
+  PAGE_ERROR_TEXT,
+  CREATIVE_TYPES_TEXT as T,
+} from "@/lib/zh"
 
 export const Route = createFileRoute("/_layout/creative-types")({
   component: Page,
@@ -79,6 +96,8 @@ function TypeList({
   brandName: string
   admin: boolean
 }) {
+  const cache = useQueryClient()
+  const [action, setAction] = useState<TypeAction | null>(null)
   const list = useQuery({
     queryKey: ["creative-types", brandId],
     queryFn: async ({ signal }) =>
@@ -111,7 +130,14 @@ function TypeList({
             {T.description}
           </p>
         </div>
-        {!admin && <Pill tone="info">{T.readonly}</Pill>}
+        {admin ? (
+          <Button onClick={() => setAction({ kind: "create" })}>
+            <Plus />
+            {D.create}
+          </Button>
+        ) : (
+          <Pill tone="info">{T.readonly}</Pill>
+        )}
       </header>
       <section className="min-w-0 space-y-5 rounded-xl bg-card p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -184,7 +210,42 @@ function TypeList({
                     <TableCell className="tabular-nums">
                       {row.template_count}
                     </TableCell>
-                    {admin && <TableCell>—</TableCell>}
+                    {admin && (
+                      <TableCell>
+                        {row.builtin ? (
+                          "—"
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={D.menu(row.name)}
+                              >
+                                <MoreHorizontal />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onSelect={() =>
+                                  setAction({ kind: "rename", row })
+                                }
+                              >
+                                {D.rename}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onSelect={() =>
+                                  setAction({ kind: "delete", row })
+                                }
+                              >
+                                {D.remove}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}
@@ -196,6 +257,18 @@ function TypeList({
           <p>{admin ? T.deleteHint : T.readonlyHint}</p>
         </footer>
       </section>
+      {action && admin && (
+        <TypeDialog
+          brandId={brandId}
+          action={action}
+          onClose={() => setAction(null)}
+          onSaved={async () => {
+            await cache.invalidateQueries({
+              queryKey: ["creative-types", brandId],
+            })
+          }}
+        />
+      )}
     </div>
   )
 }
