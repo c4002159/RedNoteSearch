@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
-import type { ReactNode } from "react"
+import { type ReactNode, useEffect, useRef } from "react"
 import { ToneService } from "@/client"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { ForbiddenPage, MissingPage } from "@/components/Common/ForbiddenPage"
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { parseApiError } from "@/lib/apiError"
+import { toneKey, uniqueTones } from "@/lib/toneKey"
 import { TONE_DIALOG_TEXT as T } from "@/lib/zh"
 
 function ToneError({
@@ -126,6 +127,7 @@ export function ToneSuggestDialog({
   onClose: () => void
   onUse: (tone: string) => void
 }) {
+  const shown = useRef(new Map<string, string>())
   const list = useQuery({
     queryKey: ["tone-suggestions", brandId, scene ?? ""],
     queryFn: async ({ signal }) =>
@@ -146,17 +148,36 @@ export function ToneSuggestDialog({
             ...(scene ? { scene } : {}),
             ...(productId ? { product_id: productId } : {}),
             count: 5,
+            exclude: [...shown.current.values()].slice(-30),
           },
         })
       ).data,
     retry: false,
   })
   const data = list.data
+  const history = uniqueTones(data?.history ?? [])
+  const template = uniqueTones(data?.template ?? [])
+  const results = uniqueTones(data?.results.items ?? [])
+  const modelItems = uniqueTones(model.data?.items ?? [])
+  useEffect(() => {
+    const items = [
+      ...(data?.history ?? []),
+      ...(data?.template ?? []),
+      ...(data?.results.enough_data ? data.results.items : []),
+      ...(model.data?.items ?? []),
+    ]
+    for (const { tone } of uniqueTones(items)) {
+      // Backend limits exclude entries to 1–40 Unicode code points.
+      const value = [...tone.trim()].slice(0, 40).join("")
+      const key = toneKey(value)
+      if (key) shown.current.set(key, value)
+    }
+  }, [data, model.data])
   const allEmpty =
     data &&
-    !data.history.length &&
-    !data.template.length &&
-    (!data.results.enough_data || !data.results.items.length)
+    !history.length &&
+    !template.length &&
+    (!data.results.enough_data || !results.length)
   return (
     <Dialog
       open
@@ -188,10 +209,10 @@ export function ToneSuggestDialog({
                     {T.allEmpty}
                   </p>
                 )}
-                <Group title={T.history}>
+                <Group title={T.history} hint={T.count(history.length)}>
                   <div className="space-y-2">
-                    {data.history.length ? (
-                      data.history.map((item) => (
+                    {history.length ? (
+                      history.map((item) => (
                         <Choice
                           key={`${item.source}:${item.tone}`}
                           tone={item.tone}
@@ -220,11 +241,11 @@ export function ToneSuggestDialog({
                     )}
                   </div>
                 </Group>
-                <Group title={T.template}>
+                <Group title={T.template} hint={T.count(template.length)}>
                   <p className="text-xs text-primary">{T.brandWide}</p>
                   <div className="space-y-2">
-                    {data.template.length ? (
-                      data.template.map((item) => (
+                    {template.length ? (
+                      template.map((item) => (
                         <Choice
                           key={item.tone}
                           tone={item.tone}
@@ -239,14 +260,21 @@ export function ToneSuggestDialog({
                     )}
                   </div>
                 </Group>
-                <Group title={T.results}>
+                <Group
+                  title={T.results}
+                  hint={
+                    data.results.enough_data
+                      ? T.count(results.length)
+                      : undefined
+                  }
+                >
                   <div className="space-y-2">
                     {!data.results.enough_data ? (
                       <p className="rounded-lg bg-surface-low p-3 text-xs text-muted-foreground">
                         {T.insufficient(data.results.min_notes)}
                       </p>
-                    ) : data.results.items.length ? (
-                      data.results.items.map((item) => (
+                    ) : results.length ? (
+                      results.map((item) => (
                         <Choice
                           key={item.tone}
                           tone={item.tone}
@@ -283,8 +311,11 @@ export function ToneSuggestDialog({
                 <ToneError error={model.error} model />
               ) : (
                 <div className="space-y-2">
-                  {model.data?.items.length ? (
-                    model.data.items.map((item) => (
+                  <p role="status" className="text-xs text-muted-foreground">
+                    {T.count(modelItems.length)}
+                  </p>
+                  {modelItems.length ? (
+                    modelItems.map((item) => (
                       <Choice
                         key={item.tone}
                         tone={item.tone}

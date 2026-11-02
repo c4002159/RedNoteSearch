@@ -159,6 +159,104 @@ async function scene(page: Page, name = "种草") {
 const create = (page: Page) =>
   page.getByRole("button", { name: "仅创建，稍后添加资料", exact: true })
 
+test("Custom scene requires both description and an explicit closest template, then preserves the appended brief in task details", async ({
+  page,
+}) => {
+  const { writes } = await setup(page)
+  await page.goto("/generate")
+  await select(page, "选择商品", "香氛商品1")
+  await scene(page)
+  await scene(page, "自定义")
+  const description = page.getByRole("textbox", { name: /场景说明/ })
+  const generate = page.getByRole("button", {
+    name: "创建并开始生成",
+    exact: true,
+  })
+  await expect(create(page)).toBeDisabled()
+  await expect(generate).toBeDisabled()
+  await expect(
+    page
+      .locator("form")
+      .getByRole("link", { name: "创作类型管理", exact: true }),
+  ).toHaveAttribute("href", "/creative-types")
+  await description.fill("   ")
+  await select(page, "最接近的场景模板（必选）", "通勤分享 v2")
+  await expect(create(page)).toBeDisabled()
+  await expect(generate).toBeDisabled()
+  await description.fill("周末好友聚会")
+  await expect(create(page)).toBeEnabled()
+  await expect(generate).toBeEnabled()
+  await select(page, "最接近的场景模板（必选）", "请选择模板")
+  await expect(create(page)).toBeDisabled()
+  await expect(generate).toBeDisabled()
+  expect(writes).toHaveLength(0)
+  await select(page, "最接近的场景模板（必选）", "通勤分享 v2")
+  await description.scrollIntoViewIfNeeded()
+  await page.screenshot({ path: test.info().outputPath("custom-scene.png") })
+  await page.getByRole("textbox", { name: /创作要求/ }).fill("保留轻松的表达")
+  await create(page).click()
+  await expect.poll(() => writes.length).toBe(1)
+  expect(writes[0]).toMatchObject({
+    scenario_id: scenarios[1].id,
+    brief: "保留轻松的表达\n场景说明：周末好友聚会",
+    promo_type: "product",
+    product_id: products[0].id,
+  })
+  expect(writes[0]).not.toHaveProperty("scene_description")
+  expect(writes[0]).not.toHaveProperty("custom_scene")
+  await page.route(`**/api/v1/tasks/${task}`, (route) =>
+    route.fulfill({
+      json: {
+        ...writes[0],
+        id: task,
+        scenario_name: scenarios[1].name,
+        scenario_version: 2,
+        product_name: products[0].name,
+        flow_status: "queued",
+        progress: null,
+        last_error: null,
+        latest_version_id: null,
+        created_at: "2026-11-03T01:00:00Z",
+      },
+    }),
+  )
+  await page.route(`**/api/v1/tasks/${task}/versions*`, (route) =>
+    route.fulfill({ json: { items: [] } }),
+  )
+  await page.goto(`/tasks/${task}`)
+  await expect(
+    page.locator("dd").filter({ hasText: "场景说明：周末好友聚会" }),
+  ).toHaveText("保留轻松的表达\n场景说明：周末好友聚会")
+})
+
+test("Custom scene caps description at 50 code points and checks the combined brief limit; normal scenes omit the custom description", async ({
+  page,
+}) => {
+  const { writes } = await setup(page)
+  await page.goto("/generate")
+  await select(page, "选择商品", "香氛商品1")
+  await scene(page, "自定义")
+  await select(page, "最接近的场景模板（必选）", "生活场景 v1")
+  const description = page.getByRole("textbox", { name: /场景说明/ })
+  await description.fill("😀".repeat(51))
+  await expect(description).toHaveValue("😀".repeat(50))
+  await expect(
+    page.getByText("50 / 50 字（必填）", { exact: true }),
+  ).toBeVisible()
+  await expect(create(page)).toBeEnabled()
+  const brief = page.getByRole("textbox", { name: /创作要求/ })
+  await brief.fill("要".repeat(1990))
+  await expect(create(page)).toBeDisabled()
+  await brief.fill("原有创作要求")
+  await scene(page)
+  await expect(description).toHaveCount(0)
+  await expect(create(page)).toBeEnabled()
+  await create(page).click()
+  await expect.poll(() => writes.length).toBe(1)
+  expect(writes[0].brief).toBe("原有创作要求")
+  expect(writes[0].scenario_id).toBe(scenarios[0].id)
+})
+
 test("Promo single product submits only its own fields and shows real metadata", async ({
   page,
 }) => {

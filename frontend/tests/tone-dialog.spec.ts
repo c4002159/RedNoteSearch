@@ -67,6 +67,7 @@ async function setup(
     loading?: Promise<void>
     generating?: Promise<void>
     emptyModel?: boolean
+    modelBatches?: (typeof generated.items)[]
   } = {},
 ) {
   await mockAnalysis(page, true)
@@ -165,7 +166,12 @@ async function setup(
           : {
               json: options.emptyModel
                 ? { ...generated, items: [] }
-                : generated,
+                : {
+                    ...generated,
+                    items:
+                      options.modelBatches?.[writes.length - 1] ??
+                      generated.items,
+                  },
             },
       )
     },
@@ -309,7 +315,12 @@ test("Tone requests selected scene and primary product and prevents duplicate mo
   ).toBeDisabled()
   await expect(dialog.getByRole("status")).toHaveText("正在生成建议…")
   expect(fixture.writes).toEqual([
-    { count: 5, scene: "brand_custom", product_id: productId },
+    {
+      count: 5,
+      scene: "brand_custom",
+      product_id: productId,
+      exclude: ["亲切自然", "从容叙述", "轻松克制", "清晰直接"],
+    },
   ])
   expect(
     fixture.reads.every((url) => url.pathname.includes(analysisIds.brand)),
@@ -338,7 +349,9 @@ test("Tone activity request omits stale product and unspecified scene", async ({
     .getByRole("button", { name: "让模型再想几个", exact: true })
     .click()
   await expect(page.getByText("沿用品牌的克制表达方式")).toBeVisible()
-  expect(fixture.writes).toEqual([{ count: 5 }])
+  expect(fixture.writes).toEqual([
+    { count: 5, exclude: ["亲切自然", "从容叙述", "轻松克制", "清晰直接"] },
+  ])
 })
 
 for (const [status, code, text] of [
@@ -380,6 +393,106 @@ test("Tone loading, generic query failure and retry keep workbench editable", as
   fixture.recover()
   await dialog.getByRole("button", { name: "重试", exact: true }).click()
   await expect(dialog.getByText("亲切自然", { exact: true })).toBeVisible()
+})
+
+test("Tone deduplication matches NFKC, casefold, whitespace and Unicode punctuation within each source", async ({
+  page,
+}) => {
+  const tones = [
+    " ＳＴＲＡＳＳＥ！ ",
+    "straße",
+    "Stra  sse",
+    "Ος",
+    "οσ",
+    "Ꭰ",
+    "ꭰ",
+    "轻松、 自然",
+    "轻松自然",
+  ]
+  await setup(page, {
+    value: {
+      history: tones.map((tone) => ({ ...data.history[0], tone })),
+      template: tones.map((tone) => ({ ...data.template[0], tone })),
+      results: {
+        ...data.results,
+        items: tones.map((tone) => ({ ...data.results.items[0], tone })),
+      },
+    },
+  })
+  const dialog = await open(page)
+  for (const title of [
+    "我们用过的",
+    "爆款模板里的语气",
+    "成绩较好的文案用过的语气",
+  ]) {
+    const group = dialog.getByRole("region", { name: title, exact: true })
+    await expect(group.getByRole("button", { name: /^使用 / })).toHaveCount(4)
+    await expect(group.getByText("共 4 条", { exact: true })).toBeVisible()
+  }
+  await expect(dialog.getByRole("button", { name: /^使用 / })).toHaveCount(12)
+})
+
+test("Tone exclude includes all displayed sources and previous model batches, bounded at 30 entries and 40 code points", async ({
+  page,
+}) => {
+  const long = "长".repeat(45)
+  const firstBatch = [
+    { tone: "新语气", reason: "新建议" },
+    { tone: "新、 语气！", reason: "重复建议" },
+  ]
+  const fixture = await setup(page, {
+    value: { ...empty, history: [{ ...data.history[0], tone: long }] },
+    modelBatches: [firstBatch, [{ tone: "另一语气", reason: "另一建议" }]],
+  })
+  const dialog = await open(page)
+  await expect(
+    dialog.getByRole("button", { name: `使用 ${long}`, exact: true }),
+  ).toBeVisible()
+  const generate = dialog.getByRole("button", {
+    name: "让模型再想几个",
+    exact: true,
+  })
+  await generate.click()
+  const model = dialog.getByRole("region", { name: "模型建议", exact: true })
+  await expect(model.getByRole("button", { name: /^使用 / })).toHaveCount(1)
+  await expect(model.getByText("共 1 条", { exact: true })).toBeVisible()
+  expect(fixture.writes[0]).toEqual({ count: 5, exclude: ["长".repeat(40)] })
+  await generate.click()
+  await expect(model.getByText("另一语气", { exact: true })).toBeVisible()
+  expect(fixture.writes[1]).toEqual({
+    count: 5,
+    exclude: ["长".repeat(40), "新语气"],
+  })
+  await generate.click()
+  await expect.poll(() => fixture.writes.length).toBe(3)
+  expect(fixture.writes[2]).toEqual({
+    count: 5,
+    exclude: ["长".repeat(40), "新语气", "另一语气"],
+  })
+})
+
+test("Tone exclude never sends more than 30 already displayed tones", async ({
+  page,
+}) => {
+  const fixture = await setup(page, {
+    value: {
+      ...empty,
+      history: Array.from({ length: 32 }, (_, i) => ({
+        ...data.history[0],
+        tone: `语气${i}`,
+      })),
+    },
+  })
+  const dialog = await open(page)
+  await expect(dialog.getByRole("button", { name: /^使用 / })).toHaveCount(32)
+  await dialog
+    .getByRole("button", { name: "让模型再想几个", exact: true })
+    .click()
+  await expect.poll(() => fixture.writes.length).toBe(1)
+  expect(fixture.writes[0]).toEqual({
+    count: 5,
+    exclude: Array.from({ length: 30 }, (_, i) => `语气${i + 2}`),
+  })
 })
 
 for (const width of [1440, 1280])

@@ -1197,6 +1197,16 @@ export const EXTENSION_KEYS_TEXT = {
   ],
 } as const
 
+export const CUSTOM_SCENE_TEXT = {
+  custom: "自定义",
+  description: "场景说明",
+  template: "最接近的场景模板（必选）",
+  chooseTemplate: "请选择模板",
+  counter: (count: number) => `${count} / 50 字（必填）`,
+  hint: "说明会加入本次创作要求，不会新建模板。想长期保存场景，请前往",
+  manageTypes: "创作类型管理",
+} as const
+
 // 成绩记录：看板、列表与登记弹窗。
 export const RESULTS_TEXT = {
   title: "成绩记录",
@@ -1347,6 +1357,7 @@ export const PROMO_REVIEW_TEXT = {
 
 // 工作台语气推荐：来源分组、模型建议和状态。
 export const TONE_DIALOG_TEXT = {
+  count: (count: number) => `共 ${count} 条`,
   title: "推荐语气",
   description: "从品牌已有语气中选择，或让模型提供新的写作方式。",
   history: "我们用过的",
