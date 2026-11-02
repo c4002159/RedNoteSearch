@@ -347,11 +347,11 @@ function KeysPage({ brandId }: { brandId: string }) {
               <DialogTitle>{T.revokeTitle}</DialogTitle>
               <DialogDescription>{T.revokeHint}</DialogDescription>
             </DialogHeader>
-            <dl className="space-y-2 rounded-lg bg-surface-low p-4 [overflow-wrap:anywhere]">
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 rounded-lg bg-surface-low p-4 [overflow-wrap:anywhere]">
               <dt>{T.label}</dt>
-              <dd>{target.label}</dd>
+              <dd className="text-right">{target.label}</dd>
               <dt>{T.prefix}</dt>
-              <dd className="font-mono">{target.prefix}</dd>
+              <dd className="text-right font-mono">{target.prefix}</dd>
             </dl>
             {!!error && <BrandError error={error} />}
             <DialogFooter>
