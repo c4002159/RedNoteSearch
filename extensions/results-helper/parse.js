@@ -72,6 +72,12 @@ function parseNoteDocument(doc) {
   }
 }
 
+// Only a page of one note can be read: the home and search pages show other notes' numbers.
+// Same shape the system accepts: /explore/<id>, /discovery/item/<id>, /search_result/<id>, /user/profile/<user>/<id>.
+function isNotePath(pathname) {
+  return /^\/(?:explore|discovery\/item|search_result|user\/profile\/[^/]+)\/[0-9a-f]{24}\/?$/.test(pathname || "")
+}
+
 // The address is the system's origin: https, or http only for this computer.
 function normalizeServer(raw) {
   let url
@@ -107,5 +113,5 @@ function parseConnection(text) {
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { parseCount, parseCommentTotal, parseNoteDocument, normalizeServer, parseConnection }
+  module.exports = { parseCount, parseCommentTotal, parseNoteDocument, normalizeServer, parseConnection, isNotePath }
 }
