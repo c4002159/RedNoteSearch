@@ -185,7 +185,12 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 ## 5. 场景、风格、任务与生成（B）
 
 ### 场景与风格
-- `GET /scenarios`：登录用户；含全局与所属品牌模板，`{"items":[{"id","scene","name","structure","template_version","brand_id|null"}]}`；`scene`：`seeding | review | tutorial | launch | promotion | story`。
+- `GET /brands/{brand_id}/scenario-templates`：品牌成员；已启用的全局模板加本品牌模板的全部版本（含停用），同 `GET /scenarios` 的行结构，供“场景模板”管理页。
+- `POST /brands/{brand_id}/scenario-templates`：品牌 admin；请求体 `{"scene","name","structure"}`（name 1–100、structure 1–2000，首尾空白去掉，多余字段 422），返回 201；同品牌、同 scene、同 name 已存在时生成下一个 `template_version`，并把旧版本置为停用，已用旧版本的任务不受影响。写审计 `scenario.create`。结构只是写作指引，事实仍只取自已审核资料。
+- `PATCH /scenario-templates/{template_id}`：品牌 admin；请求体 `{"enabled": bool}`；全局模板、不存在或非成员 404，成员但非 admin 403；只有同名下最新版本可以重新启用（旧版本 409）。写审计 `scenario.enable` / `scenario.disable`。
+- `TaskPublic.scenario_version`：任务所用模板的版本号（模板缺失为 0）。
+- `POST /viral-patterns/{id}/to-template` 现在也记录 `source_pattern_id`，并把同名旧版本置为停用。
+- `GET /scenarios`：登录用户；含全局与所属品牌模板，`{"items":[{"id","scene","name","structure","template_version","brand_id|null","enabled","source_pattern_id|null","source_pattern_title|null"}]}`（只返回已启用的；同品牌同名只有最新版本是启用的）；`scene`：`seeding | review | tutorial | launch | promotion | story`。
 - `GET /brands/{brand_id}/style-presets`：品牌成员；`POST /brands/{brand_id}/style-presets`：成员保存预设 `{"name","params":{"tone","length","person","emoji_density","hashtag_count"}}`。
 
 ### `POST /tasks`

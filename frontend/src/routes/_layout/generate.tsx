@@ -41,12 +41,16 @@ import {
   LENGTH_LABEL,
   label,
   PERSON_LABEL,
+  SCENARIO_TEXT,
   TASK_ERROR_LABEL,
 } from "@/lib/zh"
 
 export const Route = createFileRoute("/_layout/generate")({
   validateSearch: (search: Record<string, unknown>) => ({
     task: typeof search.task === "string" ? search.task : undefined,
+    ...(typeof search.scenario === "string"
+      ? { scenario: search.scenario }
+      : {}),
   }),
   component: GeneratePage,
   head: () => ({ meta: [{ title: "生成工作台 - RedNoteSearch" }] }),
@@ -156,6 +160,14 @@ function SceneCards({
                   {s.name}
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
+                  {s.source_pattern_id && (
+                    <span
+                      className="mr-1 rounded bg-tone-soft-blue-bg px-1 text-tone-soft-blue"
+                      title={`${SCENARIO_TEXT.fromViralTitle}${s.source_pattern_title ?? ""}`}
+                    >
+                      {SCENARIO_TEXT.fromViral}
+                    </span>
+                  )}
                   模板版本 v{s.template_version}
                 </span>
               </span>
@@ -298,7 +310,8 @@ function NewTaskForm() {
   })
 
   const [productId, setProductId] = useState("")
-  const [scenarioId, setScenarioId] = useState("")
+  const preselected = Route.useSearch().scenario
+  const [scenarioId, setScenarioId] = useState(preselected ?? "")
   const [brief, setBrief] = useState("")
   const [terms, setTerms] = useState("")
   const [pasted, setPasted] = useState("")

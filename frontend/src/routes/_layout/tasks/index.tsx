@@ -204,8 +204,8 @@ function TasksPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1 basis-80">
           <p className="mb-1 text-xs text-muted-foreground">
             创作 &gt; 任务与版本历史
           </p>
@@ -214,7 +214,7 @@ function TasksPage() {
             当前品牌的全部生成任务。点开任务可查看每个版本、对比两个版本。
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <SearchBox
             value={q}
             placeholder="搜索商品名或创作要求"

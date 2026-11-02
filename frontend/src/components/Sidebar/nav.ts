@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   FlaskConical,
   History,
+  LayoutTemplate,
   Library,
   type LucideIcon,
   Package,
@@ -51,6 +52,12 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: "品牌与切换", path: "/brands", icon: Building2, access: "all" },
       { title: "商品管理", path: "/products", icon: Package, access: "member" },
+      {
+        title: "场景模板",
+        path: "/scenarios",
+        icon: LayoutTemplate,
+        access: "member",
+      },
       {
         title: "品牌档案",
         path: "/voice-profile",

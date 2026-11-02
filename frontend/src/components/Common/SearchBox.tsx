@@ -27,7 +27,7 @@ export function SearchBox({
   return (
     <div
       className={cn(
-        "relative inline-flex h-10 w-full min-w-48 max-w-72 items-center rounded-lg bg-surface-low text-sm focus-within:ring-[3px] focus-within:ring-ring/30",
+        "relative inline-flex h-10 w-64 max-w-full shrink-0 items-center rounded-lg bg-surface-low text-sm focus-within:ring-[3px] focus-within:ring-ring/30",
         className,
       )}
     >
