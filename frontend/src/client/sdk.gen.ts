@@ -1516,7 +1516,7 @@ export class KnowledgeService {
             }
         });
     }
-
+    
     /**
      * Create Text Version
      */
@@ -1532,7 +1532,7 @@ export class KnowledgeService {
             }
         });
     }
-
+    
     /**
      * Preview Similar Documents
      */
@@ -1544,7 +1544,7 @@ export class KnowledgeService {
             ...options
         });
     }
-
+    
     /**
      * Read Document
      */

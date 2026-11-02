@@ -502,7 +502,9 @@ function TemplateDialog({
               >
                 {from &&
                   !(scene in SCENE_LABEL) &&
-                  !(creativeTypes.data ?? []).some((type) => type.key === scene) && (
+                  !(creativeTypes.data ?? []).some(
+                    (type) => type.key === scene,
+                  ) && (
                     <option value={scene}>{label(SCENE_LABEL, scene)}</option>
                   )}
                 {Object.entries(SCENE_LABEL).map(([key, name]) => (
