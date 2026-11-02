@@ -141,11 +141,13 @@ function TypeList({
       </header>
       <section className="min-w-0 space-y-5 rounded-xl bg-card p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-          <Pill tone="info">
-            {list.isSuccess
-              ? T.total(rows.length, rows.filter((r) => r.builtin).length)
-              : T.loading}
-          </Pill>
+          {!list.isError && (
+            <Pill tone="info">
+              {list.isSuccess
+                ? T.total(rows.length, rows.filter((r) => r.builtin).length)
+                : T.loading}
+            </Pill>
+          )}
           <span className="text-muted-foreground">
             {T.workspace}
             {brandName}

@@ -7,6 +7,7 @@ import {
   ResultsService,
 } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { Pill } from "@/components/Common/StatusBadge"
 import { Pager } from "@/components/Knowledge/Feedback"
 import { ResultsError, reading } from "@/components/Results/Feedback"
@@ -24,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useBrand } from "@/hooks/useBrand"
+import { parseApiError } from "@/lib/apiError"
 import { formatTime } from "@/lib/format"
 import { SCENE_LABEL, RESULTS_TEXT as T } from "@/lib/zh"
 
@@ -97,6 +99,11 @@ function BrandResults({ brandId }: { brandId: string }) {
     types.data?.items.find((type) => type.key === scene)?.name ??
     (SCENE_LABEL as Record<string, string>)[scene] ??
     T.otherType
+  const forbidden = [summary.error, list.error].find(
+    (error) => error && parseApiError(error).status === 403,
+  )
+  if (forbidden)
+    return <ForbiddenPage requestId={parseApiError(forbidden).requestId} />
   return (
     <div className="min-w-0 space-y-6 text-sm">
       <header>
@@ -192,9 +199,27 @@ function BrandResults({ brandId }: { brandId: string }) {
                 <TableRow>
                   <TableCell colSpan={7}>
                     <EmptyState
-                      title={pending ? T.noPending : T.empty}
-                      description={pending ? T.pendingHint : T.emptyHint}
+                      title={
+                        q ? T.noSearchResults : pending ? T.noPending : T.empty
+                      }
+                      description={
+                        q ? T.searchHint : pending ? T.pendingHint : T.emptyHint
+                      }
                     />
+                    {q && (
+                      <div className="mt-4 text-center">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSearch("")
+                            setQ("")
+                            setPage(1)
+                          }}
+                        >
+                          {T.clearSearch}
+                        </Button>
+                      </div>
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (
