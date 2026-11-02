@@ -50,4 +50,4 @@
 - 默认管理员账号来自 `.env` 的 `FIRST_SUPERUSER` 与 `FIRST_SUPERUSER_PASSWORD`，脚本自动读取。
 
 ## 测试
-`node --test extensions/results-helper/test/parse.test.js`（解析与交叉核对的单元测试；`test/fixture.html` 是页面结构副本）。后端的密钥与接口测试在 `backend/tests/api/routes/test_extension.py`。
+`node --test extensions/results-helper/test/parse.test.js`（解析、交叉核对和连接配置的单元测试，CI 的 `frontend-build` 里会跑；`test/fixture.html` 是页面结构副本）。后端的密钥与接口测试在 `backend/tests/api/routes/test_extension.py`。
