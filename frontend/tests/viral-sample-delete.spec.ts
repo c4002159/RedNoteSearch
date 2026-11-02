@@ -89,22 +89,32 @@ test("Batch failure preserves selection, request id and allows atomic retry", as
 }) => {
   const state = await fixture(page)
   state.fail = true
-  for (const checkbox of await page.getByRole("checkbox").all())
+  for (const checkbox of await page
+    .getByRole("checkbox", { name: /^选择 / })
+    .all())
     await checkbox.check()
-  await page.getByRole("button", { name: "批量删除", exact: true }).click()
+  await page.getByRole("button", { name: /^已选 \d+ 项$/ }).click()
+  await page.getByRole("menuitem", { name: "批量删除", exact: true }).click()
   const dialog = page.getByRole("dialog")
   await dialog.getByRole("button", { name: "确认删除", exact: true }).click()
   await expect(dialog).toContainText("delete-fixture-404")
   await expect(dialog).not.toContainText("Not found")
   await expect(
-    page.getByRole("checkbox", { checked: true, includeHidden: true }),
+    page.getByRole("checkbox", {
+      name: /^选择 /,
+      checked: true,
+      includeHidden: true,
+    }),
   ).toHaveCount(2)
   expect(state.rows).toHaveLength(2)
   state.fail = false
   await dialog.getByRole("button", { name: "确认删除", exact: true }).click()
   await expect(dialog).not.toBeVisible()
   await expect(page.getByRole("table")).toContainText("还没有样本")
-  await expect(page.getByRole("checkbox")).toHaveCount(0)
+  await expect(page.getByRole("checkbox", { name: /^选择 / })).toHaveCount(0)
+  await expect(
+    page.getByRole("checkbox", { name: "全选本页", exact: true }),
+  ).toBeDisabled()
   expect(state.calls[1].ids).toEqual(state.calls[0].ids)
 })
 
@@ -112,19 +122,28 @@ test("Cross-page selection stops at 50, deletion submits unique ids", async ({
   page,
 }) => {
   const state = await fixture(page, 51)
-  for (const checkbox of await page.getByRole("checkbox").all())
+  for (const checkbox of await page
+    .getByRole("checkbox", { name: /^选择 / })
+    .all())
     await checkbox.check()
   await page.getByRole("button", { name: "2", exact: true }).click()
-  await expect(page.getByRole("checkbox")).toHaveCount(20)
-  for (const checkbox of await page.getByRole("checkbox").all())
+  await expect(page.getByRole("checkbox", { name: /^选择 / })).toHaveCount(20)
+  for (const checkbox of await page
+    .getByRole("checkbox", { name: /^选择 / })
+    .all())
     await checkbox.check()
   await page.getByRole("button", { name: "3", exact: true }).click()
-  await expect(page.getByRole("checkbox")).toHaveCount(11)
-  for (const checkbox of (await page.getByRole("checkbox").all()).slice(0, 10))
+  await expect(page.getByRole("checkbox", { name: /^选择 / })).toHaveCount(11)
+  for (const checkbox of (
+    await page.getByRole("checkbox", { name: /^选择 / }).all()
+  ).slice(0, 10))
     await checkbox.check()
   await expect(page.getByRole("checkbox").last()).toBeDisabled()
-  await expect(page.getByText("已选 50 个", { exact: false })).toBeVisible()
-  await page.getByRole("button", { name: "批量删除", exact: true }).click()
+  await expect(
+    page.getByRole("button", { name: "已选 50 项", exact: true }),
+  ).toBeVisible()
+  await page.getByRole("button", { name: /^已选 \d+ 项$/ }).click()
+  await page.getByRole("menuitem", { name: "批量删除", exact: true }).click()
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "确认删除", exact: true })

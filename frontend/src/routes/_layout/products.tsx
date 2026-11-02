@@ -15,7 +15,14 @@ import { EmptyState } from "@/components/Common/EmptyState"
 import { FilterSelect } from "@/components/Common/FilterSelect"
 import { LoadingState } from "@/components/Common/LoadingState"
 import { SearchBox } from "@/components/Common/SearchBox"
-import { Pager } from "@/components/Knowledge/Feedback"
+import { SimplePager } from "@/components/Common/SimplePager"
+import {
+  TableBatchBar,
+  TableSelectAll,
+  TableSelectRow,
+} from "@/components/Common/TableBatchBar"
+import { TableBatchDialog } from "@/components/Common/TableBatchDialog"
+import { TableName } from "@/components/Common/TableName"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -24,8 +31,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { useBrand } from "@/hooks/useBrand"
 import {
+  TABLE_TEXT as B,
   BRAND_CATEGORY_LABEL,
   label,
   PRODUCT_STATUS_LABEL,
@@ -43,6 +59,8 @@ function ProductsPage() {
   const brand = useBrand(),
     id = brand.current!.id,
     cache = useQueryClient()
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [batch, setBatch] = useState<string[] | null>(null)
   const [status, setStatus] = useState<ProductStatus>("active"),
     [q, setQ] = useState(""),
     [page, setPage] = useState(1),
@@ -73,6 +91,11 @@ function ProductsPage() {
       refresh()
     },
   })
+  const selection = {
+    selected,
+    onChange: setSelected,
+    pageIds: query.data?.items.map((row) => row.id) ?? [],
+  }
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -83,6 +106,7 @@ function ProductsPage() {
               title="状态"
               value={status}
               onChange={(v) => {
+                setSelected(new Set())
                 setStatus(v as ProductStatus)
                 setPage(1)
               }}
@@ -117,70 +141,145 @@ function ProductsPage() {
         (query.data.items.length === 0 ? (
           <EmptyState title={T.emptyProducts} />
         ) : (
-          <ul className="space-y-3">
-            {query.data.items.map((p) => (
-              <li
-                key={p.id}
-                className="space-y-3 rounded-xl bg-card p-6 shadow-sm"
-              >
-                <div className="flex flex-wrap justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="break-words font-medium">{p.name}</h2>
-                    <p className="text-xs text-muted-foreground">
-                      {p.product_line || T.none} ·{" "}
-                      {label(BRAND_CATEGORY_LABEL, p.category)} ·{" "}
-                      {label(PRODUCT_STATUS_LABEL, p.status)}
-                    </p>
-                    <p className="text-sm">
-                      {T.pointCount}：
+          <section className="space-y-3 rounded-xl bg-card p-6 shadow-sm">
+            {brand.isAdmin && status === "active" && (
+              <TableBatchBar
+                {...selection}
+                total={query.data.total}
+                loadAll={async () =>
+                  (
+                    await ProductsService.readProducts({
+                      path: { brand_id: id },
+                      query: {
+                        status,
+                        q: q || undefined,
+                        page: 1,
+                        page_size: 50,
+                      },
+                    })
+                  ).data.items.map((row) => row.id)
+                }
+                actions={[
+                  {
+                    label: B.archive,
+                    destructive: true,
+                    onSelect: () => setBatch([...selected]),
+                  },
+                ]}
+              />
+            )}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {brand.isAdmin && status === "active" && (
+                    <TableHead className="w-12">
+                      <TableSelectAll {...selection} />
+                    </TableHead>
+                  )}
+                  {[
+                    B.name,
+                    B.line,
+                    B.category,
+                    B.points,
+                    B.status,
+                    B.actions,
+                  ].map((title) => (
+                    <TableHead key={title}>{title}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {query.data.items.map((p) => (
+                  <TableRow key={p.id}>
+                    {brand.isAdmin && status === "active" && (
+                      <TableCell>
+                        <TableSelectRow
+                          {...selection}
+                          id={p.id}
+                          label={p.name}
+                        />
+                      </TableCell>
+                    )}
+                    <TableCell className="whitespace-normal">
+                      <TableName onClick={() => setViewing(p)}>
+                        {p.name}
+                      </TableName>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground whitespace-normal">
+                      {p.product_line}
+                    </TableCell>
+                    <TableCell>
+                      {label(BRAND_CATEGORY_LABEL, p.category)}
+                    </TableCell>
+                    <TableCell variant="secondary">
                       {
                         p.selling_points.filter(
-                          (s) => s.evidence_status === "linked",
+                          (point) => point.evidence_status === "linked",
                         ).length
                       }{" "}
                       / {p.selling_points.length}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-link"
-                      onClick={() => setViewing(p)}
-                    >
-                      {T.view}
-                    </Button>
-                    {brand.isAdmin && p.status === "active" && (
-                      <>
+                    </TableCell>
+                    <TableCell>
+                      {label(PRODUCT_STATUS_LABEL, p.status)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-link"
-                          onClick={() => setEditing(p)}
+                          className="text-link hover:underline"
+                          onClick={() => setViewing(p)}
                         >
-                          {T.edit}
+                          {T.view}
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            mutation.reset()
-                            setArchive(p)
-                          }}
-                        >
-                          {T.archive}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+                        {brand.isAdmin && p.status === "active" && (
+                          <>
+                            <TableName editable onClick={() => setEditing(p)}>
+                              {T.edit}
+                            </TableName>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                mutation.reset()
+                                setArchive(p)
+                              }}
+                            >
+                              {T.archive}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </section>
         ))}
       {query.data && !query.isError && (
-        <Pager page={page} total={query.data.total} onPage={setPage} />
+        <SimplePager page={page} total={query.data.total} onPage={setPage} />
       )}{" "}
+      {batch && brand.isAdmin && (
+        <TableBatchDialog
+          ids={batch}
+          title={B.archive}
+          execute={(product_id) =>
+            ProductsService.archiveProduct({ path: { product_id } })
+          }
+          onClose={() => setBatch(null)}
+          onApplied={(ids) => {
+            setSelected(
+              (previous) =>
+                new Set([...previous].filter((id) => !ids.includes(id))),
+            )
+            if (ids.length) {
+              setPage(1)
+              refresh()
+            }
+          }}
+        />
+      )}
       {brand.isAdmin && editing && (
         <ProductForm
           brandId={id}
@@ -208,15 +307,17 @@ function ProductsPage() {
             <DialogHeader>
               <DialogTitle>{viewing.name}</DialogTitle>
               <DialogDescription>
-                {viewing.product_line || T.none} ·{" "}
+                {viewing.product_line} ·{" "}
                 {label(BRAND_CATEGORY_LABEL, viewing.category)}
               </DialogDescription>
             </DialogHeader>
-            {(["top", "middle", "base"] as const).map((k) => (
-              <p key={k} className="break-words text-sm">
-                {T[k]}：{viewing.notes[k]?.join("、") || T.none}
-              </p>
-            ))}
+            {(["top", "middle", "base"] as const)
+              .filter((k) => viewing.notes[k]?.length)
+              .map((k) => (
+                <p key={k} className="break-words text-sm">
+                  {T[k]}：{viewing.notes[k]?.join("、")}
+                </p>
+              ))}
             <h3>{T.points}</h3>
             {viewing.selling_points.map((p, i) => (
               <div key={i} className="space-y-2 rounded-lg border p-3">
@@ -231,9 +332,11 @@ function ProductsPage() {
                 <SourceReference point={p} admin={brand.isAdmin} />
               </div>
             ))}
-            <p className="break-words text-sm">
-              {T.restricted}：{viewing.restricted_claims.join("、") || T.none}
-            </p>
+            {viewing.restricted_claims.length > 0 && (
+              <p className="break-words text-sm">
+                {T.restricted}：{viewing.restricted_claims.join("、")}
+              </p>
+            )}
           </DialogContent>
         </Dialog>
       )}

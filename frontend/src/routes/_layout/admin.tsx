@@ -1,13 +1,22 @@
-import { useSuspenseQuery } from "@tanstack/react-query"
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, redirect } from "@tanstack/react-router"
-import { Suspense } from "react"
+import { Pencil } from "lucide-react"
+import { Suspense, useState } from "react"
 import { type UserPublic, UsersService } from "@/client"
 import AddUser from "@/components/Admin/AddUser"
 import { columns, type UserTableData } from "@/components/Admin/columns"
+import EditUser from "@/components/Admin/EditUser"
 import { DataTable } from "@/components/Common/DataTable"
+import { TableBatchDialog } from "@/components/Common/TableBatchDialog"
 import PendingUsers from "@/components/Pending/PendingUsers"
+import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import useAuth from "@/hooks/useAuth"
-import { SHELL_TEXT } from "@/lib/zh"
+import { SHELL_TEXT, TABLE_TEXT as T } from "@/lib/zh"
 
 function getUsersQueryOptions() {
   return {
@@ -38,6 +47,9 @@ export const Route = createFileRoute("/_layout/admin")({
 
 function UsersTableContent() {
   const { user: currentUser } = useAuth()
+  const cache = useQueryClient()
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState<string[] | null>(null)
   const { data: users } = useSuspenseQuery(getUsersQueryOptions())
 
   const tableData: UserTableData[] = users.data.map((user: UserPublic) => ({
@@ -45,7 +57,90 @@ function UsersTableContent() {
     isCurrentUser: currentUser?.id === user.id,
   }))
 
-  return <DataTable columns={columns} data={tableData} />
+  const userColumns: typeof columns = columns.map((column) =>
+    "accessorKey" in column && column.accessorKey === "full_name"
+      ? {
+          ...column,
+          cell: ({ row }) => <UserName user={row.original} />,
+        }
+      : column,
+  )
+  return (
+    <>
+      <DataTable
+        columns={userColumns}
+        data={tableData}
+        selection={{
+          selected,
+          onChange: setSelected,
+          getId: (row) => row.id,
+          getLabel: (row) => row.full_name || row.email,
+          canSelect: (row) => !row.isCurrentUser,
+          total: users.count,
+          loadAll: async () =>
+            (
+              await UsersService.readUsers({ query: { skip: 0, limit: 100 } })
+            ).data.data
+              .filter((row) => row.id !== currentUser?.id)
+              .slice(0, 50)
+              .map((row) => row.id),
+          actions: [
+            {
+              label: T.delete,
+              destructive: true,
+              onSelect: () => setDeleting([...selected]),
+            },
+          ],
+        }}
+      />
+      {deleting && (
+        <TableBatchDialog
+          ids={deleting}
+          title={T.delete}
+          execute={(id) => UsersService.deleteUser({ path: { user_id: id } })}
+          onClose={() => setDeleting(null)}
+          onApplied={(ids) => {
+            setSelected(
+              (previous) =>
+                new Set([...previous].filter((id) => !ids.includes(id))),
+            )
+            void cache.invalidateQueries({ queryKey: ["users"] })
+          }}
+        />
+      )}
+    </>
+  )
+}
+
+function UserName({ user }: { user: UserTableData }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="flex items-center gap-2">
+      {user.full_name &&
+        (user.isCurrentUser ? (
+          <span>{user.full_name}</span>
+        ) : (
+          <DropdownMenu open={open} onOpenChange={setOpen}>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="group flex items-center gap-1 text-link font-medium hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {user.full_name}
+                <Pencil
+                  aria-hidden
+                  className="size-3 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
+                />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <EditUser user={user} onSuccess={() => setOpen(false)} />
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ))}
+      {user.isCurrentUser && <Badge variant="outline">{SHELL_TEXT.you}</Badge>}
+    </div>
+  )
 }
 
 function UsersTable() {
