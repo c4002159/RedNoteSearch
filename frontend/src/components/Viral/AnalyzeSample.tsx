@@ -18,7 +18,7 @@ import {
 import { LoadingButton } from "@/components/ui/loading-button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { parseApiError } from "@/lib/apiError"
-import { VIRAL_TEXT as T } from "@/lib/zh"
+import { VIRAL_TEXT as T, ANALYSIS_VISUAL_TEXT as V } from "@/lib/zh"
 import { ViralError } from "./Feedback"
 
 export function AnalyzeSample({
@@ -100,6 +100,7 @@ export function AnalyzeSample({
       onOpenChange={(o) => !o && !pending && !check.isPending && onClose()}
     >
       <DialogContent
+        className="max-h-[85vh] overflow-y-auto rounded-xl border-0 p-6 sm:max-w-xl"
         showCloseButton={!pending && !check.isPending}
         onEscapeKeyDown={(e) =>
           (pending || check.isPending) && e.preventDefault()
@@ -119,28 +120,42 @@ export function AnalyzeSample({
         {models.data && available.length === 0 && (
           <EmptyState title={T.noModels} />
         )}
-        {available.length > 0 && (
-          <div className="space-y-1">
-            <label htmlFor="analysis-model" className="text-sm font-medium">
-              {T.model}
-            </label>
-            <select
-              id="analysis-model"
-              className="h-10 w-full rounded-lg border border-transparent bg-surface-low px-3 text-sm"
-              value={selected}
-              disabled={pending || check.isPending}
-              onChange={(e) => setModel(e.target.value)}
-            >
-              {available.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.model_name}
-                </option>
-              ))}
-            </select>
-          </div>
+        {!!models.data?.length && (
+          <fieldset disabled={pending || check.isPending} className="space-y-3">
+            <legend className="mb-3 text-sm font-medium">{T.model}</legend>
+            {models.data.map((m) => (
+              <label
+                key={m.id}
+                className={`flex items-start gap-3 rounded-xl bg-surface-low p-4 text-sm has-checked:bg-primary/10 has-checked:ring-1 has-checked:ring-primary ${!m.enabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+              >
+                <input
+                  type="radio"
+                  name="analysis-model"
+                  value={m.id}
+                  checked={selected === m.id}
+                  onChange={() => setModel(m.id)}
+                  disabled={!m.enabled}
+                  className="mt-1 accent-primary"
+                />
+                <span>
+                  <span className="block font-medium">{m.model_name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {m.enabled ? V.modelEnabled : V.modelDisabled}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
         )}
         {pending && (
-          <p role="status" className="rounded-lg bg-surface p-3 text-sm">
+          <p
+            role="status"
+            className="flex items-center gap-4 rounded-xl bg-surface-low p-5 text-sm"
+          >
+            <span
+              aria-hidden
+              className="size-7 shrink-0 animate-spin rounded-full border-2 border-primary/20 border-t-primary"
+            />{" "}
             {T.analysing} {T.waited} {elapsed} {T.seconds}
           </p>
         )}

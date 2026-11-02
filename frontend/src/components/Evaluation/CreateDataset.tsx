@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { type DatasetPublic, EvaluationService } from "@/client"
+import { FilterSelect } from "@/components/Common/FilterSelect"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -93,7 +94,7 @@ export function CreateDataset({
   return (
     <Dialog open onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
       <DialogContent
-        className="max-h-[90vh] overflow-y-auto sm:max-w-3xl"
+        className="max-h-[85vh] overflow-y-auto rounded-xl border-0 p-6 sm:max-w-3xl"
         showCloseButton={!mutation.isPending}
         onEscapeKeyDown={(e) => mutation.isPending && e.preventDefault()}
         onInteractOutside={(e) => mutation.isPending && e.preventDefault()}
@@ -105,10 +106,10 @@ export function CreateDataset({
           </DialogDescription>
         </DialogHeader>
         <form
-          className="space-y-3"
+          className="space-y-5"
           onSubmit={form.handleSubmit((v) => mutation.mutate(v))}
         >
-          <fieldset className="space-y-3" disabled={mutation.isPending}>
+          <fieldset className="space-y-5" disabled={mutation.isPending}>
             <legend className="sr-only">{T.newDataset}</legend>
             <div>
               <label className="text-sm font-medium" htmlFor="dataset-name">
@@ -121,41 +122,38 @@ export function CreateDataset({
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-sm font-medium" htmlFor="dataset-kind">
-                  {T.kind}
-                </label>
-                <select
-                  id="dataset-kind"
-                  className="h-10 w-full rounded-lg border border-transparent bg-surface-low px-3 text-sm"
-                  {...form.register("kind", {
-                    onChange: (e) => {
-                      if (e.target.value === "brand_leak")
-                        form.setValue("scope", "brand")
-                    },
-                  })}
-                >
-                  {Object.entries(EVAL_KIND_LABEL).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
+                <FilterSelect
+                  title={T.kind}
+                  value={form.watch("kind")}
+                  onChange={(value) => {
+                    form.setValue("kind", value as Values["kind"], {
+                      shouldValidate: true,
+                    })
+                    if (value === "brand_leak") form.setValue("scope", "brand")
+                  }}
+                  options={Object.entries(EVAL_KIND_LABEL).map(
+                    ([value, label]) => ({ value, label }),
+                  )}
+                />
               </div>
               <div>
-                <label className="text-sm font-medium" htmlFor="dataset-scope">
-                  {T.scope}
-                </label>
-                <select
-                  id="dataset-scope"
-                  className="h-10 w-full rounded-lg border border-transparent bg-surface-low px-3 text-sm"
-                  {...form.register("scope")}
-                >
-                  <option value="brand">{T.brand}</option>
-                  {user?.is_superuser &&
-                    form.watch("kind") !== "brand_leak" && (
-                      <option value="global">{T.global}</option>
-                    )}
-                </select>
+                <FilterSelect
+                  title={T.scope}
+                  value={form.watch("scope")}
+                  onChange={(value) =>
+                    form.setValue("scope", value as Values["scope"], {
+                      shouldValidate: true,
+                    })
+                  }
+                  options={[
+                    { value: "brand", label: T.brand },
+                    ...(user?.is_superuser &&
+                    form.watch("kind") !== "brand_leak"
+                      ? [{ value: "global", label: T.global }]
+                      : []),
+                  ]}
+                />
+
                 <p className="text-xs text-destructive">
                   {form.formState.errors.scope?.message}
                 </p>

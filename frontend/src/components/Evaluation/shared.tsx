@@ -1,13 +1,48 @@
 import { useQueryClient } from "@tanstack/react-query"
+import { Link } from "@tanstack/react-router"
 import type { ReactNode } from "react"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { ForbiddenPage, MissingPage } from "@/components/Common/ForbiddenPage"
 import { Pill } from "@/components/Common/StatusBadge"
-import { Button } from "@/components/ui/button"
+import { Pager } from "@/components/Knowledge/Feedback"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useBrand } from "@/hooks/useBrand"
 import { parseApiError } from "@/lib/apiError"
-import { EVAL_STATUS_LABEL, label, EVAL_TEXT as T } from "@/lib/zh"
+import {
+  EVAL_STATUS_LABEL,
+  label,
+  EVAL_TEXT as T,
+  ANALYSIS_VISUAL_TEXT as V,
+} from "@/lib/zh"
+
+export const EVAL_CARD = "min-w-0 rounded-xl bg-card p-6 shadow-sm"
+export const EVAL_TABLE =
+  "min-w-[780px] text-sm [&_th]:bg-surface-low [&_th]:text-[13px] [&_th]:font-bold [&_th]:text-on-surface-variant [&_tr]:border-border/30"
+export function EvalBreadcrumb({
+  current,
+  runs = false,
+}: {
+  current: string
+  runs?: boolean
+}) {
+  return (
+    <nav
+      aria-label={V.breadcrumb}
+      className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+    >
+      <span>{V.quality}</span>
+      <span aria-hidden="true">›</span>
+      <Link
+        className="text-link hover:underline"
+        to={runs ? "/evaluation/runs" : "/evaluation/datasets"}
+      >
+        {runs ? T.runs : T.datasets}
+      </Link>
+      <span aria-hidden="true">›</span>
+      <span className="text-foreground">{current}</span>
+    </nav>
+  )
+}
 export function EvaluationError({
   error,
   retry,
@@ -57,7 +92,16 @@ export const terminal = (status: string) =>
 export function EvalStatus({ status }: { status: string }) {
   return (
     <Pill
-      tone={status === "failed" ? "err" : running(status) ? "info" : "gray"}
+      className="whitespace-nowrap"
+      tone={
+        status === "failed"
+          ? "err"
+          : status === "completed"
+            ? "ok"
+            : running(status)
+              ? "info"
+              : "gray"
+      }
     >
       {label(EVAL_STATUS_LABEL, status, "eval_status")}
     </Pill>
@@ -72,30 +116,7 @@ export function EvalPager({
   total: number
   onPage: (p: number) => void
 }) {
-  return (
-    <div className="flex flex-wrap items-center justify-end gap-3 text-sm">
-      <span className="text-muted-foreground">
-        {page} / {Math.max(1, Math.ceil(total / 20))} {T.page}，{T.total}{" "}
-        {total} {T.items}
-      </span>
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={page <= 1}
-        onClick={() => onPage(page - 1)}
-      >
-        {T.previous}
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={page >= Math.ceil(total / 20)}
-        onClick={() => onPage(page + 1)}
-      >
-        {T.next}
-      </Button>
-    </div>
-  )
+  return <Pager page={page} total={total} onPage={onPage} />
 }
 export function display(value: unknown): string {
   if (value === null || value === undefined) return "—"
