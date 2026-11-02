@@ -919,3 +919,20 @@ export const T5_VISUAL_TEXT = {
   brandMembers: "品牌成员",
   settings: "系统",
 } as const
+
+// 品牌档案版本表格。
+export const VOICE_TABLE_TEXT = {
+  samples: "参考样例",
+  version: "版本号",
+  available: "可用",
+  actions: "操作",
+  readonly: "只读",
+  viewPersona: "查看品牌人设全文",
+  viewAll: "查看全部",
+  fullContent: "完整内容仅供查看；修改时请编辑并保存为新版本。",
+  close: "关闭",
+  saveAsNew: "保存后生成新版本",
+  editVersion: "编辑版本",
+  draftHint: "保存后生成新版本，不会修改原版本；新版本需另行设为生效。",
+  listHint: "输入一项后按回车添加；点击胶囊上的 × 删除。",
+} as const
