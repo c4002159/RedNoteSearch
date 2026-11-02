@@ -891,6 +891,24 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 
 保留原顺序，替换后删除指定项，新版本重新从0编号。原集、原样本及已有运行不修改或删除。新版本号为同 group_id 当前最大版本加1（不要求源版本是最新），哈希按现有规范重新计算；并发同组写入用最早版本行锁串行化，已有创建下一版本接口也使用该锁，不能以唯一约束500代替并发控制。成功沿用 eval_dataset.create 审计，只记类型、版本、数量，不记录样本正文；无模型调用、无迁移。
 
+## R6 B4：风险规则批量停用与恢复
+
+新增 `POST /compliance-rules/batch-state`（仅平台管理员，全局范围）与 `POST /brands/{brand_id}/compliance-rules/batch-state`（仅路径品牌admin）。未登录401；整体权限不满足403，不进入处理。请求 `{"ids":["UUID"],"enabled":false,"reason":"调整原因"}`：1–100个不同UUID，enabled为严格布尔，reason去首尾空白后1–500码点；未知字段、重复/空/超量ids及无效原因422，全批不写入。品牌不来自请求体。
+
+成功200 `{"items":[{"id":"UUID","success":true,"changed":true,"rule_version":2,"status_code":200,"error_code":null,"message":null}]}`，按输入顺序逐条返回。不存在或不属于本次范围的id记为单条404/NOT_FOUND，不泄露其他品牌信息；单条数据库故障记500/INTERNAL_ERROR通用提示。逐条事务、行锁和提交，失败只回滚本条，后续继续；因此不是文件导入的全有或全无。无物理删除。
+
+状态实际变化才加rule_version、更新updated_at；重复设置为同状态返回success=true、changed=false且不加版本。保留is_sample和所有来源/规则内容，切换不表示来源已核对。每个成功条目（含未变化）写compliance_rule.batch_state审计，记录状态、是否变化、版本与原因，不含规则全文。历史风险记录不改写。
+
+GET /compliance-rules增加include_inactive，默认true以兼容现有包含停用项的调用；R6页面默认显式传false，即默认隐藏停用项，开启查看停用项时传true，之后可恢复。false在服务端过滤后再分页计数。现有scope和品牌授权语义不变，无迁移、无模型调用。
+
+## R6 B6：下载浏览器插件安装包
+
+`GET /extension/package`：任何已登录的有效用户均可下载，不要求品牌成员或admin；未登录401。成功200，Content-Type为application/zip，Content-Disposition为attachment; filename="results-helper.zip"，Cache-Control:no-store。
+
+每次从部署随附的extensions/results-helper读取运行文件并在内存生成zip，包内只有results-helper/manifest.json、parse.js、popup.html、popup.js，不递归打包，不含test、配置、密钥或其他文件；拒绝符号链接。来源目录不接收请求参数。包缺失/不可读等返回503 EXTENSION_PACKAGE_UNAVAILABLE及通用中文提示和request_id，不泄露本机路径。
+
+运行镜像须COPY上述四个运行文件到/app/extensions/results-helper；该Docker改动在本PR作为明确基础设施配合项，由A审阅。不改变插件权限、业务数据、密钥或鉴权规则，无模型调用，无迁移。
+
 ## R6 B1：编辑爆款样本与结构过期标记（含迁移）
 
 `PATCH /viral-samples/{sample_id}`：请求仅允许可选 text、source_url，至少提供一项。text 原始1–5000码点且不能全空白，显式null拒绝；source_url沿用创建样本的HttpUrl校验、最多2000字符，可用null清空。仅存储链接、不访问或抓取。不接收品牌、note、修订号覆盖。品牌admin可改；同品牌editor403，资源不存在或非成员404（平台管理员没有成员身份也404）；未登录401。成功200返回既有样本字段及structures_stale。
