@@ -17,8 +17,10 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutBrandsRouteImport } from './routes/_layout/brands'
+import { Route as LayoutCreativeTypesRouteImport } from './routes/_layout/creative-types'
 import { Route as LayoutGenerateRouteImport } from './routes/_layout/generate'
 import { Route as LayoutProductsRouteImport } from './routes/_layout/products'
+import { Route as LayoutResultsRouteImport } from './routes/_layout/results'
 import { Route as LayoutScenariosRouteImport } from './routes/_layout/scenarios'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
 import { Route as LayoutVoiceProfileRouteImport } from './routes/_layout/voice-profile'
@@ -77,6 +79,11 @@ const LayoutBrandsRoute = LayoutBrandsRouteImport.update({
   path: '/brands',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutCreativeTypesRoute = LayoutCreativeTypesRouteImport.update({
+  id: '/creative-types',
+  path: '/creative-types',
+  getParentRoute: () => LayoutRoute,
+} as any)
 const LayoutGenerateRoute = LayoutGenerateRouteImport.update({
   id: '/generate',
   path: '/generate',
@@ -85,6 +92,11 @@ const LayoutGenerateRoute = LayoutGenerateRouteImport.update({
 const LayoutProductsRoute = LayoutProductsRouteImport.update({
   id: '/products',
   path: '/products',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutResultsRoute = LayoutResultsRouteImport.update({
+  id: '/results',
+  path: '/results',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutScenariosRoute = LayoutScenariosRouteImport.update({
@@ -191,8 +203,10 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
   '/brands': typeof LayoutBrandsRoute
+  '/creative-types': typeof LayoutCreativeTypesRoute
   '/generate': typeof LayoutGenerateRoute
   '/products': typeof LayoutProductsRoute
+  '/results': typeof LayoutResultsRoute
   '/scenarios': typeof LayoutScenariosRoute
   '/settings': typeof LayoutSettingsRoute
   '/voice-profile': typeof LayoutVoiceProfileRoute
@@ -219,8 +233,10 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
   '/brands': typeof LayoutBrandsRoute
+  '/creative-types': typeof LayoutCreativeTypesRoute
   '/generate': typeof LayoutGenerateRoute
   '/products': typeof LayoutProductsRoute
+  '/results': typeof LayoutResultsRoute
   '/scenarios': typeof LayoutScenariosRoute
   '/settings': typeof LayoutSettingsRoute
   '/voice-profile': typeof LayoutVoiceProfileRoute
@@ -250,8 +266,10 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_layout/admin': typeof LayoutAdminRoute
   '/_layout/brands': typeof LayoutBrandsRoute
+  '/_layout/creative-types': typeof LayoutCreativeTypesRoute
   '/_layout/generate': typeof LayoutGenerateRoute
   '/_layout/products': typeof LayoutProductsRoute
+  '/_layout/results': typeof LayoutResultsRoute
   '/_layout/scenarios': typeof LayoutScenariosRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/voice-profile': typeof LayoutVoiceProfileRoute
@@ -282,8 +300,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/brands'
+    | '/creative-types'
     | '/generate'
     | '/products'
+    | '/results'
     | '/scenarios'
     | '/settings'
     | '/voice-profile'
@@ -310,8 +330,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/admin'
     | '/brands'
+    | '/creative-types'
     | '/generate'
     | '/products'
+    | '/results'
     | '/scenarios'
     | '/settings'
     | '/voice-profile'
@@ -340,8 +362,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_layout/admin'
     | '/_layout/brands'
+    | '/_layout/creative-types'
     | '/_layout/generate'
     | '/_layout/products'
+    | '/_layout/results'
     | '/_layout/scenarios'
     | '/_layout/settings'
     | '/_layout/voice-profile'
@@ -429,6 +453,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutBrandsRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/creative-types': {
+      id: '/_layout/creative-types'
+      path: '/creative-types'
+      fullPath: '/creative-types'
+      preLoaderRoute: typeof LayoutCreativeTypesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
     '/_layout/generate': {
       id: '/_layout/generate'
       path: '/generate'
@@ -441,6 +472,13 @@ declare module '@tanstack/react-router' {
       path: '/products'
       fullPath: '/products'
       preLoaderRoute: typeof LayoutProductsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/results': {
+      id: '/_layout/results'
+      path: '/results'
+      fullPath: '/results'
+      preLoaderRoute: typeof LayoutResultsRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/scenarios': {
@@ -575,8 +613,10 @@ declare module '@tanstack/react-router' {
 interface LayoutRouteChildren {
   LayoutAdminRoute: typeof LayoutAdminRoute
   LayoutBrandsRoute: typeof LayoutBrandsRoute
+  LayoutCreativeTypesRoute: typeof LayoutCreativeTypesRoute
   LayoutGenerateRoute: typeof LayoutGenerateRoute
   LayoutProductsRoute: typeof LayoutProductsRoute
+  LayoutResultsRoute: typeof LayoutResultsRoute
   LayoutScenariosRoute: typeof LayoutScenariosRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutVoiceProfileRoute: typeof LayoutVoiceProfileRoute
@@ -601,8 +641,10 @@ interface LayoutRouteChildren {
 const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAdminRoute: LayoutAdminRoute,
   LayoutBrandsRoute: LayoutBrandsRoute,
+  LayoutCreativeTypesRoute: LayoutCreativeTypesRoute,
   LayoutGenerateRoute: LayoutGenerateRoute,
   LayoutProductsRoute: LayoutProductsRoute,
+  LayoutResultsRoute: LayoutResultsRoute,
   LayoutScenariosRoute: LayoutScenariosRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutVoiceProfileRoute: LayoutVoiceProfileRoute,
