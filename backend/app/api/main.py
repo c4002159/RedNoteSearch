@@ -3,13 +3,16 @@ from fastapi import APIRouter
 from app.api.routes import (
     brands,
     compliance,
+    creative_types,
     evaluation,
     evidence,
+    extension,
     knowledge,
     login,
     model_config,
     private,
     products,
+    results,
     rule_import,
     scenarios,
     tasks,
@@ -29,6 +32,9 @@ api_router.include_router(brands.router)
 api_router.include_router(products.router)
 api_router.include_router(tasks.router)
 api_router.include_router(scenarios.router)
+api_router.include_router(creative_types.router)
+api_router.include_router(results.router)
+api_router.include_router(extension.router)
 api_router.include_router(evidence.router)
 api_router.include_router(rule_import.router)
 api_router.include_router(compliance.router)

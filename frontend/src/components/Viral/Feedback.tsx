@@ -6,6 +6,7 @@ import { parseApiError } from "@/lib/apiError"
 import {
   label,
   VIRAL_TEXT as T,
+  TEMPLATE_ANALYSIS_TABS,
   ANALYSIS_VISUAL_TEXT as V,
   VIRAL_REASON_LABEL,
 } from "@/lib/zh"
@@ -24,7 +25,7 @@ export function ViralBreadcrumb({
       aria-label={V.breadcrumb}
       className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
     >
-      <span>{V.enhance}</span>
+      <span>{TEMPLATE_ANALYSIS_TABS.group}</span>
       <span aria-hidden="true">›</span>
       <Link to="/viral-samples" className="text-link hover:underline">
         {T.title}

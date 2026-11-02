@@ -4,6 +4,7 @@ import { useState } from "react"
 import { ViralService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { HeaderFilter } from "@/components/Common/FilterSelect"
+import { TemplateAnalysisTabs } from "@/components/Common/TemplateAnalysisTabs"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -72,6 +73,7 @@ function BrandSamples({ brandId }: { brandId: string }) {
   })
   return (
     <div className="min-w-0 space-y-6 [&_[data-slot=table-container]]:border-0">
+      <TemplateAnalysisTabs />
       <ViralBreadcrumb current={T.title} />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>

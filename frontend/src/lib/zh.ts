@@ -1064,3 +1064,39 @@ export const VIRAL_DELETE_TEXT = {
   cancel: "取消",
   confirmAction: "确认删除",
 } as const
+
+export const VIRAL_TEMPLATE_EDIT_TEXT = {
+  structure: "模板结构",
+  required: "请填写模板结构",
+  tooLong: "模板结构不能超过 2000 字",
+  hint: "可修改结构后再转换；保存的是本次填写的文字，不改动原结构。",
+  conflict:
+    "此品牌已有同创作类型、同名模板。请选择存为新版本，或换个名字后再提交。",
+  rename: "换个名字",
+  newVersion: "存为新版本",
+} as const
+
+// 场景模板详情与筛选。
+export const SCENARIO_DETAIL_TEXT = {
+  detail: "模板详情",
+  view: "查看模板详情",
+  actions: "操作",
+  clear: "清除筛选",
+  filteredEmpty: "没有符合筛选条件的模板",
+  noSource: "未记录来源爆款",
+  sourceUnavailable: "来源结构已不可用，仅保留标题",
+  builtinCopy:
+    "内置模板会另存为当前品牌模板；已有同名品牌模板时生成新版本，不修改全局模板。",
+  newVersionHint:
+    "以当前内容为底保存新版本，不修改原版本；同名模板的版本号由服务端递增。",
+  readonly: "当前角色只读，可查看完整结构与来源。",
+  close: "关闭",
+} as const
+
+// 场景模板与爆款分析的共用导航。
+export const TEMPLATE_ANALYSIS_TABS = {
+  group: "品牌与商品",
+  label: "模板与爆款分析",
+  templates: "场景模板",
+  viral: "爆款分析",
+} as const

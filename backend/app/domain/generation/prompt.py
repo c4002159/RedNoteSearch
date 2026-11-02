@@ -12,7 +12,7 @@ from typing import Any, Literal
 from app.domain.constraints import BODY_LIMIT, TAG_LIMIT, TITLE_LIMIT
 from app.ports.llm import LlmMessage
 
-PROMPT_VERSION = "gen-v4"
+PROMPT_VERSION = "gen-v6"
 
 # A conservative guess of what one tag costs in the body budget (``#`` + a short name + a space).
 APPROX_TAG_COST = 8
@@ -63,6 +63,10 @@ class PromptInput:
     preferred_words: tuple[str, ...] = ()
     forbidden_words: tuple[str, ...] = ()
     sources: tuple[SourceSnippet, ...] = ()
+    # ``product`` (one product), ``multi_product`` (``product_name`` lists them) or ``activity``.
+    promo_type: str = "product"
+    activity_detail: str = ""
+    activity_perks: tuple[str, ...] = ()
 
 
 SYSTEM_PROMPT = f"""你是小红书美妆香氛品牌的文案助手，为运营人员起草笔记。你只负责起草，发布前由人审核。
@@ -99,6 +103,30 @@ def _style_text(style: dict[str, Any]) -> str:
     return "；".join(parts)
 
 
+# The structure of a promotion note asks for dates and steps; the operator may not have given them.
+ACTIVITY_GAPS = (
+    "（结构建议里要求写的活动时间、参与方式、规则：上面的“活动说明”和“活动福利”没有写明的，"
+    "一律不要自己编写，不要编出购买或领取的操作步骤；只写“具体以活动页面公布的为准”。）\n"
+)
+
+
+def _target_text(inp: PromptInput, notes: str) -> str:
+    """Who or what the note promotes."""
+    if inp.promo_type == "activity":
+        detail = f"活动说明：{inp.activity_detail}\n" if inp.activity_detail else ""
+        return f"推广对象：活动「{inp.product_name}」（不是某个单品）\n{detail}\n"
+    if inp.promo_type == "multi_product":
+        return (
+            f"推广对象：以下几款商品放在同一篇笔记里：{inp.product_name}。"
+            "每款的信息分别标明商品名，不要把一款的卖点写成另一款的。\n\n"
+        )
+    return (
+        f"商品：{inp.product_name}"
+        f"{'（' + inp.product_line + '）' if inp.product_line else ''}，品类 {inp.category}\n"
+        f"{('香调：' + notes + chr(10)) if notes else ''}\n"
+    )
+
+
 def body_budget(style: dict[str, Any]) -> int:
     """Roughly how many body characters remain once the requested tags are counted."""
     return BODY_LIMIT - int(style.get("hashtag_count", 5)) * APPROX_TAG_COST
@@ -132,15 +160,19 @@ def build_messages(
     user = (
         f"品牌：{inp.brand_name}\n"
         f"{voice}\n"
-        f"商品：{inp.product_name}"
-        f"{'（' + inp.product_line + '）' if inp.product_line else ''}，品类 {inp.category}\n"
-        f"{('香调：' + notes + chr(10)) if notes else ''}\n"
+        + _target_text(inp, notes)
         + _lines("已核实的商品信息（可以当作事实）", inp.verified_points)
         + _lines("未核实的卖点（只可参考，不要写成事实）", inp.unverified_points)
+        + _lines(
+            "运营提供的活动福利（只能照写，不得夸大或增加；未经系统核实，发布前由人确认）",
+            inp.activity_perks,
+        )
         + _lines("禁止宣称（不得出现）", inp.restricted_claims)
         + _lines("禁用词（不得出现）", inp.forbidden_words)
         + _lines("必含词（必须自然出现）", inp.required_terms)
-        + f"笔记场景：{inp.scene_name}\n结构建议：\n{inp.scene_structure}\n\n"
+        + f"笔记场景：{inp.scene_name}\n结构建议：\n{inp.scene_structure}\n"
+        + (ACTIVITY_GAPS if inp.promo_type == "activity" else "")
+        + "\n"
         + f"风格要求：{_style_text(inp.style)}；正文大约不超过 {body_budget(inp.style)} 个字符\n\n"
         + (f"运营补充说明：{inp.brief}\n\n" if inp.brief else "")
         + (
