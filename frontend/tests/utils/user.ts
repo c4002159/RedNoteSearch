@@ -22,8 +22,10 @@ export async function logInUser(page: Page, email: string, password: string) {
   await page.getByTestId("email-input").fill(email)
   await page.getByTestId("password-input").fill(password)
   await page.getByRole("button", { name: "登录", exact: true }).click()
-  await page.waitForURL("/")
-  await expect(page.getByText("欢迎回来，很高兴再次见到你！")).toBeVisible()
+  await page.waitForURL("/generate")
+  await expect(
+    page.getByRole("heading", { name: "生成工作台", exact: true }),
+  ).toBeVisible()
 }
 
 export async function logOutUser(page: Page) {

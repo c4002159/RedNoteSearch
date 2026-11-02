@@ -4,13 +4,15 @@ from datetime import datetime
 from typing import Any, Literal
 
 from pgvector.sqlalchemy import Vector
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import Field as PydanticField
 from sqlalchemy import CheckConstraint, Column, DateTime, Index, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
 from app.models.catalog import _in_list
 from app.models.common import get_datetime_utc
+from app.models.knowledge_similarity import SimilarityPreview
 
 # text-embedding-v4 at 1024 dimensions (ADR-006). Changing it means rebuilding every embedding.
 EMBEDDING_DIMENSIONS = 1024
@@ -44,6 +46,12 @@ class ReviewAction(enum.StrEnum):
     REJECT = "reject"
     DEACTIVATE = "deactivate"
     ADMIN_DIRECT_INGEST = "admin_direct_ingest"
+    CANCEL = "cancel"
+
+
+class SourceKind(enum.StrEnum):
+    FILE = "file"
+    NOTE = "note"
 
 
 # One row per document VERSION. ``group_id`` identifies the logical document across versions;
@@ -61,6 +69,9 @@ class KbDocument(SQLModel, table=True):
         ),
         Index("ix_kb_document_brand_status", "brand_id", "status"),
         Index("ix_kb_document_group_current", "group_id", "is_current"),
+        CheckConstraint(
+            _in_list("source_kind", SourceKind), name="ck_kb_document_source_kind"
+        ),
     )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -69,6 +80,10 @@ class KbDocument(SQLModel, table=True):
         foreign_key="brand.id", nullable=False, ondelete="CASCADE"
     )
     title: str = Field(max_length=200)
+    source_kind: str = Field(
+        default="file", max_length=10, sa_column_kwargs={"server_default": "file"}
+    )
+    source_description: str | None = Field(default=None, max_length=1000)
     doc_type: str = Field(max_length=30)
     status: str = Field(default=DocumentStatus.PENDING_REVIEW.value, max_length=20)
     version: int = Field(default=1)
@@ -104,6 +119,11 @@ class KbReview(SQLModel, table=True):
         default=None, foreign_key="user.id", ondelete="SET NULL"
     )
     reason: str | None = Field(default=None, max_length=500)
+    similar_decision: str | None = Field(default=None, max_length=20)
+    related_document_ids: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSONB, nullable=False, server_default="[]"),
+    )
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc, sa_type=DateTime(timezone=True)
     )
@@ -159,6 +179,8 @@ class DocumentPublic(SQLModel):
     group_id: uuid.UUID
     brand_id: uuid.UUID
     title: str
+    source_kind: str = "file"
+    source_description: str | None = None
     doc_type: str
     status: str
     index_status: str
@@ -183,6 +205,8 @@ class ReviewPublic(SQLModel):
     actor_id: uuid.UUID | None
     actor_name: str | None = None
     reason: str | None
+    similar_decision: str | None = None
+    related_document_ids: list[str] = Field(default_factory=list)
     created_at: datetime | None
 
 
@@ -210,11 +234,63 @@ class DeactivateRequest(SQLModel):
 
 
 class ReviewCreate(SQLModel):
-    action: Literal["approve", "reject"]
+    action: Literal["approve", "reject", "cancel"]
     reason: str | None = Field(default=None, max_length=500)
+    similar_decision: Literal["coexist", "new_wins"] | None = None
+    related_document_ids: list[uuid.UUID] = Field(default_factory=list, max_length=10)
+    similarity_token: str | None = Field(default=None, max_length=4096)
 
     @model_validator(mode="after")
     def _reject_needs_a_reason(self) -> ReviewCreate:
-        if self.action == "reject" and not (self.reason and self.reason.strip()):
+        if (self.action in {"reject", "cancel"} or self.similar_decision) and not (
+            self.reason and self.reason.strip()
+        ):
             raise ValueError("A reason is required when rejecting a document")
+        if len(set(self.related_document_ids)) != len(self.related_document_ids):
+            raise ValueError("资料不能重复选择")
+        if self.similar_decision == "new_wins" and not self.related_document_ids:
+            raise ValueError("请选择要停用的资料")
+        if self.related_document_ids and self.similar_decision != "new_wins":
+            raise ValueError("只有以新为准时可选择停用资料")
+        if self.action != "approve" and (
+            self.similar_decision or self.related_document_ids or self.similarity_token
+        ):
+            raise ValueError("仅通过审核时可指定相近资料处理方式")
         return self
+
+
+class KnowledgeNoteCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    title: str = PydanticField(min_length=1, max_length=200)
+    source_description: str = PydanticField(min_length=1, max_length=1000)
+    text: str = PydanticField(min_length=1, max_length=50000)
+    doc_type: DocumentType = DocumentType.SAMPLE_NOTE
+
+    @field_validator("title", "source_description", "text")
+    @classmethod
+    def nonblank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("内容不能为空")
+        return value
+
+
+class KnowledgeTextVersion(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    title: str | None = PydanticField(default=None, min_length=1, max_length=200)
+    source_description: str | None = PydanticField(default=None, max_length=1000)
+    text: str | None = PydanticField(default=None, min_length=1, max_length=50000)
+    doc_type: DocumentType | None = None
+
+    @model_validator(mode="after")
+    def valid_update(self) -> KnowledgeTextVersion:
+        if not self.model_fields_set:
+            raise ValueError("至少修改一项内容")
+        for name in self.model_fields_set - {"source_description"}:
+            value = getattr(self, name)
+            if value is None or not str(value).strip():
+                raise ValueError("内容不能为空")
+        return self
+
+
+class KnowledgeReviewResult(DocumentPublic):
+    similarity: SimilarityPreview | None = None

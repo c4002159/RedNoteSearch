@@ -161,7 +161,12 @@ function BrandsPage() {
         />
       )}
       {!brand.isError && (
-        <div className="grid items-start gap-6 xl:grid-cols-2">
+        <div className="space-y-6">
+          {brand.current && (brand.isAdmin || user?.is_superuser) && (
+            <div className="min-w-0 [&>section]:border-0 [&>section]:p-6 [&>section]:shadow-sm">
+              <Members key={brand.current.id} brandId={brand.current.id} />
+            </div>
+          )}
           <section className="min-w-0 space-y-4 rounded-xl bg-card p-6 shadow-sm">
             <h2 className="text-lg font-semibold">{V.brands}</h2>
             <ul className="space-y-3">
@@ -200,11 +205,6 @@ function BrandsPage() {
               ))}
             </ul>
           </section>
-          {brand.current && (brand.isAdmin || user?.is_superuser) && (
-            <div className="min-w-0 [&>section]:border-0 [&>section]:p-6 [&>section]:shadow-sm">
-              <Members key={brand.current.id} brandId={brand.current.id} />
-            </div>
-          )}
         </div>
       )}
       {creating && user?.is_superuser && (

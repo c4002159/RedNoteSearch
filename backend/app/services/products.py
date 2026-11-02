@@ -119,7 +119,7 @@ def create_product(
         brand_id=brand_id,
         name=data.name,
         product_line=data.product_line,
-        category=data.category.value,
+        category=data.category,
         notes=data.notes.model_dump(),
         selling_points=_points_json(data.selling_points),
         restricted_claims=data.restricted_claims,
@@ -142,9 +142,7 @@ def update_product(
         value = getattr(data, key)
         if value is None and key in _REQUIRED:
             continue  # null never clears a required field
-        if key == "category":
-            value = value.value
-        elif key == "notes":
+        if key == "notes":
             value = value.model_dump()
         elif key == "selling_points":
             value = _points_json(value)

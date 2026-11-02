@@ -1,18 +1,34 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { UsersService } from "@/client"
+import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import ChangePassword from "@/components/UserSettings/ChangePassword"
+import { ExtensionKeysSettings } from "@/components/UserSettings/ExtensionKeysSettings"
 import { SettingsError } from "@/components/UserSettings/Feedback"
 import ModelConfig from "@/components/UserSettings/ModelConfig"
 import UserInformation from "@/components/UserSettings/UserInformation"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useBrand } from "@/hooks/useBrand"
 import { SETTINGS_TEXT as T, T5_VISUAL_TEXT as V } from "@/lib/zh"
 export const Route = createFileRoute("/_layout/settings")({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tab?: "profile" | "password" | "models" | "plugin" } => ({
+    tab:
+      search.tab === "password" ||
+      search.tab === "models" ||
+      search.tab === "plugin"
+        ? search.tab
+        : "profile",
+  }),
   component: SettingsPage,
   head: () => ({ meta: [{ title: `${T.title} - RedNoteSearch` }] }),
 })
 function SettingsPage() {
+  const { tab = "profile" } = Route.useSearch()
+  const navigate = Route.useNavigate()
+  const brand = useBrand()
   const user = useQuery({
     queryKey: ["currentUser"],
     queryFn: async () => (await UsersService.readUserMe()).data,
@@ -32,10 +48,13 @@ function SettingsPage() {
       )}{" "}
       {user.data && !user.isError && (
         <Tabs
-          defaultValue="profile"
+          value={tab}
+          onValueChange={(value) =>
+            void navigate({ search: { tab: value as typeof tab } })
+          }
           className="space-y-6 [&_form]:h-full [&_form]:max-w-none [&_form]:rounded-xl [&_form]:border-0 [&_form]:p-6 [&_form]:shadow-sm [&_form_label]:mb-2 [&_form_label]:block [&_form_input]:border-0 [&_form_input]:bg-surface-low"
         >
-          <TabsList className="h-auto w-full justify-start gap-6 rounded-none border-b border-surface bg-transparent p-0">
+          <TabsList className="h-auto w-full flex-wrap justify-start gap-x-6 gap-y-0 rounded-none border-b border-surface bg-transparent p-0">
             <TabsTrigger
               className="flex-none rounded-none border-0 border-b-2 border-transparent px-0 py-3 text-base font-semibold data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-link data-[state=active]:shadow-none"
               value="profile"
@@ -53,30 +72,34 @@ function SettingsPage() {
                 className="flex-none rounded-none border-0 border-b-2 border-transparent px-0 py-3 text-base font-semibold data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-link data-[state=active]:shadow-none"
                 value="models"
               >
-                模型与密钥
+                {T.modelsTab}
+              </TabsTrigger>
+            )}
+            {brand.isAdmin && (
+              <TabsTrigger
+                className="flex-none rounded-none border-0 border-b-2 border-transparent px-0 py-3 text-base font-semibold data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-link data-[state=active]:shadow-none"
+                value="plugin"
+              >
+                {T.pluginTab}
               </TabsTrigger>
             )}
           </TabsList>
-          <div className="grid items-start gap-6 xl:grid-cols-2">
-            <TabsContent
-              forceMount
-              className="m-0 data-[state=inactive]:hidden xl:data-[state=inactive]:block"
-              value="profile"
-            >
+          <div className="min-w-0">
+            <TabsContent className="m-0" value="profile">
               <UserInformation key={user.data.id} user={user.data} />
             </TabsContent>
-            <TabsContent
-              forceMount
-              className="m-0 data-[state=inactive]:hidden xl:data-[state=inactive]:block"
-              value="password"
-            >
+            <TabsContent className="m-0" value="password">
               <ChangePassword />
             </TabsContent>
             {user.data.is_superuser && (
-              <TabsContent className="m-0 xl:col-span-2" value="models">
+              <TabsContent className="m-0" value="models">
                 <ModelConfig />
               </TabsContent>
             )}
+            {!user.data.is_superuser && tab === "models" && <ForbiddenPage />}
+            <TabsContent className="m-0" value="plugin">
+              <ExtensionKeysSettings />
+            </TabsContent>
           </div>
         </Tabs>
       )}

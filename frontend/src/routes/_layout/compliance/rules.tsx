@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { ChevronDown, MoreHorizontal } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import {
   ComplianceService,
@@ -24,8 +24,8 @@ import {
   TableSelectAll,
   TableSelectRow,
 } from "@/components/Common/TableBatchBar"
-import { TableBatchDialog } from "@/components/Common/TableBatchDialog"
 import { TableName } from "@/components/Common/TableName"
+import { RuleBatchDialog } from "@/components/Compliance/RuleBatchDialog"
 import { RuleErrors } from "@/components/Compliance/RuleErrors"
 import { RuleForm } from "@/components/Compliance/RuleForm"
 import { RuleImportDialog } from "@/components/Compliance/RuleImportDialog"
@@ -36,6 +36,7 @@ import {
   sourceText,
 } from "@/components/Compliance/rules"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -59,10 +60,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import useAuth from "@/hooks/useAuth"
 import { useBrand } from "@/hooks/useBrand"
 import { parseApiError } from "@/lib/apiError"
-import { TABLE_TEXT as B, LAYER_LABEL, label, SEVERITY_LABEL } from "@/lib/zh"
+import {
+  TABLE_TEXT as B,
+  LAYER_LABEL,
+  label,
+  R6_RULE_TEXT as R,
+  SEVERITY_LABEL,
+} from "@/lib/zh"
 
 export const Route = createFileRoute("/_layout/compliance/rules")({
   component: RulesPage,
@@ -181,7 +193,12 @@ function ScopedRules({
   const [q, setQ] = useState("")
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [batch, setBatch] = useState<string[] | null>(null)
+  const [batch, setBatch] = useState<{
+    ids: string[]
+    enabled: boolean
+  } | null>(null)
+  const [showDeleted, setShowDeleted] = useState(false)
+  const known = useRef(new Map<string, RulePublic>())
   const [editing, setEditing] = useState<RulePublic | "new" | null>(null)
   const [detail, setDetail] = useState<string | null>(null)
   const [reasonTarget, setReasonTarget] = useState<RulePublic | null>(null)
@@ -205,12 +222,14 @@ function ScopedRules({
       severity,
       q,
       page,
+      showDeleted,
     ],
     queryFn: async ({ signal }) =>
       (
         await ComplianceService.readRules({
           query: {
             scope,
+            include_inactive: showDeleted,
             brand_id: scope === "brand" ? (brandId ?? undefined) : undefined,
             layer: layer || undefined,
             rule_type: type || undefined,
@@ -285,13 +304,22 @@ function ScopedRules({
     },
     onSuccess: () => toast.success("下载已开始"),
   })
+  for (const row of shown) known.current.set(row.id, row)
   const selection = {
     selected,
     onChange: setSelected,
     pageIds: shown
-      .filter((row) => row.enabled && row.layer !== "context")
+      .filter((row) => row.layer !== "context")
       .map((row) => row.id),
   }
+  const selectedRows = [...selected]
+    .map((id) => known.current.get(id))
+    .filter((row): row is RulePublic => !!row)
+  const toDelete = selectedRows.filter((row) => row.enabled).map((r) => r.id)
+  const toRestore = selectedRows.filter((row) => !row.enabled).map((r) => r.id)
+  const names = Object.fromEntries(
+    [...known.current.values()].map((row) => [row.id, row.pattern]),
+  )
   const loadAll = async () => {
     const ids: string[] = []
     for (let nextPage = 1; ; nextPage++) {
@@ -299,6 +327,7 @@ function ScopedRules({
         await ComplianceService.readRules({
           query: {
             scope,
+            include_inactive: showDeleted,
             brand_id: scope === "brand" ? brandId : undefined,
             layer: layer || undefined,
             rule_type: type || undefined,
@@ -309,9 +338,10 @@ function ScopedRules({
           },
         })
       ).data
+      for (const row of result.items) known.current.set(row.id, row)
       ids.push(
         ...result.items
-          .filter((row) => row.enabled && row.layer !== "context")
+          .filter((row) => row.layer !== "context")
           .map((row) => row.id),
       )
       if (
@@ -498,6 +528,22 @@ function ScopedRules({
             </div>
           )}
         </div>
+        {canEdit && (
+          <div className="flex items-center gap-2 px-3 py-2">
+            <Checkbox
+              id="show-deleted-rules"
+              checked={showDeleted}
+              onCheckedChange={(checked) => {
+                setShowDeleted(checked === true)
+                setSelected(new Set())
+                setPage(1)
+              }}
+            />
+            <label htmlFor="show-deleted-rules" className="text-sm">
+              {R.showDeleted}
+            </label>
+          </div>
+        )}
         {download.isError && !importing && (
           <RuleErrors error={parseApiError(download.error)} />
         )}
@@ -536,9 +582,17 @@ function ScopedRules({
                   loadAll={loadAll}
                   actions={[
                     {
-                      label: B.disable,
+                      label: R.batchDelete,
                       destructive: true,
-                      onSelect: () => setBatch([...selected]),
+                      disabled: !toDelete.length,
+                      onSelect: () =>
+                        setBatch({ ids: toDelete, enabled: false }),
+                    },
+                    {
+                      label: R.batchRestore,
+                      disabled: !toRestore.length,
+                      onSelect: () =>
+                        setBatch({ ids: toRestore, enabled: true }),
                     },
                   ]}
                 />
@@ -552,7 +606,8 @@ function ScopedRules({
                       <TableSelectAll {...selection} />
                     </TableHead>
                   )}
-                  <TableHead className="w-2/5">规则内容与来源</TableHead>
+                  <TableHead className="w-1/3">规则内容</TableHead>
+                  <TableHead>{R.source}</TableHead>
                   <TableHead>严重度</TableHead>
                   <TableHead>版本 / 状态</TableHead>
                   <TableHead className="w-1/4 text-right">操作</TableHead>
@@ -567,7 +622,7 @@ function ScopedRules({
                           {...selection}
                           id={row.id}
                           label={row.pattern}
-                          disabled={!row.enabled || row.layer === "context"}
+                          disabled={row.layer === "context"}
                         />
                       </TableCell>
                     )}
@@ -584,17 +639,29 @@ function ScopedRules({
                         {label(RULE_TYPE_LABEL, row.rule_type)} ·{" "}
                         {label(LAYER_LABEL, row.layer)}
                       </p>
-                      <div className="mt-2 flex flex-wrap items-start gap-1 text-xs text-muted-foreground">
-                        {row.is_sample && <Pill tone="warn">示例</Pill>}
-                        <span>
-                          {row.is_sample ? sourceText(row) : row.source_name}
-                        </span>
-                      </div>
-                      {row.source_clause && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {row.source_clause}
-                        </p>
-                      )}
+                    </TableCell>
+                    <TableCell className="whitespace-normal">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="max-w-full cursor-help truncate text-left text-sm text-muted-foreground"
+                          >
+                            {row.is_sample && (
+                              <Pill tone="warn" className="mr-1">
+                                示例
+                              </Pill>
+                            )}
+                            {row.is_sample
+                              ? R.sourceSample
+                              : row.source_name || R.sourceMissing}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm">
+                          <p>{sourceText(row)}</p>
+                          {row.source_clause && <p>{row.source_clause}</p>}
+                        </TooltipContent>
+                      </Tooltip>
                     </TableCell>
                     <TableCell>
                       <SeverityBadge severity={row.severity} />
@@ -604,7 +671,7 @@ function ScopedRules({
                         v{row.rule_version}
                       </span>
                       <Pill tone={row.enabled ? "ok" : "gray"}>
-                        {row.enabled ? "启用" : "已停用"}
+                        {row.enabled ? R.active : R.deleted}
                       </Pill>
                     </TableCell>
                     <TableCell>
@@ -625,7 +692,7 @@ function ScopedRules({
                                 row.enabled ? "text-tone-err" : "text-link"
                               }
                             >
-                              {row.enabled ? "停用" : "启用"}
+                              {row.enabled ? R.delete : R.restore}
                             </Button>
                           </>
                         ) : (
@@ -646,16 +713,12 @@ function ScopedRules({
         <SimplePager page={page} total={rules.data.total} onPage={setPage} />
       )}
       {batch && canEdit && (
-        <TableBatchDialog
-          ids={batch}
-          title={B.disable}
-          reasonRequired
-          execute={(rule_id, reason) =>
-            ComplianceService.updateRule({
-              path: { rule_id },
-              body: { enabled: false, reason },
-            })
-          }
+        <RuleBatchDialog
+          key={`${batch.enabled}`}
+          ids={batch.ids}
+          enabled={batch.enabled}
+          brandId={target}
+          names={names}
           onClose={() => setBatch(null)}
           onApplied={(ids) => {
             setSelected(
@@ -683,9 +746,9 @@ function ScopedRules({
         <ReasonDialog
           key={reasonTarget.id}
           open
-          title={reasonTarget.enabled ? "停用规则" : "启用规则"}
-          description={`${reasonTarget.pattern} · ${label(RULE_TYPE_LABEL, reasonTarget.rule_type)} · ${label(LAYER_LABEL, reasonTarget.layer)} · v${reasonTarget.rule_version}。原因只写入审计。停用后新检查不再使用，已有提示保持不变，不删除规则。`}
-          confirmLabel={reasonTarget.enabled ? "确认停用" : "确认启用"}
+          title={reasonTarget.enabled ? R.deleteTitle : R.restoreTitle}
+          description={`${reasonTarget.pattern} · ${label(RULE_TYPE_LABEL, reasonTarget.rule_type)} · ${label(LAYER_LABEL, reasonTarget.layer)} · v${reasonTarget.rule_version}。${reasonTarget.enabled ? R.deleteDescription : "恢复后新检查会再次使用该规则。原因只写入审计。"}`}
+          confirmLabel={reasonTarget.enabled ? "确认删除" : "确认恢复"}
           variant={reasonTarget.enabled ? "destructive" : "default"}
           pending={toggle.isPending}
           onCancel={() => setReasonTarget(null)}

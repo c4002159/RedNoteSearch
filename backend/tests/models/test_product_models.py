@@ -28,7 +28,10 @@ def test_product_table_is_brand_scoped_and_constrained() -> None:
     assert not table.c.brand_id.nullable
     assert {fk.column.table.name for fk in table.c.brand_id.foreign_keys} == {"brand"}
     names = {c.name for c in table.constraints}
-    assert {"ck_product_category", "ck_product_status"} <= names
+    assert "ck_product_status" in names
+    assert "ck_product_category" not in names
+    assert table.c.category.type.length == 30
+    assert "ck_brand_category" in {c.name for c in _table("brand").constraints}
     assert {s.value for s in ProductStatus} == {"active", "archived"}
 
 
@@ -53,12 +56,14 @@ def test_selling_point_text_is_required() -> None:
 
 def test_product_create_defaults_and_limits() -> None:
     product = ProductCreate(name="晨雾")
-    assert product.category.value == "other"
+    assert isinstance(product.category, str) and product.category == "other"
     assert product.notes.top == [] and product.selling_points == []
     with pytest.raises(ValidationError):
         ProductCreate(name="")
-    with pytest.raises(ValidationError):
-        ProductCreate(name="x", category="furniture")  # type: ignore[arg-type]
+    assert ProductCreate(name="x", category="furniture").category == "furniture"
+    for category in ("", " ", "x" * 31, "furni\nture"):
+        with pytest.raises(ValidationError):
+            ProductCreate(name="x", category=category)
 
 
 def test_voice_profile_create_requires_a_persona() -> None:

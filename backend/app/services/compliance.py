@@ -341,6 +341,7 @@ def list_rules(
     page_size: int,
     scope_filter: str | None = None,
     q: str | None = None,
+    include_inactive: bool = True,
 ) -> tuple[list[ComplianceRule], int]:
     """Global rules plus the brand rules the user may see (one brand when ``brand_id`` is given).
 
@@ -363,6 +364,8 @@ def list_rules(
             col(ComplianceRule.brand_id).in_(mine),
         )
     where: list[Any] = [scope]
+    if not include_inactive:
+        where.append(col(ComplianceRule.enabled).is_(True))
     match = contains_any(
         q,
         col(ComplianceRule.pattern),

@@ -930,6 +930,14 @@ export type DocumentDetail = {
      */
     title: string;
     /**
+     * Source Kind
+     */
+    source_kind?: string;
+    /**
+     * Source Description
+     */
+    source_description?: string | null;
+    /**
      * Doc Type
      */
     doc_type: string;
@@ -995,6 +1003,14 @@ export type DocumentPublic = {
      * Title
      */
     title: string;
+    /**
+     * Source Kind
+     */
+    source_kind?: string;
+    /**
+     * Source Description
+     */
+    source_description?: string | null;
     /**
      * Doc Type
      */
@@ -1521,6 +1537,111 @@ export type HottestPublic = {
 };
 
 /**
+ * KnowledgeNoteCreate
+ */
+export type KnowledgeNoteCreate = {
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Source Description
+     */
+    source_description: string;
+    /**
+     * Text
+     */
+    text: string;
+    doc_type?: DocumentType;
+};
+
+/**
+ * KnowledgeReviewResult
+ */
+export type KnowledgeReviewResult = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Group Id
+     */
+    group_id: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Source Kind
+     */
+    source_kind?: string;
+    /**
+     * Source Description
+     */
+    source_description?: string | null;
+    /**
+     * Doc Type
+     */
+    doc_type: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Index Status
+     */
+    index_status: string;
+    /**
+     * Version
+     */
+    version: number;
+    /**
+     * Is Current
+     */
+    is_current: boolean;
+    /**
+     * Source Filename
+     */
+    source_filename: string | null;
+    /**
+     * Submitted By
+     */
+    submitted_by: string | null;
+    /**
+     * Submitted By Name
+     */
+    submitted_by_name?: string | null;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+    similarity?: SimilarityPreview | null;
+};
+
+/**
+ * KnowledgeTextVersion
+ */
+export type KnowledgeTextVersion = {
+    /**
+     * Title
+     */
+    title?: string | null;
+    /**
+     * Source Description
+     */
+    source_description?: string | null;
+    /**
+     * Text
+     */
+    text?: string | null;
+    doc_type?: DocumentType | null;
+};
+
+/**
  * Layer
  */
 export type Layer = 'lexicon' | 'context' | 'efficacy_basis';
@@ -1784,7 +1905,10 @@ export type ProductCreate = {
      * Product Line
      */
     product_line?: string | null;
-    category?: BrandCategory;
+    /**
+     * Category
+     */
+    category?: string;
     notes?: ProductNotes;
     /**
      * Selling Points
@@ -1870,7 +1994,10 @@ export type ProductUpdate = {
      * Product Line
      */
     product_line?: string | null;
-    category?: BrandCategory | null;
+    /**
+     * Category
+     */
+    category?: string | null;
     notes?: ProductNotes | null;
     /**
      * Selling Points
@@ -2154,11 +2281,23 @@ export type ReviewCreate = {
     /**
      * Action
      */
-    action: 'approve' | 'reject';
+    action: 'approve' | 'reject' | 'cancel';
     /**
      * Reason
      */
     reason?: string | null;
+    /**
+     * Similar Decision
+     */
+    similar_decision?: 'coexist' | 'new_wins' | null;
+    /**
+     * Related Document Ids
+     */
+    related_document_ids?: Array<string>;
+    /**
+     * Similarity Token
+     */
+    similarity_token?: string | null;
 };
 
 /**
@@ -2182,6 +2321,14 @@ export type ReviewPublic = {
      */
     reason: string | null;
     /**
+     * Similar Decision
+     */
+    similar_decision?: string | null;
+    /**
+     * Related Document Ids
+     */
+    related_document_ids?: Array<string>;
+    /**
      * Created At
      */
     created_at: string | null;
@@ -2199,6 +2346,68 @@ export type RewriteRequest = {
      * Instruction
      */
     instruction?: string;
+};
+
+/**
+ * RuleBatchItem
+ */
+export type RuleBatchItem = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Success
+     */
+    success: boolean;
+    /**
+     * Changed
+     */
+    changed?: boolean;
+    /**
+     * Rule Version
+     */
+    rule_version?: number | null;
+    /**
+     * Status Code
+     */
+    status_code?: number;
+    /**
+     * Error Code
+     */
+    error_code?: string | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+};
+
+/**
+ * RuleBatchResult
+ */
+export type RuleBatchResult = {
+    /**
+     * Items
+     */
+    items: Array<RuleBatchItem>;
+};
+
+/**
+ * RuleBatchState
+ */
+export type RuleBatchState = {
+    /**
+     * Ids
+     */
+    ids: Array<string>;
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Reason
+     */
+    reason: string;
 };
 
 /**
@@ -2691,6 +2900,55 @@ export type SellingPointPublic = {
  * Severity
  */
 export type Severity = 'block' | 'warn';
+
+/**
+ * SimilarDocument
+ */
+export type SimilarDocument = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Similarity
+     */
+    similarity?: number | null;
+    /**
+     * Reasons
+     */
+    reasons?: Array<'title_match' | 'content_near'>;
+};
+
+/**
+ * SimilarityPreview
+ */
+export type SimilarityPreview = {
+    /**
+     * Status
+     */
+    status: 'ready' | 'unavailable';
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Items
+     */
+    items?: Array<SimilarDocument>;
+    /**
+     * Token
+     */
+    token?: string | null;
+};
+
+/**
+ * SourceKind
+ */
+export type SourceKind = 'file' | 'note';
 
 /**
  * StyleParams
@@ -3423,6 +3681,10 @@ export type ViralSampleListItem = {
      * Excerpt
      */
     excerpt: string;
+    /**
+     * Structures Stale
+     */
+    structures_stale?: boolean;
 };
 
 /**
@@ -3453,6 +3715,24 @@ export type ViralSamplePublic = {
      * Created At
      */
     created_at: string;
+    /**
+     * Structures Stale
+     */
+    structures_stale?: boolean;
+};
+
+/**
+ * ViralSampleUpdate
+ */
+export type ViralSampleUpdate = {
+    /**
+     * Text
+     */
+    text?: string | null;
+    /**
+     * Source Url
+     */
+    source_url?: string | null;
 };
 
 /**
@@ -5214,6 +5494,29 @@ export type toneGenerateToneSuggestionsResponses = {
 
 export type toneGenerateToneSuggestionsResponse = toneGenerateToneSuggestionsResponses[keyof toneGenerateToneSuggestionsResponses];
 
+export type extensionDownloadExtensionPackageData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/extension/package';
+};
+
+export type extensionDownloadExtensionPackageErrors = {
+    /**
+     * 插件安装包暂不可用
+     */
+    503: unknown;
+};
+
+export type extensionDownloadExtensionPackageResponses = {
+    /**
+     * 插件运行文件安装包
+     */
+    200: Blob | File;
+};
+
+export type extensionDownloadExtensionPackageResponse = extensionDownloadExtensionPackageResponses[keyof extensionDownloadExtensionPackageResponses];
+
 export type extensionReadExtensionKeysData = {
     body?: never;
     path: {
@@ -5628,6 +5931,10 @@ export type complianceReadRulesData = {
          */
         scope?: 'global' | 'brand' | null;
         /**
+         * Include Inactive
+         */
+        include_inactive?: boolean;
+        /**
          * Q
          */
         q?: string | null;
@@ -5685,6 +5992,61 @@ export type complianceCreateGlobalRuleResponses = {
 };
 
 export type complianceCreateGlobalRuleResponse = complianceCreateGlobalRuleResponses[keyof complianceCreateGlobalRuleResponses];
+
+export type complianceBatchGlobalRuleStateData = {
+    body: RuleBatchState;
+    path?: never;
+    query?: never;
+    url: '/api/v1/compliance-rules/batch-state';
+};
+
+export type complianceBatchGlobalRuleStateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceBatchGlobalRuleStateError = complianceBatchGlobalRuleStateErrors[keyof complianceBatchGlobalRuleStateErrors];
+
+export type complianceBatchGlobalRuleStateResponses = {
+    /**
+     * Successful Response
+     */
+    200: RuleBatchResult;
+};
+
+export type complianceBatchGlobalRuleStateResponse = complianceBatchGlobalRuleStateResponses[keyof complianceBatchGlobalRuleStateResponses];
+
+export type complianceBatchBrandRuleStateData = {
+    body: RuleBatchState;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/compliance-rules/batch-state';
+};
+
+export type complianceBatchBrandRuleStateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceBatchBrandRuleStateError = complianceBatchBrandRuleStateErrors[keyof complianceBatchBrandRuleStateErrors];
+
+export type complianceBatchBrandRuleStateResponses = {
+    /**
+     * Successful Response
+     */
+    200: RuleBatchResult;
+};
+
+export type complianceBatchBrandRuleStateResponse = complianceBatchBrandRuleStateResponses[keyof complianceBatchBrandRuleStateResponses];
 
 export type complianceReadRuleData = {
     body?: never;
@@ -6369,6 +6731,10 @@ export type knowledgeReadDocumentsData = {
          */
         doc_type?: DocumentType | null;
         /**
+         * Source Kind
+         */
+        source_kind?: SourceKind | null;
+        /**
          * Q
          */
         q?: string | null;
@@ -6491,6 +6857,96 @@ export type knowledgeSubmitDocumentResponses = {
 };
 
 export type knowledgeSubmitDocumentResponse = knowledgeSubmitDocumentResponses[keyof knowledgeSubmitDocumentResponses];
+
+export type knowledgeSubmitNoteData = {
+    body: KnowledgeNoteCreate;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/knowledge-notes';
+};
+
+export type knowledgeSubmitNoteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeSubmitNoteError = knowledgeSubmitNoteErrors[keyof knowledgeSubmitNoteErrors];
+
+export type knowledgeSubmitNoteResponses = {
+    /**
+     * Successful Response
+     */
+    201: DocumentPublic;
+};
+
+export type knowledgeSubmitNoteResponse = knowledgeSubmitNoteResponses[keyof knowledgeSubmitNoteResponses];
+
+export type knowledgeCreateTextVersionData = {
+    body: KnowledgeTextVersion;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-documents/{document_id}/text-versions';
+};
+
+export type knowledgeCreateTextVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeCreateTextVersionError = knowledgeCreateTextVersionErrors[keyof knowledgeCreateTextVersionErrors];
+
+export type knowledgeCreateTextVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: DocumentPublic;
+};
+
+export type knowledgeCreateTextVersionResponse = knowledgeCreateTextVersionResponses[keyof knowledgeCreateTextVersionResponses];
+
+export type knowledgePreviewSimilarDocumentsData = {
+    body?: never;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-documents/{document_id}/similarity-preview';
+};
+
+export type knowledgePreviewSimilarDocumentsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgePreviewSimilarDocumentsError = knowledgePreviewSimilarDocumentsErrors[keyof knowledgePreviewSimilarDocumentsErrors];
+
+export type knowledgePreviewSimilarDocumentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: SimilarityPreview;
+};
+
+export type knowledgePreviewSimilarDocumentsResponse = knowledgePreviewSimilarDocumentsResponses[keyof knowledgePreviewSimilarDocumentsResponses];
 
 export type knowledgeReadDocumentData = {
     body?: never;
@@ -6616,7 +7072,7 @@ export type knowledgeReviewDocumentResponses = {
     /**
      * Successful Response
      */
-    200: DocumentPublic;
+    200: KnowledgeReviewResult;
 };
 
 export type knowledgeReviewDocumentResponse = knowledgeReviewDocumentResponses[keyof knowledgeReviewDocumentResponses];
@@ -6910,6 +7366,36 @@ export type viralReadSampleResponses = {
 };
 
 export type viralReadSampleResponse = viralReadSampleResponses[keyof viralReadSampleResponses];
+
+export type viralUpdateSampleData = {
+    body: ViralSampleUpdate;
+    path: {
+        /**
+         * Sample Id
+         */
+        sample_id: string;
+    };
+    query?: never;
+    url: '/api/v1/viral-samples/{sample_id}';
+};
+
+export type viralUpdateSampleErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type viralUpdateSampleError = viralUpdateSampleErrors[keyof viralUpdateSampleErrors];
+
+export type viralUpdateSampleResponses = {
+    /**
+     * Successful Response
+     */
+    200: ViralSamplePublic;
+};
+
+export type viralUpdateSampleResponse = viralUpdateSampleResponses[keyof viralUpdateSampleResponses];
 
 export type viralReadPatternsData = {
     body?: never;

@@ -115,7 +115,12 @@ test.describe("extension keys", () => {
     await expect(page.getByRole("cell", { name: row.prefix })).toBeVisible()
     await expect(page.getByText("尚未使用")).toBeVisible()
     await page.getByText("使用说明", { exact: true }).click()
-    await expect(page.getByText(/加载已解压的扩展程序/)).toBeVisible()
+    await expect(
+      page.getByRole("heading", {
+        name: "3 加载已解压的扩展程序",
+        exact: true,
+      }),
+    ).toBeVisible()
   })
 
   test("空态、创建一次展示与两个复制按钮、关闭及刷新后不再出现", async ({
@@ -177,6 +182,35 @@ test.describe("extension keys", () => {
         JSON.stringify({ ...localStorage, ...sessionStorage }),
       ),
     ).not.toContain(secret)
+  })
+
+  test("切换设置标签后清除一次性密钥与连接配置", async ({ page }) => {
+    await fixture(page, { empty: true })
+    await page.goto("/settings?tab=profile")
+    await page.getByRole("tab", { name: "浏览器插件" }).click()
+    await page.getByRole("button", { name: "创建首枚密钥" }).click()
+    await page.getByLabel("名称", { exact: true }).fill("切换前密钥")
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "创建密钥", exact: true })
+      .click()
+    await expect(page.getByLabel("完整密钥", { exact: true })).toHaveValue(
+      secret,
+    )
+    const config = await page
+      .getByLabel("连接配置串", { exact: true })
+      .inputValue()
+    // A route/brand change can unmount the tab even while a dialog is open.
+    await page.goBack()
+    await expect(page.getByRole("button", { name: "保存资料" })).toBeVisible()
+    expect(await page.content()).not.toContain(secret)
+    await page.getByRole("tab", { name: "浏览器插件" }).click()
+    await expect(
+      page.getByRole("cell", { name: "切换前密钥", exact: true }),
+    ).toBeVisible()
+    await expect(page.getByRole("dialog")).toHaveCount(0)
+    expect(await page.content()).not.toContain(secret)
+    expect(await page.content()).not.toContain(config)
   })
 
   test("名称校验与上限 422", async ({ page }) => {

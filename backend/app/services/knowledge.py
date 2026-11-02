@@ -66,13 +66,25 @@ def _add_review(
     action: ReviewAction,
     actor_id: uuid.UUID,
     reason: str | None = None,
+    similar_decision: str | None = None,
+    related_document_ids: list[str] | None = None,
 ) -> None:
     detail: dict[str, object] = {"title": doc.title, "version": doc.version}
     if reason:
         detail["reason"] = reason
+    if similar_decision:
+        detail.update(
+            similar_decision=similar_decision,
+            related_document_ids=related_document_ids or [],
+        )
     session.add(
         KbReview(
-            document_id=doc.id, action=action.value, actor_id=actor_id, reason=reason
+            document_id=doc.id,
+            action=action.value,
+            actor_id=actor_id,
+            reason=reason,
+            similar_decision=similar_decision,
+            related_document_ids=related_document_ids or [],
         )
     )
     record_audit(
@@ -235,6 +247,10 @@ def review_document(
     action: str,
     reason: str | None,
     reviewer_id: uuid.UUID,
+    vectors: list[list[float]] | None = None,
+    commit: bool = True,
+    similar_decision: str | None = None,
+    related_document_ids: list[str] | None = None,
 ) -> KbDocument:
     """Approve or reject a pending document. Approval embeds the chunks and makes the version current."""
     if doc.status != DocumentStatus.PENDING_REVIEW.value:
@@ -243,16 +259,31 @@ def review_document(
             {"current_state": doc.status},
         )
     if action == "approve":
-        _embed_chunks(session, doc, embedder)  # raises before any state change
+        if vectors is None:
+            _embed_chunks(session, doc, embedder)  # raises before any state change
+        else:
+            for chunk, vector in zip(_chunks_of(session, doc), vectors, strict=True):
+                chunk.embedding = vector
+                session.add(chunk)
+            doc.index_status = IndexStatus.READY.value
         doc.status = DocumentStatus.APPROVED.value
         _make_current(session, doc)
-        _add_review(session, doc, ReviewAction.APPROVE, reviewer_id, reason)
+        _add_review(
+            session,
+            doc,
+            ReviewAction.APPROVE,
+            reviewer_id,
+            reason,
+            similar_decision,
+            related_document_ids,
+        )
     else:
         doc.status = DocumentStatus.REJECTED.value
         _add_review(session, doc, ReviewAction.REJECT, reviewer_id, reason)
     session.add(doc)
-    _commit(session)
-    session.refresh(doc)
+    if commit:
+        _commit(session)
+        session.refresh(doc)
     return doc
 
 
@@ -262,6 +293,7 @@ def deactivate_document(
     doc: KbDocument,
     actor_id: uuid.UUID,
     reason: str | None = None,
+    commit: bool = True,
 ) -> KbDocument:
     """Stop the document from being retrieved by new tasks. Nothing is deleted."""
     if doc.status != DocumentStatus.APPROVED.value:
@@ -272,8 +304,9 @@ def deactivate_document(
     doc.is_current = False
     session.add(doc)
     _add_review(session, doc, ReviewAction.DEACTIVATE, actor_id, reason)
-    _commit(session)
-    session.refresh(doc)
+    if commit:
+        _commit(session)
+        session.refresh(doc)
     return doc
 
 
@@ -321,8 +354,11 @@ def list_documents(
     page: int,
     page_size: int,
     q: str | None = None,
+    source_kind: str | None = None,
 ) -> tuple[list[KbDocument], int]:
     where: list[Any] = [KbDocument.brand_id == brand_id]
+    if source_kind:
+        where.append(KbDocument.source_kind == source_kind)
     match = contains_any(q, col(KbDocument.title), col(KbDocument.source_filename))
     if match is not None:
         where.append(match)

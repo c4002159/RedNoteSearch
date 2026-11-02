@@ -9,8 +9,8 @@ export function label(
   group = "enum",
 ): string {
   if (key === null || key === undefined || key === "") return "—"
-  const text = map[key]
-  if (text !== undefined) return text
+  const text = Object.getOwnPropertyDescriptor(map, key)?.value
+  if (typeof text === "string") return text
   const id = `${group}:${key}`
   if (!reported.has(id)) {
     reported.add(id)
@@ -654,9 +654,11 @@ export const PRODUCT_STATUS_LABEL = {
 // Fourth batch: user settings and login.
 export const SETTINGS_TEXT = {
   title: "用户设置",
-  description: "管理你的个人资料与登录密码。",
+  description: "管理个人资料、登录密码与可用的连接设置。",
   profile: "我的资料",
   passwordTab: "修改密码",
+  modelsTab: "模型与密钥",
+  pluginTab: "浏览器插件",
   name: "姓名",
   email: "邮箱",
   emailHint: "邮箱由管理员录入，不可直接修改",
@@ -1190,11 +1192,42 @@ export const EXTENSION_KEYS_TEXT = {
   copied: "已复制",
   copyFailed: "复制失败，请选中文本手动复制",
   instructions: "使用说明",
-  steps: [
-    "在 Chrome 打开 chrome://extensions，开启开发者模式，点击“加载已解压的扩展程序”，选择仓库中的 extensions/results-helper 文件夹。",
-    "创建密钥后复制连接配置串，打开插件的“连接设置”，粘贴到第一栏，点击“使用配置并授权”。连接配置含密钥，请妥善保管。",
-    "在系统中为已确认文案保存帖子网址，再在 Chrome 打开对应的具体笔记页。点开插件并点击“读取当前页面”，核对点赞、收藏、评论数后点击“发送到系统”。插件只在你操作时读取已打开页面，不会自动打开页面；短链接需手动登记成绩。",
+  installSteps: [
+    {
+      title: "下载并解压插件包",
+      description:
+        "下载插件包，解压到一个固定位置，记住这个文件夹。安装完成后也不要移动或删除它。",
+    },
+    {
+      title: "打开扩展程序与开发者模式",
+      description:
+        "在 Chrome 地址栏输入 chrome://extensions，打开右上角的“开发者模式”。网页不能直接打开这个地址，请复制后粘贴到地址栏。",
+    },
+    {
+      title: "加载已解压的扩展程序",
+      description:
+        "点击“加载已解压的扩展程序”，在文件夹选择窗口里选择刚解压出来的 results-helper 文件夹。要选到里面直接有 manifest.json 的那一层。",
+    },
+    {
+      title: "创建密钥并连接系统",
+      description:
+        "创建密钥 → 复制连接配置串 → 点浏览器右上角的插件图标，打开“连接设置”，粘贴并点“使用配置并授权”。连接配置含密钥，只显示这一次，请妥善保管。",
+    },
   ],
+  download: "下载插件包",
+  downloading: "正在下载…",
+  copyAddress: "复制扩展程序地址",
+  extensionAddress: "chrome://extensions",
+  updateHint:
+    "更新插件：将新版文件解压并替换到原文件夹，再到扩展程序页点击“重新加载”。",
+  useHint:
+    "在系统中为已确认文案保存帖子网址，再在 Chrome 打开对应的具体笔记页。点开插件并点击“读取当前页面”，核对点赞、收藏、评论数后点击“发送到系统”。插件只在你操作时读取已打开页面，不会自动打开页面；短链接需手动登记成绩。",
+  diagram: "步骤示意图",
+  folder: "固定文件夹",
+  developerMode: "开发者模式",
+  loadUnpacked: "加载已解压的扩展程序",
+  connectionSettings: "连接设置",
+  authorize: "使用配置并授权",
 } as const
 
 export const CUSTOM_SCENE_TEXT = {
@@ -1421,4 +1454,123 @@ export const TABLE_TEXT = {
   points: "已关联 / 全部卖点",
   status: "状态",
   actions: "操作",
+} as const
+
+// R6 包 4：知识库与商品来源。独立追加，保留其他包文案。
+export const R6_KNOWLEDGE_UI_TEXT = {
+  file: "文件",
+  note: "临时来源",
+  sourceKind: "来源分类",
+  addNote: "添加临时来源",
+  edit: "编辑",
+  editTitle: "编辑资料并创建新版本",
+  title: "标题",
+  description: "来源说明",
+  descriptionHint: "谁说的、什么时候（临时来源必填，最多 1000 字）",
+  text: "正文",
+  replaceHint: "留空保留原文；填写后将替换全文（最多 50000 字）。",
+  type: "资料类型",
+  submit: "提交",
+  cancel: "取消",
+  close: "关闭",
+  submitted: "已提交，审核通过后才能作为证据",
+  versionPending: "新版本待审核",
+  versionHint: "编辑会生成待审新版本；审核通过前，旧的当前版本保持不变。",
+  unchanged: "请至少修改标题、来源说明、正文或类型中的一项。",
+  titleError: "标题不能为空，最多 200 字。",
+  descriptionError: "临时来源的来源说明不能为空，最多 1000 字。",
+  textError: "正文不能为空，最多 50000 字。",
+  descriptionLimit: "来源说明最多 1000 字。",
+  sourceOrder: "最新上传在前；仅可选择已审核、当前且已入库的资料。",
+  preview: "检查相近资料",
+  previewHint: "点击后会临时计算嵌入，可能产生费用；页面打开时不会自动检查。",
+  similarTitle: "内容相近，请核对",
+  unavailable: "相似检查暂不可用",
+  noSimilar: "本次检查未发现相近资料。",
+  similarity: "相似度",
+  titleMatch: "标题相同",
+  contentNear: "内容相近",
+  coexist: "并存",
+  newWins: "以新的为准",
+  cancelReview: "取消",
+  cancelHint: "取消不是驳回：只记录本次取消及理由，资料保持待审。",
+  reviewReason: "理由（必填，最多 500 字）",
+  reasonError: "请填写 1–500 字的理由。",
+  chooseRelated: "勾选要停用的旧资料（最多 10 个）",
+  selectedRequired: "请勾选至少一份要停用的旧资料，最多 10 个。",
+  confirmCoexist: "确认并存",
+  confirmNewWins: "确认以新的为准",
+  confirmCancel: "提交取消",
+  cancelled: "已记录取消，资料保持待审",
+  ingestUnavailable: "资料暂不可入库，请稍后重试",
+  newDocument: "待审资料",
+  originalKept: "旧版在新版本审核通过前仍为当前版本。",
+} as const
+
+// 商品自定义种类与按需填写香调。
+export const PRODUCT_CATEGORY_TEXT = {
+  required: "请填写商品种类",
+  limit: "商品种类最多 30 字",
+  invalid: "商品种类不能包含换行或控制字符",
+  placeholder: "选择预设种类或输入自定义种类",
+  hint: "可选预设，也可填写自定义种类，最多 30 字",
+  addNotes: "这是香水/香氛类？添加香调",
+} as const
+
+export function productCategoryValue(text: string): string {
+  const value = text.trim()
+  return (
+    Object.entries(BRAND_CATEGORY_LABEL).find(
+      ([, title]) => title === value,
+    )?.[0] ?? value
+  )
+}
+
+export const R6_EVAL_TEXT = {
+  edit: "编辑",
+  editTitle: (index: number) => `编辑样本 ${index}`,
+  editNotice: "保存会生成新版本，旧版本和已有运行记录保留。",
+  inputJson: "输入（JSON 对象）",
+  expectedJson: "期望（JSON 对象，可为空对象）",
+  invalidObject: "必须是合法的 JSON 对象。",
+  saveNewVersion: "保存为新版本",
+  saving: "保存中…",
+  revised: (version: number) => `已生成新版本 v${version}`,
+  delete: "删除所选样本",
+  deleteTitle: (count: number) => `删除 ${count} 个样本？`,
+  deleteNotice: "会生成不含这些样本的新版本，旧版本和已有运行记录保留。",
+  confirmDelete: "生成新版本",
+  readOnly:
+    "只读：全局评测集仅平台管理员可编辑，品牌评测集仅该品牌管理员可编辑。",
+  hashLabel: "内容哈希",
+  groupLabel: "版本组",
+  createdLabel: "创建时间",
+} as const
+
+export const R6_RULE_TEXT = {
+  delete: "删除",
+  restore: "恢复",
+  deleted: "已删除",
+  active: "启用",
+  showDeleted: "显示已删除的规则",
+  batchDelete: "批量删除",
+  batchRestore: "批量恢复",
+  reason: "原因（必填，写入审计）",
+  confirm: "确认",
+  cancel: "取消",
+  close: "关闭",
+  retryFailed: "重试失败项",
+  batchFailed: "处理失败",
+  batchNotice: (count: number, enabled: boolean) =>
+    enabled
+      ? `将恢复 ${count} 条规则，之后的新检查会再次使用它们。`
+      : `将删除 ${count} 条规则：新检查不再使用，已有提示保持不变，规则不会被物理删除，可在“显示已删除的规则”里恢复。`,
+  batchDone: (count: number) => `已处理 ${count} 条`,
+  deleteTitle: "删除规则",
+  restoreTitle: "恢复规则",
+  deleteDescription:
+    "删除即停用：新检查不再使用，已有提示保持不变，不会物理删除，可在“显示已删除的规则”里恢复。原因只写入审计。",
+  source: "来源",
+  sourceSample: "待核对",
+  sourceMissing: "待补充",
 } as const

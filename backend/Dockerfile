@@ -51,6 +51,8 @@ COPY ./backend/pyproject.toml ./backend/alembic.ini /app/backend/
 
 COPY ./backend/app /app/backend/app
 
+COPY ./extensions/results-helper/manifest.json ./extensions/results-helper/parse.js ./extensions/results-helper/popup.html ./extensions/results-helper/popup.js /app/extensions/results-helper/
+
 COPY --from=frontend-build /app/backend/app/frontend /app/backend/app/frontend
 
 # Sync the project

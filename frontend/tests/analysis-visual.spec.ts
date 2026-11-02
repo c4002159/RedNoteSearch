@@ -50,13 +50,14 @@ test("Dataset JSON and result details use dialogs; rubric scores send the result
 }) => {
   const writes = await mockAnalysis(page)
   await page.goto(`/evaluation/datasets/${ids.dataset}`)
-  await page.getByRole("button", { name: "查看 JSON", exact: true }).click()
-  await expect(page.getByRole("dialog")).toContainText("香氛表达（演示）")
+  await page.getByRole("button", { name: "编辑", exact: true }).click()
+  await expect(page.getByLabel("输入（JSON 对象）")).toHaveValue(
+    /香氛表达（演示）/,
+  )
   await page.screenshot({ path: test.info().outputPath("case-json.png") })
   await page
     .getByRole("dialog")
-    .getByRole("button", { name: "关闭", exact: true })
-    .first()
+    .getByRole("button", { name: "取消", exact: true })
     .click()
   await page.goto(`/evaluation/runs/${ids.run}`)
   await page.getByRole("button", { name: "查看详情", exact: true }).click()
