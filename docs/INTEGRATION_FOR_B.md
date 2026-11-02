@@ -97,4 +97,3 @@ B 的领域逻辑（约束、证据匹配、合规、评测、生成编排）**�
 | 插件密钥 | 第 5 节“浏览器插件” | 品牌 admin 的密钥管理（密钥只显示一次，要明确提示复制） | 接口已合并，等设计稿 |
 
 前端注意：`scene` 不再是固定枚举，是字符串，标签文案要对未知键兜底；任务详情新增 `promo_type`、`extra_product_ids`、`activity`；`prompt_version` 现为 `gen-v6`。改接口后运行 `bash scripts/generate-client.sh`。
-
