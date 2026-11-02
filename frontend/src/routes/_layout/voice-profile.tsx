@@ -119,8 +119,8 @@ function VoicePage() {
                 {T.noActive}
               </p>
             )}
-            <div className="min-w-0 overflow-hidden rounded-xl bg-card shadow-sm">
-              <Table className="w-full table-fixed [&_thead]:bg-surface-low [&_tr]:border-surface">
+            <div className="min-w-0 overflow-x-auto rounded-xl bg-card shadow-sm">
+              <Table className="w-full min-w-[58rem] table-fixed [&_thead]:bg-surface-low [&_tr]:border-surface">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-16">{V.version}</TableHead>
