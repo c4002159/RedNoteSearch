@@ -60,15 +60,15 @@ export const NAV_GROUPS: NavGroup[] = [
         access: "member",
       },
       {
-        title: CREATIVE_TYPES_TEXT.title,
-        path: "/creative-types",
-        icon: LayoutTemplate,
-        access: "member",
-      },
-      {
         title: "爆款结构分析",
         path: "/viral-samples",
         icon: TrendingUp,
+        access: "member",
+      },
+      {
+        title: CREATIVE_TYPES_TEXT.title,
+        path: "/creative-types",
+        icon: LayoutTemplate,
         access: "member",
       },
       {
