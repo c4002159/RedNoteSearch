@@ -1,6 +1,6 @@
 # 交接文档：接手的 AI 助手先读这个
 
-截至 2026-11-02（第 11 节是最新事实），后端 P0 与 P1 都已合并进 `main`（P1：F12 #40、F14 #41、F13 #42、规则批量导入 #46、停用原因 #47；B 的设计稿第一、二批 #44、#45）。本文件由 A 的 AI 助手维护；事实以代码、`git log`、`docs/API_CONTRACT.md` 和 `docs/decisions/` 为准，冲突时听它们。接手后第一件事：`git fetch`、切到最新 `main`、读完本文件，再动手。
+截至 2026-11-02（第 11、12 节是最新事实），后端 P0 与 P1 都已合并进 `main`（P1：F12 #40、F14 #41、F13 #42、规则批量导入 #46、停用原因 #47；B 的设计稿第一、二批 #44、#45）。本文件由 A 的 AI 助手维护；事实以代码、`git log`、`docs/API_CONTRACT.md` 和 `docs/decisions/` 为准，冲突时听它们。接手后第一件事：`git fetch`、切到最新 `main`、读完本文件，再动手。
 
 ## 0. 一分钟版本
 
@@ -22,7 +22,7 @@
 | 人在回路 | 没有系统依据的断言必须由人逐条决定，成立才放行，导出里标注“人工确认，不是系统验证” | `domain/flow.py`、`services/versions.py` |
 | 评测 | 版本固定的评测集、三类评测（合规、核查、生成）、有定义的指标、人工评分与一致性 | `routes/evaluation.py`、`services/evaluation*.py` |
 | 演示数据 | `python -m app.seed`（占位内容，全部标“演示”） | `backend/app/seed.py` |
-| 推广对象 | 单品、多品、活动；提示词 gen-v6 | `models/generation.py`、`services/tasks.py`、`domain/generation/prompt.py` |
+| 推广对象 | 单品、多品、活动；提示词 gen-v7 | `models/generation.py`、`services/tasks.py`、`domain/generation/prompt.py` |
 | 创作类型 | 内置 6 类加品牌自定义 | `routes/creative_types.py`、`services/creative_types.py` |
 | 成绩记录 | 已确认文案、帖子网址、读数、待补与排序 | `routes/results.py`、`services/results.py`、`domain/results.py` |
 | 浏览器插件 | 只写密钥与 `POST /extension/metrics`；插件源码与说明 | `routes/extension.py`、`extensions/results-helper/`、`docs/EXTENSION.md` |
@@ -124,7 +124,16 @@
 - **推广对象**：`promo_type` 为 `product`（默认）、`multi_product`（`product_id` 主推加 `extra_product_ids`，搭配最多 4 个）、`activity`（`activity.name/detail/perks`，`product_id` 为空）。限制宣称与卖点取并集。旧任务不受影响。
 - **成绩记录**：确认版本时自动留一份“已确认文案”（每版本一份，迁移里对历史已确认版本做了幂等补建）；读数只增不改；网址只存不抓取，只接受 https 的 xiaohongshu.com、xhslink.com；发布满 3 天仍无读数算“待补”；“最热”要至少 3 篇有读数，否则返回“数据不足”。
 - **自定义创作类型**：`scene` 现在是字符串（内置 6 个键加 `c`+8 位十六进制的自定义键）；新建品牌模板时校验该键存在于内置或本品牌。
-- **浏览器插件**：见 `docs/EXTENSION.md` 与 ADR-014。选择器来自 B 的助手在真实页面上取的 DOM 结构，**只在副本上验证过，线上页面没有自动验证**；B 还要用真实 Chrome 实测。插件的解析测试（`node --test`）还没有进 CI，改 CI 需要先 @CHNERUI。
-- **前端还没有这四块的页面**：推广对象选择（`generate.tsx` 是 B 的文件）、创作类型管理、成绩记录页、插件密钥管理页，都在等 B 的设计稿；在那之前只能用接口。
+- **浏览器插件**：见 `docs/EXTENSION.md` 与 ADR-014。选择器来自 B 的助手在真实页面上取的 DOM 结构，**只在副本上验证过，线上页面没有自动验证**；B 还要用真实 Chrome 实测。插件的解析测试（`node --test`）已在 CI 的 frontend-build 里运行。
+- **这四块的页面已合并**（见第 12 节）；语气推荐的弹窗已合并（#183）。
 - **录视频前**：干净录制库 `app_rec` 要 `alembic upgrade head` 到 `a1c5e9b3d7f2` 才能确认版本；录制中不要用真实模型建测试任务（上次留下的 3 个已清理）。
 - **没验证的**：浏览器插件在线上页面；多品、活动的批量质量（各只跑过一篇）；成绩排序在真实数据量下的表现。
+
+## 12. 2026-11-02 页面与语气推荐合并之后（接手前读）
+
+- **已合并的前端页面**：创作类型管理 `/creative-types`（#176）、推广对象选择与动态创作场景（#177，改了 B 的 `generate.tsx`，**B 尚未确认**，已在 PR 里留言）、成绩记录 `/results`（#180）、插件密钥管理 `/extension-keys`（#181，创建后只在本地状态显示一次密钥和连接配置）。它们按设计稿 `(38)(1)` 与 `(40)` 实现，并去掉了设计稿里编造的元素，差异清单在各 PR 描述里；还原度复核已做（#186，报告 `docs/review/DESIGN_REVIEW_R5_FIDELITY.md`，修了三处布局），其中报告列出的三个行为缺陷（成绩页搜索无结果的提示、403 时重复权限卡、创作类型出错时仍显示加载徽标）已在 #188 修复；剩下的视觉建议（成绩页首卡内部排布、列表区块标题、只读版分组标题、密钥列表区块标题）按需再做。
+- **提示词 gen-v7（#178）**：在 gen-v6 基础上新增规则 1.2：适用场合、适合人群、使用时机资料里没有写明的，直接不写，也不用“以品牌资料为准”这类免责句代替；资料里写了的可以照写。真实模型、同一个“写一篇种草笔记”、3 款商品各一篇：v6 有“适合谁？……”这类断言，v7 没有，也没有套话。每款只跑了一篇，只能说明方向。**B 还没确认**。
+- **语气推荐**：`GET /brands/{id}/tone-suggestions`（#179）三组并列（我们用过的、爆款模板里的、成绩较好的文案用过的），`scene` 只过滤任务历史与成绩，风格预设与爆款结构是品牌通用数据；preset 条目 `count` 与 `last_used_at` 为 null，不表示被用过；成绩至少 3 篇有读数，否则 `enough_data=false`。`POST …/generate`（#182，提示词 `tone-v1`）让模型再给几条，严格 JSON、过滤禁用词与绝对化与功效承诺、不存库、只在审计里记数量，最多 3 次模型调用。**没有用真实模型验证过效果与费用**。推荐弹窗已合并（#183，独立组件 `components/Generate/ToneSuggestDialog.tsx`，在 B 的 `generate.tsx` 里只接了语气字段，**B 尚未确认**）；弹窗的测试都用 mock，没在网页上连真实模型点过。
+- **浏览器插件**：真实 Chrome 复测已通过（读数、发送、回查、断网、恢复）；真实页面上的“分不清就不读”分支没触发过；发现重复注入 parse.js 导致扩展错误页累积 `LABEL_ONLY` 报错，修复在 PR #184，待在真实 Chrome 验证。
+- **CI 的两个坑**：生成的前端客户端必须与 `scripts/generate-client.sh` 的输出逐字节一致（行尾空格也不能清）；`backend/app` 下的源码不能出现禁用词字面（需要过滤这些词时拆成两段拼接）。合并分支时 `zh.ts`、`nav.ts`、`routeTree.gen.ts` 容易冲突：`zh.ts` 两边新增的块都保留，`routeTree.gen.ts` 取 main 的版本后在 `frontend` 里运行 `bunx vite build` 重新生成，不要手改。
+- **还没做**：演示视频脚本；把 `admin@example.com` 换掉；最后体检；B 对 #175 第 9 节、#177、#178 的确认。

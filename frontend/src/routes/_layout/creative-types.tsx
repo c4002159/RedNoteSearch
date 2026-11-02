@@ -141,11 +141,13 @@ function TypeList({
       </header>
       <section className="min-w-0 space-y-5 rounded-xl bg-card p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-          <Pill tone="info">
-            {list.isSuccess
-              ? T.total(rows.length, rows.filter((r) => r.builtin).length)
-              : T.loading}
-          </Pill>
+          {!list.isError && (
+            <Pill tone="info">
+              {list.isSuccess
+                ? T.total(rows.length, rows.filter((r) => r.builtin).length)
+                : T.loading}
+            </Pill>
+          )}
           <span className="text-muted-foreground">
             {T.workspace}
             {brandName}
@@ -162,7 +164,12 @@ function TypeList({
                   T.count,
                   ...(admin ? [T.actions] : []),
                 ].map((text) => (
-                  <TableHead key={text}>{text}</TableHead>
+                  <TableHead
+                    key={text}
+                    className={text === T.count ? "text-right" : undefined}
+                  >
+                    {text}
+                  </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -207,7 +214,7 @@ function TypeList({
                         {row.builtin ? T.builtin : T.custom}
                       </Pill>
                     </TableCell>
-                    <TableCell className="tabular-nums">
+                    <TableCell className="text-right tabular-nums">
                       {row.template_count}
                     </TableCell>
                     {admin && (

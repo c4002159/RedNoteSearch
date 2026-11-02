@@ -1155,6 +1155,46 @@ export const TEMPLATE_ANALYSIS_TABS = {
   templates: "场景模板",
   viral: "爆款分析",
 } as const
+export const EXTENSION_KEYS_TEXT = {
+  title: "插件密钥管理",
+  description: "为笔记成绩助手创建和管理连接密钥。每品牌最多 10 个有效密钥。",
+  create: "创建密钥",
+  first: "创建首枚密钥",
+  empty: "当前品牌还没有插件密钥",
+  label: "名称",
+  prefix: "前缀",
+  created: "创建时间",
+  used: "最后使用时间",
+  status: "状态",
+  actions: "操作",
+  active: "有效",
+  revoked: "已作废",
+  never: "尚未使用",
+  revoke: "作废",
+  cancel: "取消",
+  close: "关闭",
+  confirm: "确认作废",
+  revokeTitle: "作废这枚密钥？",
+  revokeHint:
+    "作废后，使用这枚密钥的插件将无法继续提交成绩读数。此操作不可撤销。",
+  nameHint: "名称为 1–60 个字符，首尾空白会自动去除。",
+  nameError: "请输入 1–60 个字符的名称",
+  limit: "有效密钥已达 10 个上限，请先作废不用的",
+  success: "密钥创建成功",
+  once: "含密钥，只显示这一次，关闭后无法再取",
+  key: "完整密钥",
+  config: "连接配置串",
+  copyKey: "复制密钥",
+  copyConfig: "复制连接配置串",
+  copied: "已复制",
+  copyFailed: "复制失败，请选中文本手动复制",
+  instructions: "使用说明",
+  steps: [
+    "在 Chrome 打开 chrome://extensions，开启开发者模式，点击“加载已解压的扩展程序”，选择仓库中的 extensions/results-helper 文件夹。",
+    "创建密钥后复制连接配置串，打开插件的“连接设置”，粘贴到第一栏，点击“使用配置并授权”。连接配置含密钥，请妥善保管。",
+    "在系统中为已确认文案保存帖子网址，再在 Chrome 打开对应的具体笔记页。点开插件并点击“读取当前页面”，核对点赞、收藏、评论数后点击“发送到系统”。插件只在你操作时读取已打开页面，不会自动打开页面；短链接需手动登记成绩。",
+  ],
+} as const
 
 // 成绩记录：看板、列表与登记弹窗。
 export const RESULTS_TEXT = {
@@ -1185,6 +1225,9 @@ export const RESULTS_TEXT = {
   all: "全部",
   search: "搜索文案标题",
   searchButton: "搜索",
+  noSearchResults: "没有找到匹配的文案",
+  searchHint: "换个关键词试试",
+  clearSearch: "清除搜索",
   copyTitle: "文案标题",
   template: "场景模板",
   promotion: "推广对象",
@@ -1299,4 +1342,41 @@ export const PROMO_REVIEW_TEXT = {
   loadingProducts: "正在加载可选商品",
   loadingTypes: "正在加载创作场景",
   loadFailed: "推广对象或创作场景加载失败，请重试。",
+} as const
+
+// 工作台语气推荐：来源分组、模型建议和状态。
+export const TONE_DIALOG_TEXT = {
+  title: "推荐语气",
+  description: "从品牌已有语气中选择，或让模型提供新的写作方式。",
+  history: "我们用过的",
+  template: "爆款模板里的语气",
+  results: "成绩较好的文案用过的语气",
+  task: (count: number, date: string) => `用过 ${count} 次，最近 ${date}`,
+  preset: "来自风格预设",
+  brandWide: "品牌通用",
+  samples: (count: number) => `来自 ${count} 个爆款样本`,
+  performance: (count: number, value: string) =>
+    `${count} 篇，平均互动${value}`,
+  tenThousand: "万",
+  approximately: "约",
+  use: "使用",
+  useTone: (tone: string) => `使用 ${tone}`,
+  insufficient: (minimum: number) =>
+    `数据不足，至少需要 ${minimum} 篇有读数的文案`,
+  allEmpty: "还没有可推荐的语气，可以先用模型建议",
+  emptyHistory: "暂无任务记录或风格预设中的语气",
+  emptyTemplate: "暂无爆款模板语气",
+  emptyResults: "暂无可归因的成绩语气",
+  sceneHint:
+    "场景只影响“我们用过的”里的任务记录和成绩，风格预设和爆款模板语气是品牌通用的。",
+  modelGroup: "模型建议",
+  modelHint: "模型建议，不是事实",
+  generate: "让模型再想几个",
+  generating: "正在生成建议…",
+  unavailable: "模型暂时不可用，稍后再试",
+  noValid: "这次没有得到可用的建议，请稍后再试",
+  failed: "语气建议读取失败，请重试。",
+  loading: "正在加载推荐语气",
+  disclaimer: "样本很少，只能说明方向，不能说明哪种语气更好。",
+  close: "关闭",
 } as const

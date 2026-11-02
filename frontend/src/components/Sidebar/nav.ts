@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   FlaskConical,
   History,
+  KeyRound,
   LayoutTemplate,
   Library,
   type LucideIcon,
@@ -128,6 +129,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "系统",
     items: [
+      /* biome-ignore format: Keep the authorized navigation change to one line. */ { title: "插件密钥", path: "/extension-keys", icon: KeyRound, access: "admin" },
       { title: "用户设置", path: "/settings", icon: Settings, access: "all" },
       { title: "用户管理", path: "/admin", icon: Users, access: "platform" },
     ],

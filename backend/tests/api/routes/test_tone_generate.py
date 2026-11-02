@@ -6,7 +6,7 @@ from typing import Any
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.api.routes.tone import get_tone_llm_factory
 from app.core.config import settings
@@ -124,10 +124,12 @@ def test_demo_active_profile_fallback_and_count_only_audit(
     assert r.status_code == 200 and len(r.json()["items"]) == 5
     assert all("温柔" in i["tone"] or "克制" in i["tone"] for i in r.json()["items"])
     rows = db.exec(
-        select(AuditLog).where(
+        select(AuditLog)
+        .where(
             AuditLog.brand_id == uuid.UUID(ctx["brand"]),
             AuditLog.action == "tone.generate",
         )
+        .order_by(col(AuditLog.created_at))
     ).all()
     assert [row.detail for row in rows] == [{"count": 2}, {"count": 5}]
     assert all(row.actor_id is not None for row in rows)
