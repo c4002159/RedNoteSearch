@@ -881,3 +881,25 @@ export const EVAL_RUN_COPY = {
   withoutModel: "，不调用模型。",
   asReference: "，作为对照。",
 } as const
+export const MODEL_CONFIG_TEXT = {
+  title: "模型与密钥",
+  intro:
+    "只有平台管理员能在这里填写接口密钥、调整模型。密钥保存前会加密，页面只显示最后 4 位，保存后无法再查看；填写后优先于服务器 .env 里的密钥。",
+  sourceDatabase: "网页设置",
+  sourceEnv: "服务器 .env",
+  sourceNone: "未配置",
+  keyLabel: "接口密钥",
+  keyPlaceholder: "粘贴新的密钥后保存",
+  keySaved: "已保存，尾号",
+  modelsLabel: "可用模型",
+  modelsHint: "留空则使用服务器配置的模型。",
+  save: "保存",
+  clear: "清除网页设置",
+  clearHint: "清除后改用服务器 .env 里的密钥和模型。",
+  savedToast: "已保存",
+  clearedToast: "已清除网页设置",
+  currentModels: "当前可用模型",
+  noModels: "还没有配置模型。",
+  enabled: "已启用",
+  disabled: "未启用",
+} as const

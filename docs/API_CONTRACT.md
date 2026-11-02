@@ -637,6 +637,15 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 - `GET /models`：登录用户；`{"items":[{"id","provider","model_name","enabled","price_in_per_1k","price_out_per_1k","price_version"}]}`。价格为配置数据，非硬编码。
 - 调用日志不通过 API 暴露原始请求；费用在版本与评测结果里汇总。
 
+### 8.1 模型与密钥设置（平台管理员，2026-11-02）
+
+仅平台管理员（`is_superuser`）可用；其他登录用户 403，未登录 401。密钥保存前用由 `SECRET_KEY` 派生的密钥加密，接口永不返回密钥，只返回来源与最后 4 位。库里没有值时用服务器 `.env`；改了 `SECRET_KEY` 后库里的密钥读不出来，按“库里没有”处理并记日志。
+
+- `GET /settings/providers`：`{"items":[{"provider":"deepseek|dashscope","label","key_source":"database|env|none","key_hint":"尾号或 null","models":[…],"models_source":"database|env|none","updated_at"}]}`。
+- `PUT /settings/providers/{provider}`：请求体 `{"api_key"?: string(8–300), "models"?: string[](≤10)}`，字段不传则不改；两者都不传 422；`dashscope` 不能设 `models`（409）；`provider` 不在枚举内 422。返回同上单项。写审计 `settings.provider.update`（只记改了哪些字段，不记值）。
+- `DELETE /settings/providers/{provider}`：清除网页里设的密钥与模型，改回 `.env`。写审计 `settings.provider.clear`。
+- 生效范围：任务生成、检查、评测、爆款分析用 DeepSeek 的库内密钥；资料嵌入用百炼的库内密钥；`GET /models` 的 `enabled` 与模型清单也随之变化。
+
 ## 9. 审计（A，P2）
 
 `GET /audit-logs?brand_id=&action=&page=`（品牌 admin）：关键操作（入库、审核、停用、越权尝试）；P0 只写不读。
@@ -748,6 +757,7 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 
 ## 12. 变更记录
 
+- 2026-11-02 新增模型与密钥设置（8.1）：平台管理员在网页填写 DeepSeek、百炼密钥并调整 DeepSeek 模型清单，加密保存、不回显；见 ADR-013。
 - 2026-11-01 F13 实现：样本与模式读写、同步分析与复制检查、品牌模板递增转换、审计和调用日志；新增一条线性迁移并重新生成客户端。
 - 2026-11-01 停用接口新增可选 `reason`：资料停用和规则修改，写入审计，不改变既有字段含义
 

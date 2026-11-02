@@ -7,6 +7,7 @@ from app.api.routes import (
     evidence,
     knowledge,
     login,
+    model_config,
     private,
     products,
     rule_import,
@@ -34,6 +35,7 @@ api_router.include_router(versions.router)
 api_router.include_router(knowledge.router)
 api_router.include_router(voice_profile.router)
 api_router.include_router(viral.router)
+api_router.include_router(model_config.router)
 
 
 if settings.FASTAPI_ENV == "development":
