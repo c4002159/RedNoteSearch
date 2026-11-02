@@ -1308,3 +1308,36 @@ export const CREATIVE_TYPE_DIALOG_TEXT = {
   conflict: "名称重复或已达到品牌类型数量上限，请检查后重试。",
   menu: (name: string) => `管理类型：${name}`,
 } as const
+
+export const PROMO_TARGET_TEXT = {
+  title: "推广对象",
+  types: { product: "单品", multi_product: "多品组合", activity: "活动推广" },
+  product: "选择商品",
+  primary: "主推商品",
+  choose: "请选择商品",
+  category: "类目：",
+  line: "产品线：",
+  activityName: "活动名称",
+  detail: "活动说明（选填）",
+  perks: "活动福利",
+  perksLimit: "最多 10 条，每条不超过 200 字。",
+  activityHint:
+    "活动文字不经知识库核对，福利里没有资料依据的说法会进入人工逐条确认。",
+  extras: (n: number) => `搭配商品（已选 ${n} / 4，至少 1 个）`,
+  isPrimary: "已设为主推",
+  clear: "清除已选",
+  noProducts: "当前品牌没有可选商品；可联系管理员添加商品，或选择活动推广。",
+  noTemplate: "暂无可用模板",
+  noTemplates: "当前品牌还没有可用场景模板，请联系管理员添加。",
+  version: (n: number) => `模板版本 v${n}`,
+  chooseTemplate: "场景模板",
+} as const
+
+// 推广对象补测后的加载、空态与错误兜底。
+export const PROMO_REVIEW_TEXT = {
+  unknownType: "其他创作类型",
+  noTypes: "当前品牌暂无创作类型，请联系管理员添加。",
+  loadingProducts: "正在加载可选商品",
+  loadingTypes: "正在加载创作场景",
+  loadFailed: "推广对象或创作场景加载失败，请重试。",
+} as const

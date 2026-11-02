@@ -15,8 +15,9 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import {
+  type CreativeTypePublic,
+  CreativeTypesService,
   KnowledgeService,
-  type ProductPublic,
   ProductsService,
   type ScenarioPublic,
   type StyleParams,
@@ -24,10 +25,17 @@ import {
 } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
-import { MissingPage } from "@/components/Common/ForbiddenPage"
+import { FilterSelect } from "@/components/Common/FilterSelect"
+import { ForbiddenPage, MissingPage } from "@/components/Common/ForbiddenPage"
 import { type DockStep, ProgressDock } from "@/components/Common/ProgressDock"
 import { StageProgress } from "@/components/Common/StageProgress"
 import { FlowStatusBadge } from "@/components/Common/StatusBadge"
+import {
+  emptyPromo,
+  PromoTarget,
+  promoBody,
+  validPromo,
+} from "@/components/Generation/PromoTarget"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
@@ -41,6 +49,8 @@ import {
   LENGTH_LABEL,
   label,
   PERSON_LABEL,
+  PROMO_REVIEW_TEXT as PR,
+  PROMO_TARGET_TEXT as PT,
   SCENARIO_TEXT,
   TASK_ERROR_LABEL,
 } from "@/lib/zh"
@@ -112,10 +122,12 @@ const SCENE_LOOK: Record<string, { icon: LucideIcon; bg: string; fg: string }> =
 
 function SceneCards({
   scenarios,
+  types,
   value,
   onChange,
 }: {
   scenarios: ScenarioPublic[]
+  types: CreativeTypePublic[]
   value: string
   onChange: (id: string) => void
 }) {
@@ -125,24 +137,27 @@ function SceneCards({
       aria-label="场景"
       className="grid grid-cols-2 gap-2.5 sm:grid-cols-3"
     >
-      {scenarios.map((s) => {
-        const look = SCENE_LOOK[s.scene] ?? SCENE_LOOK.seeding
+      {types.map((type) => {
+        const candidates = scenarios.filter((s) => s.scene === type.key)
+        const s = candidates.find((s) => s.id === value) ?? candidates[0]
+        const look = SCENE_LOOK[type.key] ?? SCENE_LOOK.seeding
         const Icon = look.icon
-        const on = s.id === value
+        const on = candidates.some((s) => s.id === value)
         return (
-          <label key={s.id} className="cursor-pointer">
+          <label key={type.key} className={s ? "cursor-pointer" : "opacity-60"}>
             <input
               type="radio"
               name="scene"
               className="peer sr-only"
               checked={on}
-              onChange={() => onChange(s.id)}
+              disabled={!s}
+              onChange={() => s && onChange(s.id)}
             />
             <span
               className={cn(
                 "flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
                 on
-                  ? "border-primary bg-accent shadow-[0_2px_8px_rgba(37,99,235,0.12)]"
+                  ? "border-primary bg-accent shadow-sm"
                   : "border-border/60 bg-card hover:bg-surface-low",
               )}
             >
@@ -157,10 +172,10 @@ function SceneCards({
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-[13px] font-semibold">
-                  {s.name}
+                  {type.name || PR.unknownType}
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
-                  {s.source_pattern_id && (
+                  {s?.source_pattern_id && (
                     <span
                       className="mr-1 rounded bg-tone-soft-blue-bg px-1 text-tone-soft-blue"
                       title={`${SCENARIO_TEXT.fromViralTitle}${s.source_pattern_title ?? ""}`}
@@ -168,7 +183,7 @@ function SceneCards({
                       {SCENARIO_TEXT.fromViral}
                     </span>
                   )}
-                  模板版本 v{s.template_version}
+                  {s ? PT.version(s.template_version) : PT.noTemplate}
                 </span>
               </span>
             </span>
@@ -301,6 +316,16 @@ function NewTaskForm() {
     queryKey: ["scenarios"],
     queryFn: async () => (await TasksService.readScenarios()).data.items,
   })
+  const creativeTypes = useQuery({
+    queryKey: ["creative-types", brandId],
+    enabled: !!brandId,
+    queryFn: async () =>
+      (
+        await CreativeTypesService.typesReadCreativeTypes({
+          path: { brand_id: brandId },
+        })
+      ).data.items,
+  })
   const presets = useQuery({
     queryKey: ["style-presets", brandId],
     queryFn: async () =>
@@ -309,7 +334,7 @@ function NewTaskForm() {
     enabled: !!brandId,
   })
 
-  const [productId, setProductId] = useState("")
+  const [promo, setPromo] = useState(emptyPromo)
   const preselected = Route.useSearch().scenario
   const [scenarioId, setScenarioId] = useState(preselected ?? "")
   const [brief, setBrief] = useState("")
@@ -336,7 +361,7 @@ function NewTaskForm() {
         await TasksService.createTask({
           body: {
             brand_id: brandId,
-            product_id: productId,
+            ...promoBody(promo),
             scenario_id: scenarioId,
             style,
             brief,
@@ -396,8 +421,13 @@ function NewTaskForm() {
   const termCount = splitTerms(terms).length
   const pastedLength = [...pasted].length
   const ready =
-    !!productId &&
-    !!scenarioId &&
+    validPromo(promo, products.data ?? []) &&
+    brandScenarios.some((s) => s.id === scenarioId) &&
+    creativeTypes.isSuccess &&
+    creativeTypes.data.some(
+      (type) =>
+        type.key === brandScenarios.find((s) => s.id === scenarioId)?.scene,
+    ) &&
     materialCount <= MAX_MATERIALS &&
     pastedLength <= MAX_MATERIAL_CHARS &&
     briefLength <= MAX_BRIEF &&
@@ -406,6 +436,12 @@ function NewTaskForm() {
     setError(null)
     submit.mutate(start)
   }
+  const setupError = products.error ?? scenarios.error ?? creativeTypes.error
+  const setupInfo = setupError ? parseApiError(setupError) : null
+  if (setupInfo?.status === 403)
+    return <ForbiddenPage requestId={setupInfo.requestId} />
+  if (setupInfo?.status === 404)
+    return <MissingPage requestId={setupInfo.requestId} />
 
   return (
     <form
@@ -417,39 +453,31 @@ function NewTaskForm() {
     >
       <div className="flex flex-col gap-6">
         <section className="space-y-6 rounded-xl border border-border/40 bg-card p-6 shadow-sm">
-          <Field title="选择推广商品" section>
-            {products.isLoading ? (
-              <Skeleton className="h-11 w-full" />
-            ) : (
-              <select
-                className={cn(selectClass, "h-11")}
-                value={productId}
-                onChange={(e) => setProductId(e.target.value)}
-                required
-              >
-                <option value="">请选择商品</option>
-                {(products.data ?? []).map((p: ProductPublic) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
-          {(products.isError || scenarios.isError) && (
-            <ErrorBanner
-              error={parseApiError(products.error ?? scenarios.error)}
-              onRetry={() => {
-                void products.refetch()
-                void scenarios.refetch()
-              }}
+          {products.isLoading ? (
+            <Skeleton aria-label={PR.loadingProducts} className="h-32 w-full" />
+          ) : (
+            <PromoTarget
+              value={promo}
+              onChange={setPromo}
+              products={products.data ?? []}
             />
           )}
-          {products.isSuccess && products.data.length === 0 && (
-            <EmptyState
-              title="这个品牌还没有商品"
-              description="请先让品牌管理员添加商品，再回来创建任务。"
-            />
+          {setupInfo && (
+            <div className="lg:mr-72">
+              <ErrorBanner
+                error={{
+                  ...setupInfo,
+                  message: /[\u3400-\u9fff]/u.test(setupInfo.message)
+                    ? setupInfo.message
+                    : PR.loadFailed,
+                }}
+                onRetry={() => {
+                  void products.refetch()
+                  void scenarios.refetch()
+                  void creativeTypes.refetch()
+                }}
+              />
+            </div>
           )}
           {noRetrievableDocs && (
             <p
@@ -460,19 +488,47 @@ function NewTaskForm() {
             </p>
           )}
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 lg:mr-72">
             <span className="block text-base font-semibold">创作场景</span>
-            {scenarios.isLoading ? (
-              <Skeleton className="h-20 w-full" />
+            {scenarios.isLoading || creativeTypes.isLoading ? (
+              <Skeleton aria-label={PR.loadingTypes} className="h-20 w-full" />
             ) : (
               <SceneCards
+                types={creativeTypes.data ?? []}
                 scenarios={brandScenarios}
                 value={scenarioId}
                 onChange={setScenarioId}
               />
             )}
+            {creativeTypes.isSuccess && creativeTypes.data.length === 0 && (
+              <p className="text-sm text-muted-foreground">{PR.noTypes}</p>
+            )}
           </div>
 
+          {brandScenarios.filter(
+            (s) =>
+              s.scene ===
+              brandScenarios.find((row) => row.id === scenarioId)?.scene,
+          ).length > 1 && (
+            <FilterSelect
+              title={PT.chooseTemplate}
+              value={scenarioId}
+              onChange={setScenarioId}
+              options={brandScenarios
+                .filter(
+                  (s) =>
+                    s.scene ===
+                    brandScenarios.find((row) => row.id === scenarioId)?.scene,
+                )
+                .map((s) => ({
+                  value: s.id,
+                  label: `${s.name} v${s.template_version}`,
+                }))}
+            />
+          )}
+          {scenarios.isSuccess && brandScenarios.length === 0 && (
+            <p className="text-sm text-muted-foreground">{PT.noTemplates}</p>
+          )}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-base font-semibold">文案风格（选填）</span>
