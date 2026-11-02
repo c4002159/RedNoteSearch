@@ -6,19 +6,15 @@ import { toast } from "sonner"
 import { type VoiceProfilePublic, VoiceProfileService } from "@/client"
 import { BrandConfirm, BrandError } from "@/components/Brands/Feedback"
 import { CatalogGuard } from "@/components/Catalog/Fields"
+import {
+  type VoiceCell,
+  VoiceCellEditor,
+} from "@/components/Catalog/VoiceCellEditor"
 import { VoiceForm } from "@/components/Catalog/VoiceForm"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { LoadingState } from "@/components/Common/LoadingState"
 import { Pill } from "@/components/Common/StatusBadge"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   Table,
   TableBody,
@@ -46,12 +42,7 @@ const listFields = [
   "forbidden_words",
   "sample_refs",
 ] as const
-type ListField = (typeof listFields)[number]
-type Detail = {
-  version: number
-  field: "persona" | ListField
-  values: string[]
-}
+type Cell = { row: VoiceProfilePublic; field: VoiceCell }
 const tones = {
   tone_keywords: "info",
   preferred_words: "ok",
@@ -67,7 +58,7 @@ function VoicePage() {
     null,
   )
   const [activate, setActivate] = useState<VoiceProfilePublic | null>(null)
-  const [detail, setDetail] = useState<Detail | null>(null)
+  const [cell, setCell] = useState<Cell | null>(null)
   const versions = useQuery({
     queryKey: ["catalog-voice-versions", id],
     queryFn: async ({ signal }) =>
@@ -99,6 +90,9 @@ function VoicePage() {
         <div>
           <h1 className="text-2xl font-bold">{T.voice}</h1>
           <p className="text-sm text-muted-foreground">{T.voiceHint}</p>
+          {brand.isAdmin && (
+            <p className="text-xs text-muted-foreground">{V.cellHint}</p>
+          )}
         </div>
         {brand.isAdmin && (
           <Button onClick={() => setEditing("new")}>{T.newVersion}</Button>
@@ -120,7 +114,7 @@ function VoicePage() {
               </p>
             )}
             <div className="min-w-0 overflow-x-auto rounded-xl bg-card shadow-sm">
-              <Table className="w-full min-w-[58rem] table-fixed [&_thead]:bg-surface-low [&_tr]:border-surface">
+              <Table className="w-full min-w-[52rem] table-fixed [&_thead]:bg-surface-low [&_tr]:border-surface">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-16">{V.version}</TableHead>
@@ -133,9 +127,6 @@ function VoicePage() {
                     ))}
                     <TableHead className="w-14 text-center" title={V.pickHint}>
                       {V.available}
-                    </TableHead>
-                    <TableHead className="w-24 text-right">
-                      {V.actions}
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -153,13 +144,7 @@ function VoicePage() {
                           type="button"
                           className="text-left text-sm text-link hover:underline [overflow-wrap:anywhere]"
                           aria-label={`v${row.version} · ${V.viewPersona}`}
-                          onClick={() =>
-                            setDetail({
-                              version: row.version,
-                              field: "persona",
-                              values: [row.persona],
-                            })
-                          }
+                          onClick={() => setCell({ row, field: "persona" })}
                         >
                           {codePointCount(row.persona) > 20
                             ? `${Array.from(row.persona).slice(0, 20).join("")}…`
@@ -172,21 +157,26 @@ function VoicePage() {
                           className="whitespace-normal align-top"
                         >
                           {row[field].length === 0 ? (
-                            <span className="text-muted-foreground">
-                              {T.none}
-                            </span>
+                            brand.isAdmin ? (
+                              <button
+                                type="button"
+                                className="rounded-full border border-dashed border-muted-foreground/40 px-2 py-0.5 text-xs text-link hover:bg-surface-low"
+                                aria-label={`v${row.version} · ${V.addTo}${field === "sample_refs" ? V.samples : T[field]}`}
+                                onClick={() => setCell({ row, field })}
+                              >
+                                + {T.add}
+                              </button>
+                            ) : (
+                              <span className="text-muted-foreground">
+                                {T.none}
+                              </span>
+                            )
                           ) : (
                             <button
                               type="button"
                               className="flex w-full min-w-0 flex-wrap gap-1.5 rounded-lg text-left focus-visible:outline-ring"
                               aria-label={`v${row.version} · ${V.viewAll}${T[field]}`}
-                              onClick={() =>
-                                setDetail({
-                                  version: row.version,
-                                  field,
-                                  values: row[field],
-                                })
-                              }
+                              onClick={() => setCell({ row, field })}
                             >
                               {row[field].slice(0, 3).map((item, index) => (
                                 <Pill
@@ -227,24 +217,6 @@ function VoicePage() {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="align-top text-right">
-                        {brand.isAdmin ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-link"
-                              onClick={() => setEditing(row)}
-                            >
-                              {T.edit}
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            {V.readonly}
-                          </span>
-                        )}
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -252,32 +224,20 @@ function VoicePage() {
             </div>
           </>
         ))}
-      {detail && (
-        <Dialog open onOpenChange={(open) => !open && setDetail(null)}>
-          <DialogContent className="max-h-[85vh] overflow-y-auto rounded-xl border-0 sm:max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {T.version} v{detail.version} · {T[detail.field]}
-              </DialogTitle>
-              <DialogDescription>{V.fullContent}</DialogDescription>
-            </DialogHeader>
-            <ul className="space-y-3">
-              {detail.values.map((item, index) => (
-                <li
-                  key={index}
-                  className="whitespace-pre-wrap rounded-lg bg-surface-low p-4 text-sm leading-7 [overflow-wrap:anywhere]"
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDetail(null)}>
-                {V.close}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      {cell && (
+        <VoiceCellEditor
+          key={`${cell.row.version}-${cell.field}`}
+          brandId={id}
+          profile={cell.row}
+          field={cell.field}
+          editable={brand.isAdmin}
+          onClose={() => setCell(null)}
+          onSaved={() => {
+            setCell(null)
+            toast.success(T.saved)
+            refresh()
+          }}
+        />
       )}
       {brand.isAdmin && editing && (
         <VoiceForm

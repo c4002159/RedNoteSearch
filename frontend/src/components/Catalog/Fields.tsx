@@ -49,7 +49,7 @@ export function ListField({
     }
   }
   const field =
-    "min-w-[8rem] flex-1 resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+    "min-w-[12rem] flex-1 resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
@@ -109,10 +109,12 @@ export function ListField({
             className={field}
             value={entry}
             disabled={disabled || full}
-            placeholder={value.length === 0 ? T.listPlaceholder : ""}
+            placeholder={T.listPlaceholder}
             onChange={(e) => setEntry(e.target.value)}
             onBlur={add}
             onKeyDown={(e) => {
+              // 输入法选字时按回车，不能把拼音当成一项加进去。
+              if (e.nativeEvent.isComposing) return
               if (e.key === "Enter" || e.key === "," || e.key === "，") {
                 e.preventDefault()
                 add()
