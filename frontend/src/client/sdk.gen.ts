@@ -826,7 +826,7 @@ export class ToneService {
             ...options
         });
     }
-
+    
     /**
      * Generate Tone Suggestions
      */
