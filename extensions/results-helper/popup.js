@@ -62,7 +62,12 @@ $("read").addEventListener("click", async () => {
   const tab = await activeNoteTab()
   if (!tab) return show("warn", NOT_A_NOTE)
   try {
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["parse.js"] })
+    // parse.js declares top-level consts, so injecting it a second time into the same page throws.
+    const [{ result: loaded }] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => typeof parseNoteDocument === "function",
+    })
+    if (!loaded) await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["parse.js"] })
     const [{ result }] = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => parseNoteDocument(document),
