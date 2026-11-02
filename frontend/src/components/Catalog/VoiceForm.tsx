@@ -6,17 +6,18 @@ import { type VoiceProfilePublic, VoiceProfileService } from "@/client"
 import { BrandError } from "@/components/Brands/Feedback"
 import { CharCounter } from "@/components/Common/CharCounter"
 import { Button } from "@/components/ui/button"
-import { LoadingButton } from "@/components/ui/loading-button"
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { LoadingButton } from "@/components/ui/loading-button"
 import { Textarea } from "@/components/ui/textarea"
 import { codePointCount } from "@/lib/count"
-import { CATALOG_TEXT as T } from "@/lib/zh"
+import { CATALOG_TEXT as T, VOICE_TABLE_TEXT as V } from "@/lib/zh"
 import { ListField } from "./Fields"
 
 const limits = {
@@ -68,24 +69,36 @@ export function VoiceForm({
     onSuccess: onSaved,
   })
   return (
-    <Sheet open onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
-      <SheetContent
-        className="w-full overflow-y-auto p-5 sm:max-w-2xl"
+    <Dialog open onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
+      <DialogContent
+        showCloseButton={!mutation.isPending}
+        className="max-h-[85vh] overflow-y-auto rounded-xl border-0 p-6 sm:max-w-3xl"
         onEscapeKeyDown={(e) => mutation.isPending && e.preventDefault()}
         onInteractOutside={(e) => mutation.isPending && e.preventDefault()}
       >
-        <SheetHeader className="p-0">
-          <SheetTitle>
-            {T.newVersion}
+        <DialogHeader>
+          <DialogTitle>
+            {profile ? V.editVersion : T.newVersion}
             {profile ? ` · v${profile.version}` : ""}
-          </SheetTitle>
-          <SheetDescription>{T.draftVersionHint}</SheetDescription>
-        </SheetHeader>
+          </DialogTitle>
+          <DialogDescription>{V.draftHint}</DialogDescription>
+        </DialogHeader>
         <form
           className="space-y-4"
           onSubmit={form.handleSubmit((v) => mutation.mutate(v))}
         >
-          <fieldset className="space-y-4" disabled={mutation.isPending}>
+          <fieldset
+            className="space-y-4"
+            disabled={mutation.isPending}
+            onKeyDownCapture={(event) => {
+              if (
+                event.target instanceof HTMLInputElement &&
+                event.nativeEvent.isComposing &&
+                event.key === "Enter"
+              )
+                event.stopPropagation()
+            }}
+          >
             <legend className="sr-only">{T.voice}</legend>
             <div className="space-y-2">
               <label htmlFor="voice-persona">{T.persona}</label>
@@ -116,7 +129,6 @@ export function VoiceForm({
                       value={field.value}
                       onChange={field.onChange}
                       limit={limits[k]}
-                      multiline={k === "sample_refs"}
                     />
                   )}
                 />
@@ -131,8 +143,9 @@ export function VoiceForm({
               </div>
             ))}
           </fieldset>
+          <p className="text-xs text-muted-foreground">{V.listHint}</p>
           {mutation.isError && <BrandError error={mutation.error} />}
-          <div className="flex justify-end gap-2">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -142,11 +155,11 @@ export function VoiceForm({
               {T.cancel}
             </Button>
             <LoadingButton type="submit" loading={mutation.isPending}>
-              {T.save}
+              {V.saveAsNew}
             </LoadingButton>
-          </div>
+          </DialogFooter>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }

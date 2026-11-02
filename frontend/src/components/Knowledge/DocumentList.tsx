@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
+import { FileText } from "lucide-react"
 import { useState } from "react"
 import {
   type DocumentStatus,
@@ -7,6 +8,7 @@ import {
   KnowledgeService,
 } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { HeaderFilter } from "@/components/Common/FilterSelect"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { LoadingState } from "@/components/Common/LoadingState"
 import { DocumentStatusBadge } from "@/components/Common/StatusBadge"
@@ -26,6 +28,7 @@ import {
   DOCUMENT_TYPE_LABEL,
   label,
   KB_TEXT as T,
+  T5_VISUAL_TEXT as V,
 } from "@/lib/zh"
 import { IndexBadge, KnowledgeError, Pager } from "./Feedback"
 import { UploadDocument } from "./UploadDocument"
@@ -47,6 +50,7 @@ export function DocumentList({ review = false }: { review?: boolean }) {
     <BrandDocuments
       key={brand.current.id}
       brandId={brand.current.id}
+      brandName={brand.current.name}
       admin={brand.isAdmin}
       review={review}
     />
@@ -54,10 +58,12 @@ export function DocumentList({ review = false }: { review?: boolean }) {
 }
 function BrandDocuments({
   brandId,
+  brandName,
   admin,
   review,
 }: {
   brandId: string
+  brandName: string
   admin: boolean
   review: boolean
 }) {
@@ -67,6 +73,12 @@ function BrandDocuments({
   const [type, setType] = useState<DocumentType | "">("")
   const [page, setPage] = useState(1)
   const [upload, setUpload] = useState(false)
+  const clear = () => {
+    setType("")
+    setStatus("")
+    setPage(1)
+  }
+  const filtered = Boolean(type || (!review && status))
   const documents = useQuery({
     queryKey: ["knowledge", brandId, review, status, type, page],
     queryFn: async ({ signal }) =>
@@ -95,7 +107,7 @@ function BrandDocuments({
     enabled: admin,
   })
   return (
-    <div className="min-w-0 space-y-5">
+    <div className="min-w-0 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">
@@ -104,8 +116,17 @@ function BrandDocuments({
           <p className="text-sm text-muted-foreground">
             {review ? T.queueDescription : T.description}
           </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {V.workspace}
+            {brandName}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {filtered && (
+            <Button variant="ghost" onClick={clear}>
+              {T.clear}
+            </Button>
+          )}
           {review ? (
             <Button asChild variant="outline">
               <Link to="/knowledge">{T.back}</Link>
@@ -127,52 +148,6 @@ function BrandDocuments({
           )}
         </div>
       </div>
-      <div className="flex flex-wrap gap-3 rounded-xl border bg-card p-3">
-        {!review && (
-          <select
-            aria-label={T.status}
-            className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value as DocumentStatus | "")
-              setPage(1)
-            }}
-          >
-            <option value="">{T.allStatus}</option>
-            {Object.entries(DOCUMENT_STATUS_LABEL).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </select>
-        )}
-        <select
-          aria-label={T.type}
-          className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
-          value={type}
-          onChange={(e) => {
-            setType(e.target.value as DocumentType | "")
-            setPage(1)
-          }}
-        >
-          <option value="">{T.allTypes}</option>
-          {Object.entries(DOCUMENT_TYPE_LABEL).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
-        </select>
-        <Button
-          variant="ghost"
-          onClick={() => {
-            setType("")
-            setStatus("")
-            setPage(1)
-          }}
-        >
-          {T.clear}
-        </Button>
-      </div>
       {documents.isLoading && <LoadingState className="h-48 w-full" />}
       {documents.isError && (
         <KnowledgeError
@@ -180,87 +155,140 @@ function BrandDocuments({
           retry={() => documents.refetch()}
         />
       )}
-      {documents.data &&
-        !documents.isError &&
-        (documents.data.items.length === 0 ? (
-          <EmptyState
-            title={
-              review ? T.noPending : status || type ? T.filteredEmpty : T.empty
-            }
-            description={T.emptyHint}
-          />
-        ) : (
-          <div className="min-w-0 rounded-xl border bg-card">
-            <Table className="w-full table-fixed">
-              <TableHeader>
+      {documents.data && !documents.isError && (
+        <div className="min-w-0 overflow-x-auto rounded-xl bg-card shadow-sm">
+          <Table className="w-full min-w-[62rem] text-sm">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-72 whitespace-nowrap">
+                  {V.documentTitle}
+                </TableHead>
+                <TableHead className="whitespace-nowrap">
+                  <HeaderFilter
+                    title={V.typeColumn}
+                    value={type}
+                    onChange={(v) => {
+                      setType(v as DocumentType | "")
+                      setPage(1)
+                    }}
+                    options={Object.entries(DOCUMENT_TYPE_LABEL).map(
+                      ([value, label]) => ({ value, label }),
+                    )}
+                  />
+                </TableHead>
+                <TableHead className="min-w-32 whitespace-nowrap">
+                  {review ? (
+                    T.relation
+                  ) : (
+                    <HeaderFilter
+                      title={V.documentStatus}
+                      value={status}
+                      onChange={(v) => {
+                        setStatus(v as DocumentStatus | "")
+                        setPage(1)
+                      }}
+                      options={Object.entries(DOCUMENT_STATUS_LABEL).map(
+                        ([value, label]) => ({ value, label }),
+                      )}
+                    />
+                  )}
+                </TableHead>
+                {!review && (
+                  <TableHead className="whitespace-nowrap">{T.index}</TableHead>
+                )}
+                <TableHead className="whitespace-nowrap">{T.version}</TableHead>
+                <TableHead className="whitespace-nowrap">{T.author}</TableHead>
+                <TableHead className="whitespace-nowrap">{V.updated}</TableHead>
+                <TableHead className="whitespace-nowrap text-right">
+                  {V.actions}
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {documents.data.items.length === 0 && (
                 <TableRow>
-                  <TableHead className="w-1/3">{T.documentTitle}</TableHead>
-                  <TableHead>{T.type}</TableHead>
-                  <TableHead>{review ? T.relation : T.status}</TableHead>
-                  <TableHead>{review ? T.version : T.index}</TableHead>
-                  <TableHead>{T.author}</TableHead>
-                  <TableHead>{T.created}</TableHead>
+                  <TableCell
+                    colSpan={review ? 6 : 7}
+                    className="whitespace-normal py-10 text-center text-sm text-muted-foreground"
+                  >
+                    {review
+                      ? T.noPending
+                      : filtered
+                        ? T.filteredEmpty
+                        : T.empty}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {documents.data.items.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="whitespace-normal [overflow-wrap:anywhere]">
-                      <Link
-                        className="font-medium text-link hover:underline"
-                        to="/knowledge/$id"
-                        params={{ id: row.id }}
-                      >
+              )}
+              {documents.data.items.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="min-w-72 whitespace-normal">
+                    <Link
+                      className="flex items-start gap-2.5 hover:text-link"
+                      to="/knowledge/$id"
+                      params={{ id: row.id }}
+                    >
+                      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-link">
+                        <FileText className="size-4" />
+                      </span>
+                      <span className="line-clamp-2 text-sm font-medium leading-6 text-foreground [overflow-wrap:anywhere]">
                         {row.title}
-                      </Link>
-                      <p className="text-xs text-muted-foreground">
-                        v{row.version} ·{" "}
-                        {row.is_current ? T.current : T.history}
-                      </p>
-                      {review && (
-                        <Button asChild variant="ghost" size="sm">
-                          <Link to="/knowledge/$id" params={{ id: row.id }}>
-                            {T.review}
-                          </Link>
-                        </Button>
-                      )}
-                    </TableCell>
-                    <TableCell className="whitespace-normal">
-                      {label(DOCUMENT_TYPE_LABEL, row.doc_type)}
-                    </TableCell>
-                    <TableCell>
-                      {review ? (
-                        row.version > 1 ? (
-                          T.update
-                        ) : (
-                          T.newDocument
-                        )
+                      </span>
+                    </Link>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {label(DOCUMENT_TYPE_LABEL, row.doc_type)}
+                  </TableCell>
+                  <TableCell>
+                    {review ? (
+                      row.version > 1 ? (
+                        T.update
                       ) : (
-                        <DocumentStatusBadge status={row.status} />
-                      )}
-                    </TableCell>
+                        T.newDocument
+                      )
+                    ) : (
+                      <DocumentStatusBadge status={row.status} />
+                    )}
+                  </TableCell>
+                  {!review && (
                     <TableCell>
-                      {review ? (
-                        `v${row.version}`
-                      ) : (
-                        <IndexBadge
-                          documentStatus={row.status}
-                          status={row.index_status}
-                        />
-                      )}
+                      <IndexBadge
+                        documentStatus={row.status}
+                        status={row.index_status}
+                      />
                     </TableCell>
-                    <TableCell className="whitespace-normal [overflow-wrap:anywhere]">
+                  )}
+                  <TableCell className="text-sm">
+                    v{row.version}
+                    {row.is_current && (
+                      <p className="mt-1 text-xs text-tone-ok">{T.current}</p>
+                    )}
+                  </TableCell>
+                  <TableCell className="min-w-32">
+                    <span
+                      className="block truncate"
+                      title={row.submitted_by_name || T.unknown}
+                    >
                       {row.submitted_by_name || T.unknown}
-                    </TableCell>
-                    <TableCell className="whitespace-normal text-xs text-muted-foreground">
-                      {formatTime(row.created_at)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ))}
+                    </span>
+                  </TableCell>
+                  <TableCell className="whitespace-normal text-xs text-muted-foreground">
+                    {formatTime(row.created_at)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Link
+                      className="whitespace-nowrap text-sm font-medium text-link hover:underline"
+                      to="/knowledge/$id"
+                      params={{ id: row.id }}
+                    >
+                      {review ? T.review : V.viewDetails}
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
       {documents.data && !documents.isError && (
         <Pager page={page} total={documents.data.total} onPage={setPage} />
       )}

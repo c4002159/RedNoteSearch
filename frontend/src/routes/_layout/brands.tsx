@@ -30,6 +30,7 @@ import {
   label,
   ROLE_LABEL,
   BRAND_PAGE_TEXT as T,
+  T5_VISUAL_TEXT as V,
 } from "@/lib/zh"
 
 export const Route = createFileRoute("/_layout/brands")({
@@ -136,7 +137,7 @@ function BrandsPage() {
     cache = useQueryClient()
   const [creating, setCreating] = useState(false)
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{T.title}</h1>
@@ -160,40 +161,49 @@ function BrandsPage() {
         />
       )}
       {!brand.isError && (
-        <div className="grid items-start gap-5 xl:grid-cols-2">
-          <ul className="space-y-3">
-            {brand.brands.map((b) => (
-              <li
-                key={b.id}
-                className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4"
-              >
-                <span className="size-4 shrink-0 rounded-sm bg-brand-swatch" />
-                <div className="min-w-0 flex-1">
-                  <p className="break-words font-medium">{b.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {label(BRAND_CATEGORY_LABEL, b.category, "brand_category")}{" "}
-                    · {label(ROLE_LABEL, b.role, "role")}
-                  </p>
-                </div>
-                {b.id === brand.current?.id ? (
-                  <span className="flex items-center gap-1 text-sm text-primary">
-                    <Check className="size-4" />
-                    {T.current}
-                  </span>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => brand.select(b.id)}
-                  >
-                    {T.switch}
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
+        <div className="grid items-start gap-6 xl:grid-cols-2">
+          <section className="min-w-0 space-y-4 rounded-xl bg-card p-6 shadow-sm">
+            <h2 className="text-lg font-semibold">{V.brands}</h2>
+            <ul className="space-y-3">
+              {brand.brands.map((b) => (
+                <li
+                  key={b.id}
+                  className="flex flex-wrap items-center gap-3 rounded-lg bg-surface-low p-4"
+                >
+                  <span className="size-4 shrink-0 rounded-sm bg-brand-swatch" />
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words font-medium">{b.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {label(
+                        BRAND_CATEGORY_LABEL,
+                        b.category,
+                        "brand_category",
+                      )}{" "}
+                      · {label(ROLE_LABEL, b.role, "role")}
+                    </p>
+                  </div>
+                  {b.id === brand.current?.id ? (
+                    <span className="flex items-center gap-1 text-sm text-primary">
+                      <Check className="size-4" />
+                      {T.current}
+                    </span>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => brand.select(b.id)}
+                    >
+                      {T.switch}
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
           {brand.current && (brand.isAdmin || user?.is_superuser) && (
-            <Members key={brand.current.id} brandId={brand.current.id} />
+            <div className="min-w-0 [&>section]:border-0 [&>section]:p-6 [&>section]:shadow-sm">
+              <Members key={brand.current.id} brandId={brand.current.id} />
+            </div>
           )}
         </div>
       )}

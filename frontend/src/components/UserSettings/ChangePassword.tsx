@@ -115,13 +115,15 @@ export default function ChangePassword() {
           }
         />
       )}
-      <LoadingButton
-        type="submit"
-        loading={mutation.isPending}
-        disabled={!form.formState.isDirty}
-      >
-        {T.updatePassword}
-      </LoadingButton>
+      <div className="flex justify-end">
+        <LoadingButton
+          type="submit"
+          loading={mutation.isPending}
+          disabled={!form.formState.isDirty}
+        >
+          {T.updatePassword}
+        </LoadingButton>
+      </div>
     </form>
   )
 }

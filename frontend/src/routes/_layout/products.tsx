@@ -12,6 +12,7 @@ import { CatalogGuard } from "@/components/Catalog/Fields"
 import { ProductForm } from "@/components/Catalog/ProductForm"
 import { SourceReference } from "@/components/Catalog/Sources"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { FilterSelect } from "@/components/Common/FilterSelect"
 import { LoadingState } from "@/components/Common/LoadingState"
 import { Pager } from "@/components/Knowledge/Feedback"
 import { Button } from "@/components/ui/button"
@@ -71,29 +72,29 @@ function ProductsPage() {
     },
   })
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex flex-wrap justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{T.products}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold">{T.products}</h1>
+            <FilterSelect
+              title="状态"
+              value={status}
+              onChange={(v) => {
+                setStatus(v as ProductStatus)
+                setPage(1)
+              }}
+              options={(["active", "archived"] as const).map((value) => ({
+                value,
+                label: label(PRODUCT_STATUS_LABEL, value),
+              }))}
+            />
+          </div>
           <p className="text-sm text-muted-foreground">{T.productHint}</p>
         </div>
         {brand.isAdmin && (
           <Button onClick={() => setEditing("new")}>{T.newProduct}</Button>
         )}
-      </div>
-      <div className="flex gap-2">
-        {(["active", "archived"] as const).map((s) => (
-          <Button
-            key={s}
-            variant={status === s ? "default" : "outline"}
-            onClick={() => {
-              setStatus(s)
-              setPage(1)
-            }}
-          >
-            {label(PRODUCT_STATUS_LABEL, s)}
-          </Button>
-        ))}
       </div>
       {query.isLoading && <LoadingState className="h-40 w-full" />}
       {query.isError && (
@@ -108,7 +109,7 @@ function ProductsPage() {
             {query.data.items.map((p) => (
               <li
                 key={p.id}
-                className="space-y-3 rounded-xl border bg-card p-4"
+                className="space-y-3 rounded-xl bg-card p-6 shadow-sm"
               >
                 <div className="flex flex-wrap justify-between gap-3">
                   <div className="min-w-0">
@@ -131,7 +132,8 @@ function ProductsPage() {
                   <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="ghost"
+                      className="text-link"
                       onClick={() => setViewing(p)}
                     >
                       {T.view}
@@ -140,7 +142,8 @@ function ProductsPage() {
                       <>
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="ghost"
+                          className="text-link"
                           onClick={() => setEditing(p)}
                         >
                           {T.edit}

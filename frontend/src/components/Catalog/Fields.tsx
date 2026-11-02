@@ -4,9 +4,7 @@ import { BrandError } from "@/components/Brands/Feedback"
 import { CharCounter } from "@/components/Common/CharCounter"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Textarea } from "@/components/ui/textarea"
 import { useBrand } from "@/hooks/useBrand"
 import { CATALOG_TEXT as T } from "@/lib/zh"
 export function CatalogGuard({ children }: { children: ReactNode }) {
@@ -41,12 +39,17 @@ export function ListField({
   multiline?: boolean
 }) {
   const [entry, setEntry] = useState("")
+  const full = limit !== undefined && value.length >= limit
+  // 单行：回车、逗号或离开输入框都会把当前内容变成一个标签。
   const add = () => {
-    if (entry.trim() && (limit === undefined || value.length < limit)) {
-      onChange([...value, entry.trim()])
+    const text = entry.trim()
+    if (text && !full) {
+      onChange([...value, text])
       setEntry("")
     }
   }
+  const field =
+    "min-w-[8rem] flex-1 resize-none bg-transparent px-1 py-1 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
@@ -57,11 +60,13 @@ export function ListField({
           <CharCounter value={value.length} limit={limit} />
         )}
       </div>
-      <ul className="flex flex-wrap gap-2">
+      <div
+        className={`flex flex-wrap items-center gap-2 rounded-lg bg-surface-low p-2 focus-within:ring-[3px] focus-within:ring-ring/30 ${disabled ? "opacity-60" : ""}`}
+      >
         {value.map((s, i) => (
-          <li
-            key={i}
-            className="flex min-w-0 max-w-full items-start gap-2 rounded-md bg-surface px-2 py-1 text-sm"
+          <span
+            key={`${i}-${s}`}
+            className="inline-flex min-w-0 max-w-full items-start gap-1.5 rounded-md border border-primary/25 bg-card px-2 py-1 text-sm font-medium text-primary shadow-sm"
           >
             <span className="whitespace-pre-wrap [overflow-wrap:anywhere]">
               {s}
@@ -69,49 +74,54 @@ export function ListField({
             <button
               type="button"
               disabled={disabled}
-              className="shrink-0 text-muted-foreground hover:text-destructive"
+              className="shrink-0 leading-5 text-muted-foreground hover:text-destructive"
               aria-label={`${T.remove} ${title} ${i + 1}`}
               onClick={() => onChange(value.filter((_, n) => n !== i))}
             >
               ×
             </button>
-          </li>
+          </span>
         ))}
-      </ul>
-      <div className="flex gap-2">
         {multiline ? (
-          <Textarea
-            id={id}
-            value={entry}
-            disabled={disabled}
-            onChange={(e) => setEntry(e.target.value)}
-          />
+          <div className="flex w-full items-end gap-2">
+            <textarea
+              id={id}
+              rows={2}
+              className={field}
+              value={entry}
+              disabled={disabled || full}
+              placeholder={T.listPlaceholder}
+              onChange={(e) => setEntry(e.target.value)}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={disabled || !entry.trim() || full}
+              onClick={add}
+            >
+              {T.add}
+            </Button>
+          </div>
         ) : (
-          <Input
+          <input
             id={id}
+            className={field}
             value={entry}
-            disabled={disabled}
+            disabled={disabled || full}
+            placeholder={value.length === 0 ? T.listPlaceholder : ""}
             onChange={(e) => setEntry(e.target.value)}
+            onBlur={add}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" || e.key === "," || e.key === "，") {
                 e.preventDefault()
                 add()
+              } else if (e.key === "Backspace" && !entry && value.length > 0) {
+                onChange(value.slice(0, -1))
               }
             }}
           />
         )}
-        <Button
-          type="button"
-          variant="outline"
-          disabled={
-            disabled ||
-            !entry.trim() ||
-            (limit !== undefined && value.length >= limit)
-          }
-          onClick={add}
-        >
-          {T.add}
-        </Button>
       </div>
       <p className="text-xs text-muted-foreground">{T.listHint}</p>
     </div>

@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { type DatasetPublic, type EvalKind, EvaluationService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { FilterSelect } from "@/components/Common/FilterSelect"
 import { Pill } from "@/components/Common/StatusBadge"
 import { CreateDataset } from "@/components/Evaluation/CreateDataset"
 import { CreateRun } from "@/components/Evaluation/CreateRun"
@@ -79,19 +80,18 @@ function DatasetsPage() {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <select
-          aria-label={T.kind}
+        <FilterSelect
+          title={T.kind}
           value={kind}
-          className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
-          onChange={(e) => setKind(e.target.value as EvalKind | "")}
-        >
-          <option value="">{T.allKinds}</option>
-          {Object.entries(EVAL_KIND_LABEL).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setKind(v as EvalKind | "")}
+          options={[
+            { value: "", label: T.allKinds },
+            ...Object.entries(EVAL_KIND_LABEL).map(([value, label]) => ({
+              value,
+              label,
+            })),
+          ]}
+        />
         <Button variant="outline" onClick={() => setKind("")}>
           {EVAL_LIST_TEXT.clear}
         </Button>
