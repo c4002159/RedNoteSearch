@@ -176,7 +176,9 @@ test("Results list, search, pending tab and member access", async ({
     page.getByRole("cell", { name: /周一通勤香气分享/ }),
   ).toBeVisible()
   await expect(page.getByText("约1.8万", { exact: false })).toBeVisible()
-  await expect(page.getByRole("cell", { name: /场景切入种草/ })).toBeVisible()
+  await expect(
+    page.getByRole("cell", { name: /场景切入\s+种草/ }),
+  ).toBeVisible()
   await expect(
     page.getByRole("button", { name: "登记成绩", exact: true }),
   ).toBeVisible()
@@ -299,14 +301,14 @@ test("Results insufficient data and empty list keep table without rankings", asy
   ).toBeVisible()
   await expect(page.getByRole("table")).toBeVisible()
   await expect(
-    page.getByRole("heading", { name: "暂无成绩记录", exact: true }),
+    page.getByRole("cell").getByText("暂无成绩记录", { exact: true }),
   ).toBeVisible()
   await expect(
     page.getByText("样本很少，只能说明方向，不能说明哪个模板更好"),
   ).toBeVisible()
   await page.getByRole("tab", { name: "待补成绩（0）" }).click()
   await expect(
-    page.getByRole("heading", { name: "暂无待补成绩" }),
+    page.getByRole("cell").getByText("暂无待补成绩", { exact: true }),
   ).toBeVisible()
 })
 
