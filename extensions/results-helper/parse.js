@@ -26,6 +26,50 @@ function textOf(doc, selector) {
   return el ? el.textContent : null
 }
 
+// Every element that matches. A note opened as an overlay on the feed leaves the feed's own
+// like counts in the page behind it, so "the first match" can belong to another note.
+function allOf(doc, selector) {
+  if (typeof doc.querySelectorAll === "function") return [...doc.querySelectorAll(selector)]
+  const el = doc.querySelector(selector)
+  return el ? [el] : []
+}
+
+// The element of this selector that belongs to the same note as `anchor`: climb from the anchor
+// until the surrounding block holds exactly one match. Several matches in the smallest block that
+// holds any means the page does not say which one is this note's, so there is no answer.
+function scopedTo(anchor, selector) {
+  for (let node = anchor; node; node = node.parentElement) {
+    if (typeof node.querySelectorAll !== "function") return null
+    const inside = node.querySelectorAll(selector)
+    if (inside.length === 1) return inside[0]
+    if (inside.length > 1) return null
+  }
+  return null
+}
+
+const SELECTORS = { likes: ".like-wrapper .count", collects: ".collect-wrapper .count", comments: ".chat-wrapper .count" }
+
+// The three number elements of one note, or null for a name when the page does not say which is
+// the note's. A feed card only shows a like count, so the collect and comment counts are the
+// anchor and the like count is the one in the same block.
+function locateCounts(doc) {
+  const found = {}
+  for (const name of Object.keys(SELECTORS)) found[name] = allOf(doc, SELECTORS[name])
+  const anchor = [found.collects, found.comments].find((list) => list.length === 1)?.[0] ?? null
+  const located = {}
+  const ambiguous = []
+  for (const name of Object.keys(SELECTORS)) {
+    const list = found[name]
+    if (list.length <= 1) located[name] = list[0] ?? null
+    else if (anchor && (located[name] = scopedTo(anchor, SELECTORS[name]))) continue
+    else {
+      located[name] = null
+      ambiguous.push(name)
+    }
+  }
+  return { located, ambiguous }
+}
+
 // "共 1575 条评论" -> 1575
 function parseCommentTotal(text) {
   const m = (text || "").match(/共\s*(\d+)\s*条评论/)
@@ -36,18 +80,23 @@ function parseCommentTotal(text) {
 // commentsCheck: "match" | "mismatch" | "unavailable" (the page shows no "共 N 条评论" text).
 function parseNoteDocument(doc) {
   const problems = []
-  const read = (selector, name) => {
-    const parsed = parseCount(textOf(doc, selector))
+  const { located, ambiguous } = locateCounts(doc)
+  const read = (key, name) => {
+    if (ambiguous.includes(key)) {
+      problems.push(`页面上有多处${name}（可能是别的笔记的），无法确定哪个属于当前笔记`)
+      return null
+    }
+    const parsed = parseCount(located[key] ? located[key].textContent : null)
     if (!parsed) problems.push(`没有读到${name}`)
     return parsed
   }
-  const likes = read(".like-wrapper .count", "点赞数")
-  const collects = read(".collect-wrapper .count", "收藏数")
-  let comments = read(".chat-wrapper .count", "评论数")
+  const likes = read("likes", "点赞数")
+  const collects = read("collects", "收藏数")
+  let comments = read("comments", "评论数")
   const total = parseCommentTotal(textOf(doc, ".total"))
 
   let commentsCheck = "unavailable"
-  if (total !== null) {
+  if (total !== null && ambiguous.length === 0) {
     if (comments && !comments.approximate) {
       commentsCheck = comments.value === total ? "match" : "mismatch"
       if (commentsCheck === "mismatch") {
