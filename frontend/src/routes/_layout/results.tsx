@@ -154,7 +154,7 @@ function BrandResults({ brandId }: { brandId: string }) {
           </form>
         </div>
         <div className="overflow-x-auto">
-          <Table className="min-w-[1100px]">
+          <Table className="w-full table-fixed [&_th]:whitespace-normal">
             <TableHeader className="bg-surface-low">
               <TableRow>
                 {[
@@ -200,7 +200,7 @@ function BrandResults({ brandId }: { brandId: string }) {
               ) : (
                 list.data.items.map((copy: ConfirmedCopyPublic) => (
                   <TableRow key={copy.id}>
-                    <TableCell className="max-w-60 min-w-44 whitespace-normal">
+                    <TableCell className="max-w-60 whitespace-normal">
                       <p className="break-words font-medium">{copy.title}</p>
                       {copy.needs_metrics && (
                         <Pill tone="warn">{T.pending}</Pill>
@@ -215,7 +215,7 @@ function BrandResults({ brandId }: { brandId: string }) {
                     <TableCell className="max-w-36 whitespace-normal break-words">
                       {copy.promo_label}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-xs">
+                    <TableCell className="whitespace-normal text-xs">
                       {formatTime(copy.confirmed_at)}
                     </TableCell>
                     <TableCell className="max-w-52 whitespace-normal">
@@ -224,7 +224,7 @@ function BrandResults({ brandId }: { brandId: string }) {
                         {copy.post_url || T.noUrl}
                       </p>
                     </TableCell>
-                    <TableCell className="min-w-40 whitespace-normal">
+                    <TableCell className="whitespace-normal">
                       {copy.latest_metric ? (
                         <>
                           <p className="text-xs">
