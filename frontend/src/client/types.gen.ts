@@ -2202,6 +2202,68 @@ export type RewriteRequest = {
 };
 
 /**
+ * RuleBatchItem
+ */
+export type RuleBatchItem = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Success
+     */
+    success: boolean;
+    /**
+     * Changed
+     */
+    changed?: boolean;
+    /**
+     * Rule Version
+     */
+    rule_version?: number | null;
+    /**
+     * Status Code
+     */
+    status_code?: number;
+    /**
+     * Error Code
+     */
+    error_code?: string | null;
+    /**
+     * Message
+     */
+    message?: string | null;
+};
+
+/**
+ * RuleBatchResult
+ */
+export type RuleBatchResult = {
+    /**
+     * Items
+     */
+    items: Array<RuleBatchItem>;
+};
+
+/**
+ * RuleBatchState
+ */
+export type RuleBatchState = {
+    /**
+     * Ids
+     */
+    ids: Array<string>;
+    /**
+     * Enabled
+     */
+    enabled: boolean;
+    /**
+     * Reason
+     */
+    reason: string;
+};
+
+/**
  * RuleCreate
  */
 export type RuleCreate = {
@@ -5651,6 +5713,10 @@ export type complianceReadRulesData = {
          */
         scope?: 'global' | 'brand' | null;
         /**
+         * Include Inactive
+         */
+        include_inactive?: boolean;
+        /**
          * Q
          */
         q?: string | null;
@@ -5708,6 +5774,61 @@ export type complianceCreateGlobalRuleResponses = {
 };
 
 export type complianceCreateGlobalRuleResponse = complianceCreateGlobalRuleResponses[keyof complianceCreateGlobalRuleResponses];
+
+export type complianceBatchGlobalRuleStateData = {
+    body: RuleBatchState;
+    path?: never;
+    query?: never;
+    url: '/api/v1/compliance-rules/batch-state';
+};
+
+export type complianceBatchGlobalRuleStateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceBatchGlobalRuleStateError = complianceBatchGlobalRuleStateErrors[keyof complianceBatchGlobalRuleStateErrors];
+
+export type complianceBatchGlobalRuleStateResponses = {
+    /**
+     * Successful Response
+     */
+    200: RuleBatchResult;
+};
+
+export type complianceBatchGlobalRuleStateResponse = complianceBatchGlobalRuleStateResponses[keyof complianceBatchGlobalRuleStateResponses];
+
+export type complianceBatchBrandRuleStateData = {
+    body: RuleBatchState;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/compliance-rules/batch-state';
+};
+
+export type complianceBatchBrandRuleStateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type complianceBatchBrandRuleStateError = complianceBatchBrandRuleStateErrors[keyof complianceBatchBrandRuleStateErrors];
+
+export type complianceBatchBrandRuleStateResponses = {
+    /**
+     * Successful Response
+     */
+    200: RuleBatchResult;
+};
+
+export type complianceBatchBrandRuleStateResponse = complianceBatchBrandRuleStateResponses[keyof complianceBatchBrandRuleStateResponses];
 
 export type complianceReadRuleData = {
     body?: never;

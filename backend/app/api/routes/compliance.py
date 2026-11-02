@@ -21,7 +21,9 @@ from app.models import (
     RulesPublic,
     RuleUpdate,
 )
+from app.models.rule_batch import RuleBatchResult, RuleBatchState
 from app.services import compliance as compliance_service
+from app.services.rule_batch import batch_state
 from app.services.search import SEARCH_MAX_LENGTH
 
 router = APIRouter(tags=["compliance"])
@@ -108,6 +110,7 @@ def read_rules(
     rule_type: RuleType | None = None,
     severity: Severity | None = None,
     scope: Literal["global", "brand"] | None = None,
+    include_inactive: bool = True,
     q: Annotated[str | None, Query(max_length=SEARCH_MAX_LENGTH)] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
@@ -129,12 +132,37 @@ def read_rules(
         page_size=page_size,
         scope_filter=scope,
         q=q,
+        include_inactive=include_inactive,
     )
     return RulesPublic(
         items=[RulePublic.model_validate(r, from_attributes=True) for r in rows],
         total=total,
         page=page,
         page_size=page_size,
+    )
+
+
+@router.post(
+    "/compliance-rules/batch-state",
+    response_model=RuleBatchResult,
+    dependencies=[Depends(get_current_active_superuser)],
+)
+def batch_global_rule_state(
+    session: SessionDep, current_user: CurrentUser, body: RuleBatchState
+) -> RuleBatchResult:
+    return batch_state(
+        session=session, brand_id=None, actor_id=current_user.id, data=body
+    )
+
+
+@router.post(
+    "/brands/{brand_id}/compliance-rules/batch-state", response_model=RuleBatchResult
+)
+def batch_brand_rule_state(
+    access: BrandAdminDep, session: SessionDep, body: RuleBatchState
+) -> RuleBatchResult:
+    return batch_state(
+        session=session, brand_id=access.brand_id, actor_id=access.user_id, data=body
     )
 
 
