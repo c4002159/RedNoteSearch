@@ -25,7 +25,7 @@ from app.models.viral import (
     ViralToTemplateRequest,
 )
 from app.ports.llm import LlmClient
-from app.services import model_catalog, viral
+from app.services import model_catalog, provider_keys, viral
 from app.services.errors import NotFoundError
 from app.services.llm_log import DbLlmCallRecorder
 
@@ -39,7 +39,7 @@ def get_viral_llm_factory() -> ViralLlmFactory:
             provider="deepseek",
             model=model_id,
             base_url=settings.DEEPSEEK_BASE_URL,
-            api_key=settings.DEEPSEEK_API_KEY,
+            api_key=provider_keys.resolve_key("deepseek"),
             price=model_catalog.price_for(model_id),
             recorder=DbLlmCallRecorder(lambda: Session(engine), brand_id=brand_id),
             max_retries=1,

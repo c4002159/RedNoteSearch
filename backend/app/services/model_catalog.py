@@ -6,10 +6,11 @@ from decimal import Decimal
 from app.core.config import settings
 from app.infra.openai_compat import Price
 from app.models import ModelInfo
+from app.services import provider_keys
 
 
 def list_models() -> list[ModelInfo]:
-    enabled = bool(settings.DEEPSEEK_API_KEY)
+    enabled = bool(provider_keys.resolve_key("deepseek"))
     return [
         ModelInfo(
             id=model_id,
@@ -20,7 +21,7 @@ def list_models() -> list[ModelInfo]:
             price_out_per_1k=settings.DEEPSEEK_PRICE_OUT_PER_1K,
             price_version=settings.LLM_PRICE_VERSION,
         )
-        for model_id in settings.DEEPSEEK_MODELS
+        for model_id in provider_keys.configured_models() or settings.DEEPSEEK_MODELS
     ]
 
 

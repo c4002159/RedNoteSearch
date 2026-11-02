@@ -2,6 +2,7 @@ import httpx
 
 from app.core.config import settings
 from app.models.knowledge import EMBEDDING_DIMENSIONS
+from app.services import provider_keys
 from app.services.errors import ModelUnavailableError
 
 # text-embedding-v4 accepts at most 10 inputs per request.
@@ -22,7 +23,9 @@ class DashScopeEmbeddingProvider:
         model: str | None = None,
         client: httpx.Client | None = None,
     ) -> None:
-        self._api_key = api_key if api_key is not None else settings.DASHSCOPE_API_KEY
+        self._api_key = (
+            api_key if api_key is not None else provider_keys.resolve_key("dashscope")
+        )
         self._base_url = (base_url or settings.EMBEDDING_BASE_URL).rstrip("/")
         self._model = model or settings.EMBEDDING_MODEL
         self._client = client or httpx.Client(timeout=30.0)
