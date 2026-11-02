@@ -199,7 +199,7 @@ export function Results({ run }: { run: RunPublic }) {
                   </TableCell>
                   <TableCell>
                     {r.passed === null ? (
-                      "—"
+                      ""
                     ) : (
                       <Pill
                         className="whitespace-nowrap"
@@ -212,7 +212,7 @@ export function Results({ run }: { run: RunPublic }) {
                   <TableCell className="max-w-48 whitespace-normal">
                     {r.error
                       ? label(EVAL_ERROR_LABEL, r.error, "eval_error")
-                      : "—"}
+                      : ""}
                   </TableCell>
                   <TableCell>{display(r.latency_ms)}</TableCell>
                   <TableCell>{display(r.cost)}</TableCell>
@@ -268,8 +268,8 @@ export function Results({ run }: { run: RunPublic }) {
                     <TableCell>{r.case_index}</TableCell>
                     {[
                       Array.isArray(r.detail.foreign_terms_matched)
-                        ? r.detail.foreign_terms_matched.join("、") || "—"
-                        : "—",
+                        ? r.detail.foreign_terms_matched.join("、") || ""
+                        : "",
                       r.detail.retrieval_leak_count,
                       r.detail.retrieval_checked,
                       r.detail.constraints_passed,

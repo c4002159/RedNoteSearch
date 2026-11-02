@@ -160,7 +160,7 @@ function RunsPage() {
                     </TableCell>
                     <TableCell>{label(EVAL_KIND_LABEL, r.kind)}</TableCell>
                     <TableCell className="max-w-56 whitespace-normal break-words">
-                      {r.versions.models.join("、") || "—"}
+                      {r.versions.models.join("、") || ""}
                     </TableCell>
                     <TableCell>
                       <EvalStatus status={r.status} />
@@ -171,15 +171,15 @@ function RunsPage() {
                         />
                       )}
                     </TableCell>
-                    <TableCell className="whitespace-normal text-xs text-muted-foreground">
-                      {formatTime(r.created_at)}
+                    <TableCell className="whitespace-normal text-xs text-muted-foreground tabular-nums">
+                      {r.created_at ? formatTime(r.created_at) : ""}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
                         size="sm"
                         asChild
-                        className="text-link"
+                        className="text-link hover:underline"
                       >
                         <Link to="/evaluation/runs/$id" params={{ id: r.id }}>
                           {V.view}

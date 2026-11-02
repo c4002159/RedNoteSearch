@@ -55,7 +55,6 @@ export function SampleStructureCells({ id }: { id: string }) {
           </Button>
         </TableCell>
         <TableCell>
-          —
           {errorOpen && (
             <Dialog open onOpenChange={setErrorOpen}>
               <DialogContent>
@@ -82,7 +81,7 @@ export function SampleStructureCells({ id }: { id: string }) {
           {count.data ? V.hasPatterns : V.noPatterns}
         </Pill>
       </TableCell>
-      <TableCell>{count.data}</TableCell>
+      <TableCell variant="secondary">{count.data}</TableCell>
     </>
   )
 }
