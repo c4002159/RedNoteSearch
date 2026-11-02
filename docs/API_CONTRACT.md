@@ -214,6 +214,20 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - 多品任务：提示词里每个商品的卖点前面标出商品名，禁止宣称取各商品的并集；提示词版本为 `gen-v5`。
 约束检查（与发布页一致，ADR-004、ADR-005）：标题加权长度 `title_weight ≤ 20`（ASCII 可打印字符计 0.5，其余按 UTF-16 码元计 1，即汉字与全角标点 1、emoji 2，2026-11-01 发布页实测）；正文 `body_units ≤ 1000`（去掉换行后的 UTF-16 码元数，emoji 计 2）；标签 ≤10，且标签的可见字符计入正文预算。后端判定为准，前端镜像同一规则。
 
+### 成绩记录（已确认文案、帖子网址、成绩读数）
+
+目的：运营确认文案后发到小红书，回来登记帖子网址和成绩，系统据此给出“最常用”“最热”。**系统不访问小红书**：网址只保存、不打开；成绩由人填写（或用户自己浏览器里的插件填写，见后续 PR）。已确认文案的正文留在版本上，这里不复制进知识库（避免把生成的文案当作资料反过来引用）。
+
+- 确认版本（`POST /generation-versions/{id}/confirm`）时，同一事务里自动加入“已确认文案”（每个版本一条）。已确认的旧版本由迁移补入。
+- `GET /brands/{brand_id}/confirmed-copies?needs_metrics=&q=&page=&page_size=`：品牌成员；默认按确认时间倒序；`needs_metrics=true` 只列“待补成绩”，按发布时间正序。
+- `GET /confirmed-copies/{id}`：成员；非成员与不存在都是 404。
+- `PATCH /confirmed-copies/{id}`：成员；只改发来的字段 `title`（1-200）、`post_url`（只接受 `https://` 的 `xiaohongshu.com`、`xhslink.com` 及其子域，不含账号密码和空白；传 `null` 清除）、`published_at`（须带时区、不得晚于现在 10 分钟；传 `null` 清除）。其余字段 422。
+- `POST /confirmed-copies/{id}/metrics`：成员；`{"likes","collects","comments"(各 0 到 10 亿的整数),"approximate"(默认 false，读数是“1.8万”这类近似值时为 true),"source"("manual"|"extension"|"screenshot",默认 manual),"captured_at"(可选，须带时区,不得晚于现在 10 分钟，默认现在)}`，201。读数只增不改，最新的一条为当前成绩。`GET /confirmed-copies/{id}/metrics` 按时间倒序列出全部读数。
+- 每条文案返回：`id, brand_id, task_id, version_id, title, scenario_name, scene, promo_type, promo_label, post_url, published_at, confirmed_at, metrics_due_at, needs_metrics, latest_metric`。`scenario_name/scene/promo_label` 是确认时的快照。
+- **待补成绩**：已填发布时间、距发布满 3 天、且没有“采集时间不早于发布后 3 天”的读数。发布第 1 天的读数不会消除提醒。
+- `GET /brands/{brand_id}/results/summary`：`{"total_copies","pending_count","most_used":[{"scenario_name","scene","count"}](前 5),"hottest":{"enough_data","min_notes":3,"notes_with_metrics","items":[{"scenario_name","scene","note_count","average_engagement","approximate"}]}}`。“最常用”按场景模板名（含场景）统计已确认文案的篇数。“最热”按每篇最新读数的 点赞+收藏+评论 取模板平均；**有读数的文案少于 3 篇时 `enough_data=false`、`items` 为空，前端显示“数据不足”，不排名**；含近似读数的组 `approximate=true`。样本很少，只能说明方向，不能说明哪个模板更好。
+- 审计：`results.update`、`results.metric`（只记字段名与来源，不记网址和数字）。
+
 ### F12：任务文件输入（已定稿，已实现）
 
 本小节新增文件上传与资料列表；既有 `POST /tasks` JSON 与 `task_materials` 粘贴文本含义不变。

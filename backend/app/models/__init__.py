@@ -164,11 +164,37 @@ from app.models.provider_credential import (
     ProvidersPublic,
     ProviderUpdate,
 )
+from app.models.results import (
+    ConfirmedCopiesPublic,
+    ConfirmedCopy,
+    ConfirmedCopyPublic,
+    ConfirmedCopyUpdate,
+    HotStat,
+    HottestPublic,
+    MetricCreate,
+    MetricPublic,
+    MetricsPublic,
+    PostMetric,
+    ResultsSummary,
+    UsageStat,
+)
 from app.models.task_input import AuditLog, TaskInput, TaskInputChunk
 from app.models.viral import ViralPattern as ViralPattern
 from app.models.viral import ViralSample as ViralSample
 
 __all__ = [
+    "ConfirmedCopiesPublic",
+    "ConfirmedCopy",
+    "ConfirmedCopyPublic",
+    "ConfirmedCopyUpdate",
+    "HotStat",
+    "HottestPublic",
+    "MetricCreate",
+    "MetricPublic",
+    "MetricsPublic",
+    "PostMetric",
+    "ResultsSummary",
+    "UsageStat",
     "EvidenceSummaryPublic",
     "ExportVerification",
     "AgreementPublic",
