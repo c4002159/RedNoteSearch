@@ -43,6 +43,8 @@ class ConfirmedCopy(SQLModel, table=True):
     promo_label: str = Field(default="", max_length=300)
     # Typed or pasted by a person; the system never opens it.
     post_url: str | None = Field(default=None, max_length=500)
+    # The 24-character note id found in ``post_url``, to match readings from the browser extension.
+    post_note_id: str | None = Field(default=None, max_length=24, index=True)
     published_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
     confirmed_by: uuid.UUID | None = Field(
         default=None, foreign_key="user.id", ondelete="SET NULL"

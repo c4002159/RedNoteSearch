@@ -239,6 +239,17 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - `GET /brands/{brand_id}/results/summary`：`{"total_copies","pending_count","most_used":[{"scenario_name","scene","count"}](前 5),"hottest":{"enough_data","min_notes":3,"notes_with_metrics","items":[{"scenario_name","scene","note_count","average_engagement","approximate"}]}}`。“最常用”按场景模板名（含场景）统计已确认文案的篇数。“最热”按每篇最新读数的 点赞+收藏+评论 取模板平均；**有读数的文案少于 3 篇时 `enough_data=false`、`items` 为空，前端显示“数据不足”，不排名**；含近似读数的组 `approximate=true`。样本很少，只能说明方向，不能说明哪个模板更好。
 - 审计：`results.update`、`results.metric`（只记字段名与来源，不记网址和数字）。
 
+#### 浏览器插件（`extensions/results-helper`）
+
+插件由我们自己写，装在用户自己的 Chrome 里，只读用户已经打开的笔记页上显示的数字，**不抓取、不后台运行、不访问小红书的接口**，用户点“发送”才发。使用说明见 `docs/EXTENSION.md`。
+
+- `POST /brands/{brand_id}/extension-keys` `{"label"(1-60)}`：品牌 admin；201；响应除 `id, label, prefix, created_at, last_used_at, revoked_at` 外有 `key`（以 `rnk_` 开头）——**只在这一次返回，之后无法再读**，库里只存哈希。每个品牌最多 10 个有效密钥（422）。
+- `GET /brands/{brand_id}/extension-keys`：品牌 admin；列出（无 `key`）。`DELETE /brands/{brand_id}/extension-keys/{key_id}`：品牌 admin；204；作废（重复作废无害）。
+- `POST /extension/metrics`（请求头 `X-Extension-Key`，**不带用户令牌**）：`{"note_url","likes","collects","comments","approximate"(默认 false),"captured_at"(可选,须带时区)}`，201 `{"recorded":true,"approximate":bool}`。服务端只取 `note_url` 的路径里的 24 位笔记 id（`/explore/<id>`、`/discovery/item/<id>`、`/search_result/<id>`、`/user/profile/<用户>/<id>`），丢弃查询串和片段（可能含令牌），并且不存网址；用它在**该密钥所属品牌**里找已保存同一笔记 id 的“已确认文案”，加一条来源为 `extension` 的读数。
+- 失败：密钥缺失、错误或已作废一律 401（不区分原因）；网址不是笔记页 422；该品牌没有保存这个笔记 id 的文案 404（提示先在系统里填帖子网址）；同一篇笔记一小时内来自插件的读数超过 12 条 429。该密钥不能读取任何东西，用户令牌也不能调用此接口。
+- `PATCH /confirmed-copies/{id}` 保存 `post_url` 时同时记下其中的笔记 id（`post_note_id`，短链接 `xhslink.com` 取不到则为空，插件对这类笔记无法自动对上，需手填）。
+- 审计：`extension_key.create`、`extension_key.revoke`、`results.metric`（来源 extension；不记密钥、网址和数字）。
+
 ### F12：任务文件输入（已定稿，已实现）
 
 本小节新增文件上传与资料列表；既有 `POST /tasks` JSON 与 `task_materials` 粘贴文本含义不变。

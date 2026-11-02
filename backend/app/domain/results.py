@@ -3,9 +3,13 @@
 Numbers come from people (or the person's own browser extension); nothing here reads the platform.
 """
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from urllib.parse import urlparse
+
+_POST_HOSTS = ("xiaohongshu.com", "xhslink.com")
 
 # A post is due for numbers this many days after it was published.
 DUE_AFTER_DAYS = 3
@@ -74,3 +78,21 @@ def hottest(
     ]
     stats.sort(key=lambda s: (-s.average, -s.count))
     return True, stats[:limit]
+
+
+_NOTE_PATH = re.compile(
+    r"^/(?:explore|discovery/item|search_result|user/profile/[0-9a-z]+)/([0-9a-f]{24})/?$"
+)
+
+
+def note_id(url: str) -> str | None:
+    """The 24-character note id in the address of a Xiaohongshu note page, or ``None`` (short links
+    and other shapes). Query and fragment are ignored: they can carry tokens."""
+    parsed = urlparse(url.strip())
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme != "https" or not any(
+        host == h or host.endswith("." + h) for h in _POST_HOSTS
+    ):
+        return None
+    match = _NOTE_PATH.match(parsed.path)
+    return match.group(1) if match else None

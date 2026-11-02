@@ -1115,6 +1115,136 @@ export type ExportVerification = {
 };
 
 /**
+ * ExtensionKeyCreate
+ */
+export type ExtensionKeyCreate = {
+    /**
+     * Label
+     */
+    label: string;
+};
+
+/**
+ * ExtensionKeyCreated
+ */
+export type ExtensionKeyCreated = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Prefix
+     */
+    prefix: string;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+    /**
+     * Last Used At
+     */
+    last_used_at: string | null;
+    /**
+     * Revoked At
+     */
+    revoked_at: string | null;
+    /**
+     * Key
+     */
+    key: string;
+};
+
+/**
+ * ExtensionKeyPublic
+ */
+export type ExtensionKeyPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Prefix
+     */
+    prefix: string;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+    /**
+     * Last Used At
+     */
+    last_used_at: string | null;
+    /**
+     * Revoked At
+     */
+    revoked_at: string | null;
+};
+
+/**
+ * ExtensionKeysPublic
+ */
+export type ExtensionKeysPublic = {
+    /**
+     * Items
+     */
+    items: Array<ExtensionKeyPublic>;
+};
+
+/**
+ * ExtensionMetric
+ *
+ * What the extension read from the page the person had open.
+ */
+export type ExtensionMetric = {
+    /**
+     * Note Url
+     */
+    note_url: string;
+    /**
+     * Likes
+     */
+    likes: number;
+    /**
+     * Collects
+     */
+    collects: number;
+    /**
+     * Comments
+     */
+    comments: number;
+    /**
+     * Approximate
+     */
+    approximate?: boolean;
+    /**
+     * Captured At
+     */
+    captured_at?: string | null;
+};
+
+/**
+ * ExtensionRecorded
+ */
+export type ExtensionRecorded = {
+    /**
+     * Recorded
+     */
+    recorded: boolean;
+    /**
+     * Approximate
+     */
+    approximate: boolean;
+};
+
+/**
  * FlowStatus
  *
  * Process state of a task or version. It never means "compliant" (contract section 5).
@@ -4821,6 +4951,131 @@ export type resultsAddMetricResponses = {
 };
 
 export type resultsAddMetricResponse = resultsAddMetricResponses[keyof resultsAddMetricResponses];
+
+export type extensionReadExtensionKeysData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/extension-keys';
+};
+
+export type extensionReadExtensionKeysErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type extensionReadExtensionKeysError = extensionReadExtensionKeysErrors[keyof extensionReadExtensionKeysErrors];
+
+export type extensionReadExtensionKeysResponses = {
+    /**
+     * Successful Response
+     */
+    200: ExtensionKeysPublic;
+};
+
+export type extensionReadExtensionKeysResponse = extensionReadExtensionKeysResponses[keyof extensionReadExtensionKeysResponses];
+
+export type extensionCreateExtensionKeyData = {
+    body: ExtensionKeyCreate;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/extension-keys';
+};
+
+export type extensionCreateExtensionKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type extensionCreateExtensionKeyError = extensionCreateExtensionKeyErrors[keyof extensionCreateExtensionKeyErrors];
+
+export type extensionCreateExtensionKeyResponses = {
+    /**
+     * Successful Response
+     */
+    201: ExtensionKeyCreated;
+};
+
+export type extensionCreateExtensionKeyResponse = extensionCreateExtensionKeyResponses[keyof extensionCreateExtensionKeyResponses];
+
+export type extensionRevokeExtensionKeyData = {
+    body?: never;
+    path: {
+        /**
+         * Key Id
+         */
+        key_id: string;
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/extension-keys/{key_id}';
+};
+
+export type extensionRevokeExtensionKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type extensionRevokeExtensionKeyError = extensionRevokeExtensionKeyErrors[keyof extensionRevokeExtensionKeyErrors];
+
+export type extensionRevokeExtensionKeyResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type extensionRevokeExtensionKeyResponse = extensionRevokeExtensionKeyResponses[keyof extensionRevokeExtensionKeyResponses];
+
+export type extensionRecordExtensionMetricData = {
+    body: ExtensionMetric;
+    headers?: {
+        /**
+         * X-Extension-Key
+         */
+        'x-extension-key'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/extension/metrics';
+};
+
+export type extensionRecordExtensionMetricErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type extensionRecordExtensionMetricError = extensionRecordExtensionMetricErrors[keyof extensionRecordExtensionMetricErrors];
+
+export type extensionRecordExtensionMetricResponses = {
+    /**
+     * Successful Response
+     */
+    201: ExtensionRecorded;
+};
+
+export type extensionRecordExtensionMetricResponse = extensionRecordExtensionMetricResponses[keyof extensionRecordExtensionMetricResponses];
 
 export type evidenceReadVersionEvidenceData = {
     body?: never;

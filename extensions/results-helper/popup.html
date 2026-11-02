@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>笔记成绩助手</title>
+    <style>
+      body { width: 340px; margin: 0; padding: 14px; font: 14px/1.5 system-ui, "Microsoft YaHei", sans-serif; color: #1f2328; background: #fff; }
+      h1 { margin: 0 0 8px; font-size: 16px; }
+      label { display: block; margin: 8px 0 2px; font-size: 12px; color: #57606a; }
+      input[type="text"], input[type="password"], input[type="number"] { box-sizing: border-box; width: 100%; padding: 6px 8px; border: 1px solid #d0d7de; border-radius: 6px; font: inherit; }
+      .row { display: flex; gap: 8px; }
+      .row > div { flex: 1; }
+      button { margin-top: 10px; padding: 7px 12px; border: 0; border-radius: 6px; background: #0969da; color: #fff; font: inherit; cursor: pointer; }
+      button.secondary { background: #eaeef2; color: #1f2328; }
+      button:disabled { opacity: 0.5; cursor: default; }
+      .note { margin: 8px 0 0; font-size: 12px; color: #57606a; }
+      .status { margin-top: 10px; padding: 8px; border-radius: 6px; font-size: 13px; background: #f6f8fa; white-space: pre-wrap; }
+      .status.ok { background: #dafbe1; }
+      .status.warn { background: #fff8c5; }
+      .status.error { background: #ffebe9; }
+      details { margin-top: 12px; }
+      summary { cursor: pointer; font-size: 13px; }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <h1>笔记成绩助手</h1>
+    <p class="note">在已打开的小红书笔记页点开本插件，读取页面上已经显示的数字，你确认后再发送。</p>
+
+    <section id="reader">
+      <button id="read">读取当前页面</button>
+      <div id="result" hidden>
+        <div class="row">
+          <div><label for="likes">点赞</label><input id="likes" type="number" min="0" /></div>
+          <div><label for="collects">收藏</label><input id="collects" type="number" min="0" /></div>
+          <div><label for="comments">评论</label><input id="comments" type="number" min="0" /></div>
+        </div>
+        <label><input id="approximate" type="checkbox" /> 近似值（页面显示的是“2.1万”这类缩写）</label>
+        <button id="send">发送到系统</button>
+      </div>
+    </section>
+    <div id="status" class="status" hidden></div>
+
+    <details id="settings">
+      <summary>连接设置</summary>
+      <label for="server">系统地址（例如 http://localhost:8011）</label>
+      <input id="server" type="text" autocomplete="off" />
+      <label for="key">插件密钥（由品牌管理员在系统里生成）</label>
+      <input id="key" type="password" autocomplete="off" />
+      <button id="save" class="secondary">保存并授权</button>
+      <p class="note">密钥保存在本浏览器里，只能给本品牌已确认的笔记添加成绩，读不到任何内容。丢了请在系统里作废。</p>
+    </details>
+
+    <script src="parse.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -177,6 +177,7 @@ def update_copy(
         row.title = data.title
     if "post_url" in sent:
         row.post_url = data.post_url
+        row.post_note_id = rules.note_id(data.post_url) if data.post_url else None
     if "published_at" in sent:
         row.published_at = data.published_at
     row.updated_at = now

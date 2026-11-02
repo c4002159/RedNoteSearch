@@ -82,6 +82,15 @@ from app.models.evidence import (
     ConfirmEvidenceItem,
     SourceLevel,
 )
+from app.models.extension import (
+    ExtensionKey,
+    ExtensionKeyCreate,
+    ExtensionKeyCreated,
+    ExtensionKeyPublic,
+    ExtensionKeysPublic,
+    ExtensionMetric,
+    ExtensionRecorded,
+)
 from app.models.generation import (
     ActivityInfo,
     ConfirmVersion,
@@ -189,6 +198,13 @@ from app.models.viral import ViralPattern as ViralPattern
 from app.models.viral import ViralSample as ViralSample
 
 __all__ = [
+    "ExtensionKey",
+    "ExtensionKeyCreate",
+    "ExtensionKeyCreated",
+    "ExtensionKeyPublic",
+    "ExtensionKeysPublic",
+    "ExtensionMetric",
+    "ExtensionRecorded",
     "CreativeType",
     "CreativeTypeCreate",
     "CreativeTypePublic",
