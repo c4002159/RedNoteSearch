@@ -427,6 +427,9 @@ for (const width of [1440, 1280])
     await scene(page)
     for (const mode of ["单品", "多品组合", "活动推广"]) {
       await page.getByRole("radio", { name: mode, exact: true }).click()
+      await expect(
+        page.getByRole("radio", { name: mode, exact: true }),
+      ).toHaveAttribute("aria-checked", "true")
       if (mode === "多品组合") {
         await page
           .getByText("搭配商品（已选 0 / 4，至少 1 个）", { exact: true })
@@ -442,6 +445,7 @@ for (const width of [1440, 1280])
         await perks.press("Enter")
       }
       await page.evaluate(() => window.scrollTo(0, 0))
+      await page.mouse.move(5, 65)
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,
