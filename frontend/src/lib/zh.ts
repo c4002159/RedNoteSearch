@@ -938,6 +938,9 @@ export const VOICE_TABLE_TEXT = {
   editVersion: "编辑版本",
   draftHint: "保存后生成新版本，不会修改原版本；新版本需另行设为生效。",
   listHint: "输入一项后按回车添加；点击胶囊上的 × 删除。",
+  cellHint:
+    "点表格里的某一格即可修改那一项，保存后生成新版本，原版本不动，新版本需另行选用。",
+  addTo: "添加",
 } as const
 
 export const MODEL_CONFIG_TEXT = {

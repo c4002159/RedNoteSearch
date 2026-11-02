@@ -105,7 +105,6 @@ test("Version table previews and dialogs preserve full plain text", async ({
     "禁用词",
     "参考样例",
     "可用",
-    "操作",
   ])
     await expect(
       page.getByRole("columnheader", { name, exact: true }),
@@ -117,8 +116,10 @@ test("Version table previews and dialogs preserve full plain text", async ({
   await expect(row.getByText("+1", { exact: true })).toHaveCount(4)
   await page.screenshot({ path: testInfo.outputPath("voice-table.png") })
   await row.getByRole("button", { name: "v1 · 查看品牌人设全文" }).click()
-  await expect(page.getByRole("dialog")).toContainText(persona)
-  await page.getByRole("button", { name: "关闭", exact: true }).last().click()
+  await expect(
+    page.getByRole("dialog").getByLabel("品牌人设", { exact: true }),
+  ).toHaveValue(persona)
+  await page.getByRole("button", { name: "取消", exact: true }).last().click()
   await row
     .getByRole("button", { name: "v1 · 查看全部参考样例（纯文本）" })
     .click()
@@ -134,14 +135,9 @@ test("Edit preserves the old version, retries failed save, and creates an inacti
   const state = await fixture(page)
   await page.goto("/voice-profile")
   await page
-    .getByRole("row")
-    .filter({ hasText: "v1" })
-    .getByRole("button", { name: "编辑", exact: true })
+    .getByRole("button", { name: "v1 · 查看全部语气关键词", exact: true })
     .click()
   const dialog = page.getByRole("dialog")
-  await expect(dialog.getByLabel("品牌人设", { exact: true })).toHaveValue(
-    persona,
-  )
   await expect(dialog).toContainText("保存后生成新版本，不会修改原版本")
   await page.screenshot({ path: testInfo.outputPath("edit-version.png") })
   await dialog
@@ -155,10 +151,6 @@ test("Edit preserves the old version, retries failed save, and creates an inacti
     "通透",
   )
   await dialog.getByLabel("语气关键词", { exact: true }).press("Enter")
-  await dialog
-    .getByLabel("参考样例（纯文本）", { exact: true })
-    .fill("新增样例")
-  await dialog.getByLabel("参考样例（纯文本）", { exact: true }).press("Enter")
   expect(state.writes).toHaveLength(0)
   state.failSave = true
   await dialog
@@ -180,7 +172,6 @@ test("Edit preserves the old version, retries failed save, and creates an inacti
       persona,
       ...lists,
       tone_keywords: ["克制", "细腻", "温柔", "通透"],
-      sample_refs: [...lists.sample_refs, "新增样例"],
     },
   })
   await page.getByRole("button", { name: "新建版本", exact: true }).click()
@@ -230,7 +221,12 @@ test("Editor can inspect content without maintenance controls", async ({
     await expect(page.getByRole("button", { name, exact: true })).toHaveCount(0)
   await expect(page.getByRole("button", { name: /选用此版本/ })).toHaveCount(0)
   await page.getByRole("button", { name: "v1 · 查看品牌人设全文" }).click()
-  await expect(page.getByRole("dialog")).toContainText(persona)
+  await expect(
+    page.getByRole("dialog").getByLabel("品牌人设", { exact: true }),
+  ).toHaveValue(persona)
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: /保存/ }),
+  ).toHaveCount(0)
   expect(state.writes).toHaveLength(0)
 })
 
