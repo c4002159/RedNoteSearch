@@ -7,6 +7,7 @@ are. Embedding happens before anything is committed, so a model outage leaves no
 
 import hashlib
 import uuid
+from typing import Any
 
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, func, select
@@ -24,6 +25,7 @@ from app.services.audit import record_audit
 from app.services.chunking import chunk_text
 from app.services.errors import ConflictError, InvalidStateError, NotFoundError
 from app.services.parsing import parse_document
+from app.services.search import contains_any
 
 
 def get_document(*, session: Session, document_id: uuid.UUID) -> KbDocument:
@@ -318,8 +320,12 @@ def list_documents(
     doc_type: str | None,
     page: int,
     page_size: int,
+    q: str | None = None,
 ) -> tuple[list[KbDocument], int]:
-    where = [KbDocument.brand_id == brand_id]
+    where: list[Any] = [KbDocument.brand_id == brand_id]
+    match = contains_any(q, col(KbDocument.title), col(KbDocument.source_filename))
+    if match is not None:
+        where.append(match)
     if status:
         where.append(KbDocument.status == status)
     if doc_type:

@@ -3423,6 +3423,10 @@ export type productsReadProductsData = {
     query?: {
         status?: ProductStatus;
         /**
+         * Q
+         */
+        q?: string | null;
+        /**
          * Page
          */
         page?: number;
@@ -3703,6 +3707,10 @@ export type tasksReadTasksData = {
          * Sort
          */
         sort?: string;
+        /**
+         * Q
+         */
+        q?: string | null;
         /**
          * Page
          */
@@ -4142,6 +4150,10 @@ export type complianceReadRulesData = {
          * Scope
          */
         scope?: 'global' | 'brand' | null;
+        /**
+         * Q
+         */
+        q?: string | null;
         /**
          * Page
          */
@@ -4849,6 +4861,10 @@ export type knowledgeReadDocumentsData = {
          * Doc Type
          */
         doc_type?: DocumentType | null;
+        /**
+         * Q
+         */
+        q?: string | null;
         /**
          * Page
          */
