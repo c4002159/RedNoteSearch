@@ -11,6 +11,7 @@ from app.models import (
     ClaimEvidenceListPublic,
     ClaimEvidencePublic,
     ConfirmEvidence,
+    ConfirmEvidenceBatch,
 )
 from app.services import evidence as evidence_service
 
@@ -41,6 +42,29 @@ def read_version_evidence(
     access: VersionAccessDep, session: SessionDep
 ) -> ClaimEvidenceListPublic:
     rows = evidence_service.list_evidence(session=session, version_id=access[0].id)
+    return ClaimEvidenceListPublic(
+        items=evidence_service.to_public(session=session, rows=rows)
+    )
+
+
+@router.post(
+    "/generation-versions/{version_id}/evidence/confirm-batch",
+    response_model=ClaimEvidenceListPublic,
+)
+def confirm_version_evidence(
+    access: VersionAccessDep,
+    session: SessionDep,
+    body: ConfirmEvidenceBatch,
+) -> ClaimEvidenceListPublic:
+    """People's decisions about several claims of one version, all or nothing."""
+    version, brand_access = access
+    rows = evidence_service.confirm_evidence_batch(
+        session=session,
+        version_id=version.id,
+        brand_id=brand_access.brand_id,
+        decisions=[(i.evidence_id, i.human_confirmed, i.note) for i in body.items],
+        user_id=brand_access.user_id,
+    )
     return ClaimEvidenceListPublic(
         items=evidence_service.to_public(session=session, rows=rows)
     )

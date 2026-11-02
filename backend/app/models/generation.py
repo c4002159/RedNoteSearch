@@ -64,6 +64,8 @@ class ScenarioTemplate(SQLModel, table=True):
     source_pattern_id: uuid.UUID | None = Field(
         default=None, foreign_key="viral_pattern.id", ondelete="SET NULL"
     )
+    # Name of that structure, copied when the template was made, so it outlives the sample.
+    source_title: str | None = Field(default=None, max_length=100)
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc, sa_type=DateTime(timezone=True)
     )
@@ -368,7 +370,7 @@ class GenerationVersionsPublic(SQLModel):
 
 
 class RewriteRequest(SQLModel):
-    target: Literal["titles", "opening", "body", "cover"]
+    target: Literal["titles", "opening", "body", "cover", "hashtags"]
     instruction: str = Field(default="", max_length=500)
 
 

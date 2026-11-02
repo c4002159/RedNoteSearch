@@ -122,7 +122,9 @@ def to_public(session: Session, rows: list[ScenarioTemplate]) -> list[ScenarioPu
     items = []
     for r in rows:
         item = ScenarioPublic.model_validate(r, from_attributes=True)
-        item.source_pattern_title = titles.get(r.source_pattern_id or uuid.uuid4())
+        item.source_pattern_title = r.source_title or titles.get(
+            r.source_pattern_id or uuid.uuid4()
+        )
         items.append(item)
     return items
 
@@ -159,6 +161,7 @@ def add_brand_template(
     name: str,
     structure: str,
     source_pattern_id: uuid.UUID | None = None,
+    source_title: str | None = None,
 ) -> ScenarioTemplate:
     """Add the next version of a brand template and switch the earlier versions off, so the workbench
     lists one entry per name. Earlier versions stay in the table: tasks keep pointing at the one they used.
@@ -185,9 +188,25 @@ def add_brand_template(
         structure=structure,
         template_version=(previous or 0) + 1,
         source_pattern_id=source_pattern_id,
+        source_title=source_title,
     )
     session.add(row)
     return row
+
+
+def template_exists(
+    session: Session, *, brand_id: uuid.UUID, scene: str, name: str
+) -> bool:
+    return (
+        session.exec(
+            select(ScenarioTemplate.id).where(
+                ScenarioTemplate.brand_id == brand_id,
+                ScenarioTemplate.scene == scene,
+                ScenarioTemplate.name == name,
+            )
+        ).first()
+        is not None
+    )
 
 
 def create_brand_template(

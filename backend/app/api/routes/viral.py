@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.exceptions import RequestValidationError
 from sqlmodel import Session
 
-from app.api.brand_deps import BrandAccessDep
+from app.api.brand_deps import BrandAccessDep, BrandAdminDep
 from app.api.deps import CurrentUser, SessionDep
 from app.core.config import settings
 from app.core.db import engine
@@ -21,6 +21,8 @@ from app.models.viral import (
     ViralSampleCreate,
     ViralSampleListItem,
     ViralSamplePublic,
+    ViralSamplesDelete,
+    ViralSamplesDeleted,
     ViralSamplesPublic,
     ViralToTemplateRequest,
 )
@@ -83,6 +85,20 @@ def create_sample(
     return ViralSamplePublic.model_validate(
         viral.create_sample(session, access.brand_id, access.user_id, body),
         from_attributes=True,
+    )
+
+
+@router.post(
+    "/brands/{brand_id}/viral-samples/delete", response_model=ViralSamplesDeleted
+)
+def delete_samples(
+    access: BrandAdminDep, session: SessionDep, body: ViralSamplesDelete
+) -> ViralSamplesDeleted:
+    """Brand admins only. Deletes the samples and their structures; ids outside the brand give 404."""
+    return ViralSamplesDeleted(
+        deleted=viral.delete_samples(
+            session, brand_id=access.brand_id, ids=body.ids, actor_id=access.user_id
+        )
     )
 
 

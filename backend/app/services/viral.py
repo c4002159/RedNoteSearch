@@ -20,7 +20,7 @@ from app.models.viral import (
 from app.ports.llm import LlmClient, LlmMessage, LlmRequest
 from app.services import scenarios
 from app.services.audit import record_audit
-from app.services.errors import InvalidModelOutputError
+from app.services.errors import ConflictError, InvalidModelOutputError, NotFoundError
 from app.services.llm_structured import LlmOutputError, generate_structured
 
 
@@ -154,20 +154,73 @@ def analyze(
     return row
 
 
+def delete_samples(
+    session: Session,
+    *,
+    brand_id: uuid.UUID,
+    ids: list[uuid.UUID],
+    actor_id: uuid.UUID,
+) -> int:
+    """Delete samples of one brand, with their structures. Any id outside the brand fails the whole call.
+    Templates made from them stay; they keep the name of the structure they came from. The audit entry
+    holds counts and ids, never the text."""
+    rows = session.exec(
+        select(ViralSample).where(
+            ViralSample.brand_id == brand_id, col(ViralSample.id).in_(ids)
+        )
+    ).all()
+    if len(rows) != len(ids):
+        raise NotFoundError("Sample not found")
+    patterns = session.exec(
+        select(func.count())
+        .select_from(ViralPattern)
+        .where(col(ViralPattern.sample_id).in_(ids))
+    ).one()
+    try:
+        for row in rows:
+            session.delete(row)
+        record_audit(
+            session,
+            action="viral.delete_samples",
+            entity_type="viral_sample",
+            actor_id=actor_id,
+            brand_id=brand_id,
+            entity_id=None,
+            detail={
+                "sample_ids": [str(i) for i in ids],
+                "pattern_count": patterns,
+            },
+        )
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    return len(rows)
+
+
 def to_template(
     session: Session,
     pattern: ViralPattern,
     actor_id: uuid.UUID,
     data: ViralToTemplateRequest,
 ) -> ScenarioTemplate:
+    if data.on_name_conflict == "reject" and scenarios.template_exists(
+        session,
+        brand_id=pattern.brand_id,
+        scene=data.scene.value,
+        name=data.name,
+    ):
+        raise ConflictError("A template with this scene and name already exists")
+    structure = data.structure or pattern.abstract_template
     try:
         row = scenarios.add_brand_template(
             session,
             brand_id=pattern.brand_id,
             scene=data.scene.value,
             name=data.name,
-            structure=pattern.abstract_template,
+            structure=structure,
             source_pattern_id=pattern.id,
+            source_title=pattern.hook_type[:100],
         )
         record_audit(
             session,
@@ -179,6 +232,7 @@ def to_template(
             detail={
                 "pattern_id": str(pattern.id),
                 "template_version": row.template_version,
+                "structure_edited": structure != pattern.abstract_template,
             },
         )
         session.commit()

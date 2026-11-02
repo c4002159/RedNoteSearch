@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, model_validator
 from sqlalchemy import CheckConstraint, DateTime, Index, Text
 from sqlmodel import Field, SQLModel
 
@@ -86,6 +86,27 @@ class ClaimEvidencePublic(SQLModel):
 
 class ClaimEvidenceListPublic(SQLModel):
     items: list[ClaimEvidencePublic]
+
+
+class ConfirmEvidenceItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    evidence_id: uuid.UUID
+    human_confirmed: bool
+    note: str | None = Field(default=None, max_length=500)
+
+
+class ConfirmEvidenceBatch(BaseModel):
+    """Several decisions for one version, saved together or not at all."""
+
+    model_config = ConfigDict(extra="forbid")
+    items: list[ConfirmEvidenceItem] = Field(min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def unique_ids(self) -> ConfirmEvidenceBatch:
+        ids = [i.evidence_id for i in self.items]
+        if len(set(ids)) != len(ids):
+            raise ValueError("Each claim may appear once")
+        return self
 
 
 class ConfirmEvidence(BaseModel):

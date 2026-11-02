@@ -72,6 +72,8 @@ from app.models.evidence import (
     ClaimEvidenceListPublic,
     ClaimEvidencePublic,
     ConfirmEvidence,
+    ConfirmEvidenceBatch,
+    ConfirmEvidenceItem,
     SourceLevel,
 )
 from app.models.generation import (
@@ -211,6 +213,8 @@ __all__ = [
     "ClaimEvidenceListPublic",
     "ClaimEvidencePublic",
     "ConfirmEvidence",
+    "ConfirmEvidenceBatch",
+    "ConfirmEvidenceItem",
     "SourceLevel",
     "FlowStatus",
     "GenerationVersion",

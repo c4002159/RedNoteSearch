@@ -543,6 +543,36 @@ export type ConfirmEvidence = {
 };
 
 /**
+ * ConfirmEvidenceBatch
+ *
+ * Several decisions for one version, saved together or not at all.
+ */
+export type ConfirmEvidenceBatch = {
+    /**
+     * Items
+     */
+    items: Array<ConfirmEvidenceItem>;
+};
+
+/**
+ * ConfirmEvidenceItem
+ */
+export type ConfirmEvidenceItem = {
+    /**
+     * Evidence Id
+     */
+    evidence_id: string;
+    /**
+     * Human Confirmed
+     */
+    human_confirmed: boolean;
+    /**
+     * Note
+     */
+    note?: string | null;
+};
+
+/**
  * ConfirmVersion
  */
 export type ConfirmVersion = {
@@ -1615,7 +1645,7 @@ export type RewriteRequest = {
     /**
      * Target
      */
-    target: 'titles' | 'opening' | 'body' | 'cover';
+    target: 'titles' | 'opening' | 'body' | 'cover' | 'hashtags';
     /**
      * Instruction
      */
@@ -2752,6 +2782,26 @@ export type ViralSamplePublic = {
 };
 
 /**
+ * ViralSamplesDelete
+ */
+export type ViralSamplesDelete = {
+    /**
+     * Ids
+     */
+    ids: Array<string>;
+};
+
+/**
+ * ViralSamplesDeleted
+ */
+export type ViralSamplesDeleted = {
+    /**
+     * Deleted
+     */
+    deleted: number;
+};
+
+/**
  * ViralSamplesPublic
  */
 export type ViralSamplesPublic = {
@@ -2782,6 +2832,14 @@ export type ViralToTemplateRequest = {
      */
     name: string;
     scene: Scene;
+    /**
+     * Structure
+     */
+    structure?: string | null;
+    /**
+     * On Name Conflict
+     */
+    on_name_conflict?: 'new_version' | 'reject';
 };
 
 /**
@@ -4114,6 +4172,36 @@ export type evidenceReadVersionEvidenceResponses = {
 };
 
 export type evidenceReadVersionEvidenceResponse = evidenceReadVersionEvidenceResponses[keyof evidenceReadVersionEvidenceResponses];
+
+export type evidenceConfirmVersionEvidenceData = {
+    body: ConfirmEvidenceBatch;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/api/v1/generation-versions/{version_id}/evidence/confirm-batch';
+};
+
+export type evidenceConfirmVersionEvidenceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type evidenceConfirmVersionEvidenceError = evidenceConfirmVersionEvidenceErrors[keyof evidenceConfirmVersionEvidenceErrors];
+
+export type evidenceConfirmVersionEvidenceResponses = {
+    /**
+     * Successful Response
+     */
+    200: ClaimEvidenceListPublic;
+};
+
+export type evidenceConfirmVersionEvidenceResponse = evidenceConfirmVersionEvidenceResponses[keyof evidenceConfirmVersionEvidenceResponses];
 
 export type evidenceConfirmEvidenceData = {
     body: ConfirmEvidence;
@@ -5536,6 +5624,36 @@ export type viralCreateSampleResponses = {
 };
 
 export type viralCreateSampleResponse = viralCreateSampleResponses[keyof viralCreateSampleResponses];
+
+export type viralDeleteSamplesData = {
+    body: ViralSamplesDelete;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/viral-samples/delete';
+};
+
+export type viralDeleteSamplesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type viralDeleteSamplesError = viralDeleteSamplesErrors[keyof viralDeleteSamplesErrors];
+
+export type viralDeleteSamplesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ViralSamplesDeleted;
+};
+
+export type viralDeleteSamplesResponse = viralDeleteSamplesResponses[keyof viralDeleteSamplesResponses];
 
 export type viralReadSampleData = {
     body?: never;

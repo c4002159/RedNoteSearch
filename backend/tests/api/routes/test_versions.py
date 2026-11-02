@@ -519,3 +519,22 @@ def test_version_actions_are_isolated_between_brands(
         ).status_code
         == 200
     )
+
+
+def test_rewriting_only_the_hashtags_asks_for_fresh_tags(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    llm: FakeLlmClient,
+) -> None:
+    h = superuser_token_headers
+    ids = _generated(client, h)
+    llm.requests.clear()
+    r = client.post(
+        f"{API}/generation-versions/{ids['version']}/rewrite",
+        headers=h,
+        json={"target": "hashtags"},
+    )
+    assert r.status_code == 202, r.text
+    assert r.json()["origin"] == "rewritten"
+    asked = [x for x in llm.requests if x.purpose == "rewrite"][0].messages[1].content
+    assert "只重写“标签" in asked and "不要重复原有的" in asked

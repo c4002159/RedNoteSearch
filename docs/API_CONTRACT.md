@@ -189,7 +189,8 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - `POST /brands/{brand_id}/scenario-templates`：品牌 admin；请求体 `{"scene","name","structure"}`（name 1–100、structure 1–2000，首尾空白去掉，多余字段 422），返回 201；同品牌、同 scene、同 name 已存在时生成下一个 `template_version`，并把旧版本置为停用，已用旧版本的任务不受影响。写审计 `scenario.create`。结构只是写作指引，事实仍只取自已审核资料。
 - `PATCH /scenario-templates/{template_id}`：品牌 admin；请求体 `{"enabled": bool}`；全局模板、不存在或非成员 404，成员但非 admin 403；只有同名下最新版本可以重新启用（旧版本 409）。写审计 `scenario.enable` / `scenario.disable`。
 - `TaskPublic.scenario_version`：任务所用模板的版本号（模板缺失为 0）。
-- `POST /viral-patterns/{id}/to-template` 现在也记录 `source_pattern_id`，并把同名旧版本置为停用。
+- `POST /viral-patterns/{id}/to-template` 现在也记录 `source_pattern_id` 与来源名称快照 `source_title`（取结构的 `hook_type`，样本被删后仍显示），并把同名旧版本置为停用。请求体新增可选 `structure`（1–2000 字，首尾空白去掉；不传则用模型分析出的结构，传了就存人工修改后的文字，审计 `detail.structure_edited` 记录是否改过）和 `on_name_conflict`：`new_version`（默认，同品牌同类型同名则生成新版本）或 `reject`（已存在则 409）。
+- `POST /brands/{brand_id}/viral-samples/delete`：品牌 admin；`{"ids":[…]}`（1–50 个，不可重复）；删除样本及其分析出的结构，返回 `{"deleted":n}`；任何一个 id 不属于该品牌返回 404 且不删除任何一个；editor 403。已转成的模板保留，来源名称保留。审计 `viral.delete_samples` 只记数量和 id，不记原文。
 - `GET /scenarios`：登录用户；含全局与所属品牌模板，`{"items":[{"id","scene","name","structure","template_version","brand_id|null","enabled","source_pattern_id|null","source_pattern_title|null"}]}`（只返回已启用的；同品牌同名只有最新版本是启用的）；`scene`：`seeding | review | tutorial | launch | promotion | story`。
 - `GET /brands/{brand_id}/style-presets`：品牌成员；`POST /brands/{brand_id}/style-presets`：成员保存预设 `{"name","params":{"tone","length","person","emoji_density","hashtag_count"}}`。
 
@@ -312,6 +313,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - 先由模型从标题候选、正文、标签里抽取可核查的事实性说法（最多 12 条），再对每条说法检索最多 3 段资料（本品牌已审核资料，以及本任务的任务资料），让模型判断资料是否支持。没有检索到任何资料的说法不调用模型，直接是 `evidence_missing`。
 - 模型说“有依据”时，代码还会核对：引用的资料必须是刚才检索到的，引用的原文必须真的出现在该资料里（忽略空白和大小写）；核对不过的降级为 `needs_human_review`，理由写明“无法核实”。资料与说法矛盾也是 `needs_human_review`。`system_supported` 只表示资料里有对应表述，不表示说法属实。
 - 证据项里：`source_level = task_material` 的来源只有 `snapshot_id`，没有 `document_id`，表示任务内资料，**未经审核**。
+- `POST /generation-versions/{id}/evidence/confirm-batch`：品牌成员；`{"items":[{"evidence_id","human_confirmed","note?"}]}`（1–100 条，不可重复，多余字段 422），一次提交多条人工决定，**全部成功或全部不保存**；任何一条不属于该版本返回 404；每条写一条 `evidence.confirm` 审计（`detail.batch=true`），不改变系统的 `status`；返回 `ClaimEvidenceListPublic`（按请求顺序）。
 - `GET /generation-versions/{id}/evidence` 列出证据；版本详情里也带 `claim_evidence`。`POST /claim-evidence/{id}/confirm` 记录人工确认（`human_confirmed`、`note`、确认人与时间），不改变 `status`。按资源 id 访问：不存在或非本品牌成员一律 404。
 
 ### `GET /tasks/{task_id}/versions`　`GET /generation-versions/{version_id}`
@@ -331,7 +333,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 体：`{"title_candidates":[…],"body":"…","hashtags":[…],"cover_candidates":[…]}`。创建新版本，不覆盖旧版本，进入 `edited_pending_recheck`。
 
 ### `POST /generation-versions/{version_id}/rewrite`
-局部重写：`{"target":"titles|opening|body|cover","instruction":"…"}`；创建新版本，并自动对最终文本复检。
+局部重写：`{"target":"titles|opening|body|cover|hashtags","instruction":"…"}`；创建新版本，并自动对最终文本复检。
 
 ### `POST /generation-versions/{version_id}/recheck`
 对最终文本重跑约束、证据、合规检查，生成检查快照与新状态。
@@ -346,7 +348,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - 都按版本的所属品牌做资源 id 授权：不存在或非本品牌成员一律 404；品牌任意成员（editor 或 admin）都可以操作，操作人写入审计。任务正在生成（`generating`）时，编辑、重写、重新检查返回 409。
 - `POST /generation-versions/{id}/edit`（201）：请求体字段同版本内容（标题候选至少 1 个、正文非空、标签 ≤20、封面 ≤5，空白项被去掉）；创建新版本（`origin=edited`，`parent_version_id` 指向被编辑的版本，`model` 为空，因为文字是人写的），状态 `edited_pending_recheck`，成为任务的最新版本；原版本不变。
 - `POST /generation-versions/{id}/recheck`（202）：立即把版本置为 `checking` 并返回，后台依次重跑约束、证据、合规。允许的起始状态：`checking`、`edited_pending_recheck`、`needs_human_review`、`checks_completed`、`constraint_failed`；`ready_to_copy` 是终态，返回 409。检查途中模型不可用时版本保持 `checking`，任务 `last_error=model_unavailable`，可再次重检。**重检不会自动改写**（自动改写只在生成之后发生）。
-- `POST /generation-versions/{id}/rewrite`（202）：`target` 为 `titles | opening | body | cover`，`instruction` 可选（≤500 字）。同步调用模型生成改写结果并保存为新版本（`origin=rewritten`，指向被改写的版本；模型不可用返回 503 且不保存任何东西），随后后台自动对新版本做全部检查。提示词只让模型改写所选部分，其余原样保留。
+- `POST /generation-versions/{id}/rewrite`（202）：`target` 为 `titles | opening | body | cover | hashtags`（`hashtags` 只换一批新标签，标题与正文不变，标签数量仍不超过限制），`instruction` 可选（≤500 字）。同步调用模型生成改写结果并保存为新版本（`origin=rewritten`，指向被改写的版本；模型不可用返回 503 且不保存任何东西），随后后台自动对新版本做全部检查。提示词只让模型改写所选部分，其余原样保留。
 - `POST /generation-versions/{id}/confirm`：体 `{selected_title_index, selected_cover_index?}`（索引越界 422）。**只有任务的最新版本可以确认**；条件：状态为 `checks_completed` 或 `needs_human_review`（即检查针对的就是这份文字）、约束已通过、没有未处理的 `block` 级风险提示；否则 409 `INVALID_STATE`，`message` 与 `details.reasons` 列出全部原因，`details.codes` 给出稳定的原因代码。
   **人在回路**：每条状态不是 `system_supported` 的断言都需要有人用 `POST /claim-evidence/{id}/confirm` 做决定——判定“成立”（建议写备注）后该断言放行，并在稿件和导出里标注为“人工确认，不是系统验证”；判定“不成立”或还没有决定，都不能确认（代码 `rejected_claims`、`unconfirmed_claims`），出路是改写稿件并重新检查，新版本的断言重新判断。系统的判定 `status` 不会被改写。成功后 `ready_to_copy`，记录确认人和时间，写 `version.confirm` 审计（含人工确认的断言数）。**这表示运营确认了文字，不表示合规通过，也不表示事实已被验证。**
 - `GET /generation-versions/{id}/export?format=xhs_parts|markdown`：只有 `ready_to_copy` 才能导出（409）；`format` 缺省或不是这两个值 422。`xhs_parts` 返回 `{format,title,body,tags,counts,verification}`（`verification` 是 `{system_supported, human_confirmed}`，用来在界面上标注“其中 N 条为人工确认”；正文不夹带标注），标题取选定的标题，正文换行统一为 LF、去行尾空白、去掉 Markdown 标记（标题行 #、加粗、代码符号），保留 emoji；`tags` 不带 `#`；`counts` 是 `title_weight / body_units / tags_visible_units / tags_count`。`markdown` 返回 `{format,content}`，是唯一包含封面文案的格式；有人工确认的断言时，末尾有“人工核对记录（资料里没有依据，由人工确认，不是系统验证）”，逐条列出断言和备注。

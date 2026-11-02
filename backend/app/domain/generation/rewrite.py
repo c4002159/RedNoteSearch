@@ -31,6 +31,7 @@ REWRITE_TARGETS = {
     "opening": "正文的开头（第一段）",
     "body": "正文",
     "cover": "封面文案",
+    "hashtags": "标签（换一批新的，不要重复原有的；正文和标题不变）",
 }
 
 

@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, HttpUrl, TypeAdapter, field_validator
 from pydantic import Field as PydanticField
@@ -119,10 +120,35 @@ class ViralAnalyzeRequest(BaseModel):
     model_id: str = PydanticField(min_length=1, max_length=80)
 
 
+class ViralSamplesDelete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    ids: list[uuid.UUID] = PydanticField(min_length=1, max_length=50)
+
+    @field_validator("ids")
+    @classmethod
+    def unique(cls, value: list[uuid.UUID]) -> list[uuid.UUID]:
+        if len(set(value)) != len(value):
+            raise ValueError("Each sample may appear once")
+        return value
+
+
+class ViralSamplesDeleted(BaseModel):
+    deleted: int
+
+
 class ViralToTemplateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str = PydanticField(min_length=1, max_length=100)
     scene: Scene
+    # The person's edited wording; the model's own structure is used when it is left out.
+    structure: str | None = PydanticField(default=None, min_length=1, max_length=2000)
+    # "reject" answers 409 when the scene and name are taken, instead of adding a new version.
+    on_name_conflict: Literal["new_version", "reject"] = "new_version"
+
+    @field_validator("structure", mode="before")
+    @classmethod
+    def stripped_structure(cls, value: object) -> object:
+        return value.strip() if isinstance(value, str) else value
 
     @field_validator("name", mode="before")
     @classmethod

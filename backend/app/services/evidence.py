@@ -227,6 +227,50 @@ def confirm_evidence(
     return evidence
 
 
+def confirm_evidence_batch(
+    *,
+    session: Session,
+    version_id: uuid.UUID,
+    brand_id: uuid.UUID,
+    decisions: list[tuple[uuid.UUID, bool, str | None]],
+    user_id: uuid.UUID,
+) -> list[ClaimEvidence]:
+    """Record several decisions for one version in one transaction. A claim that is not in the version
+    makes the whole batch fail, so nothing is half-saved. The system's ``status`` is left as it was."""
+    rows = {
+        r.id: r
+        for r in session.exec(
+            select(ClaimEvidence).where(
+                ClaimEvidence.version_id == version_id,
+                col(ClaimEvidence.id).in_([d[0] for d in decisions]),
+            )
+        ).all()
+    }
+    if len(rows) != len(decisions):
+        raise NotFoundError("Evidence not found")
+    now = get_datetime_utc()
+    for evidence_id, confirmed, note in decisions:
+        row = rows[evidence_id]
+        row.human_confirmed = confirmed
+        row.confirm_note = note
+        row.confirmed_by = user_id
+        row.confirmed_at = now
+        session.add(row)
+        record_audit(
+            session,
+            action="evidence.confirm",
+            entity_type="claim_evidence",
+            actor_id=user_id,
+            brand_id=brand_id,
+            entity_id=row.id,
+            detail={"human_confirmed": confirmed, "status": row.status, "batch": True},
+        )
+    session.commit()
+    for row in rows.values():
+        session.refresh(row)
+    return [rows[d[0]] for d in decisions]
+
+
 def to_public(
     *, session: Session, rows: list[ClaimEvidence]
 ) -> list[ClaimEvidencePublic]:

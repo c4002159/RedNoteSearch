@@ -341,3 +341,93 @@ def test_provider_attempts_are_recorded_without_real_network(
         select(LlmCallLog).where(LlmCallLog.brand_id == uuid.UUID(brand["id"]))
     ).all()
     assert len(logs) == 4 and sum(r.status == "error" for r in logs) == 2
+
+
+def test_template_structure_can_be_edited_and_name_conflicts_can_be_refused(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    h = superuser_token_headers
+    brand = _create_brand(client, h)
+    p = analyze(client, h, sample(client, h, brand["id"])["id"])
+    url = f"{API}/viral-patterns/{p['id']}/to-template"
+    first = client.post(
+        url,
+        headers=h,
+        json={"name": "通勤", "scene": "story", "structure": "  自己改过的结构。  "},
+    )
+    assert first.status_code == 201, first.text
+    assert first.json()["structure"] == "自己改过的结构。"
+    assert first.json()["source_pattern_title"] == p["hook_type"][:100]
+    assert (
+        client.post(
+            url,
+            headers=h,
+            json={"name": "通勤", "scene": "story", "on_name_conflict": "reject"},
+        ).status_code
+        == 409
+    )
+    other_scene = client.post(
+        url,
+        headers=h,
+        json={"name": "通勤", "scene": "review", "on_name_conflict": "reject"},
+    )
+    assert other_scene.status_code == 201
+    assert other_scene.json()["structure"] == ANALYSIS["abstract_template"]
+    for bad in (
+        {"structure": ""},
+        {"structure": "x" * 2001},
+        {"on_name_conflict": "?"},
+    ):
+        assert (
+            client.post(
+                url, headers=h, json={"name": "n", "scene": "story", **bad}
+            ).status_code
+            == 422
+        )
+
+
+def test_deleting_samples_keeps_templates_and_is_admin_only(
+    client: TestClient, db: Session, superuser_token_headers: dict[str, str]
+) -> None:
+    h = superuser_token_headers
+    brand = _create_brand(client, h)
+    other = _create_brand(client, h)
+    editor, eh = _make_user(client, db)
+    _add_member(client, h, brand["id"], editor, "editor")
+    a = sample(client, h, brand["id"])
+    b = sample(client, h, brand["id"])
+    foreign = sample(client, h, other["id"])
+    p = analyze(client, h, a["id"])
+    tpl = client.post(
+        f"{API}/viral-patterns/{p['id']}/to-template",
+        headers=h,
+        json={"name": "留下", "scene": "story"},
+    ).json()
+    url = f"{API}/brands/{brand['id']}/viral-samples/delete"
+
+    assert client.post(url, headers=eh, json={"ids": [a["id"]]}).status_code == 403
+    assert client.post(url, json={"ids": [a["id"]]}).status_code == 401
+    # a sample of another brand makes the whole call fail and deletes nothing
+    assert (
+        client.post(url, headers=h, json={"ids": [a["id"], foreign["id"]]}).status_code
+        == 404
+    )
+    assert client.get(f"{API}/viral-samples/{a['id']}", headers=h).status_code == 200
+    for bad in ({"ids": []}, {"ids": [a["id"], a["id"]]}, {"ids": ["x"]}):
+        assert client.post(url, headers=h, json=bad).status_code == 422
+
+    done = client.post(url, headers=h, json={"ids": [a["id"], b["id"]]})
+    assert done.json() == {"deleted": 2}
+    assert client.get(f"{API}/viral-samples/{a['id']}", headers=h).status_code == 404
+    assert client.get(f"{API}/viral-patterns/{p['id']}", headers=h).status_code == 404
+    kept = [
+        r
+        for r in client.get(f"{API}/scenarios", headers=h).json()["items"]
+        if r["id"] == tpl["id"]
+    ]
+    assert kept and kept[0]["source_pattern_id"] is None
+    assert kept[0]["source_pattern_title"] == p["hook_type"][:100]
+    log = db.exec(
+        select(AuditLog).where(AuditLog.action == "viral.delete_samples")
+    ).all()
+    assert log and "text" not in str(log[-1].detail)

@@ -370,3 +370,72 @@ def test_endpoints_list_and_confirm_without_changing_the_system_status(
     )
     assert client.post(url, json={"human_confirmed": True}).status_code == 401
     assert db.get(Task, uuid.UUID(task_id)) is not None
+
+
+def test_batch_confirm_is_all_or_nothing_and_audited(
+    client: TestClient,
+    db: Session,
+    superuser_token_headers: dict[str, str],
+    embedder: FakeEmbeddingProvider,
+) -> None:
+    h = superuser_token_headers
+    version, task_id = _version(client, db, h)
+    script: list[str | Exception] = [_json(claims=["获得过大奖", "销量第一"])]
+    rows = check_evidence(
+        session=db,
+        version=version,
+        task_id=uuid.UUID(task_id),
+        deps=_deps(
+            db,
+            embedder,
+            script + [_json(verdict="insufficient"), _json(verdict="insufficient")],
+        ),
+    )
+    db.commit()
+    assert len(rows) == 2
+    url = f"{API}/generation-versions/{version.id}/evidence/confirm-batch"
+    a, b = str(rows[0].id), str(rows[1].id)
+
+    ok = client.post(
+        url,
+        headers=h,
+        json={
+            "items": [
+                {"evidence_id": a, "human_confirmed": False, "note": "资料里没有"},
+                {"evidence_id": b, "human_confirmed": True},
+            ]
+        },
+    )
+    assert ok.status_code == 200, ok.text
+    assert [(i["human_confirmed"], i["status"]) for i in ok.json()["items"]] == [
+        (False, "evidence_missing"),
+        (True, "evidence_missing"),
+    ]  # the system's own status is untouched
+
+    # one unknown claim fails the whole call and changes nothing
+    bad = client.post(
+        url,
+        headers=h,
+        json={
+            "items": [
+                {"evidence_id": a, "human_confirmed": True},
+                {"evidence_id": str(uuid.uuid4()), "human_confirmed": True},
+            ]
+        },
+    )
+    assert bad.status_code == 404
+    db.expire_all()
+    assert db.get(ClaimEvidence, rows[0].id).human_confirmed is False  # type: ignore[union-attr]
+
+    for body in (
+        {"items": []},
+        {"items": [{"evidence_id": a, "human_confirmed": True}] * 2},
+        {"items": [{"evidence_id": a}]},
+        {"items": [{"evidence_id": a, "human_confirmed": True, "x": 1}]},
+    ):
+        assert client.post(url, headers=h, json=body).status_code == 422
+
+    _, outsider = _make_user(client, db)
+    one = {"items": [{"evidence_id": a, "human_confirmed": True}]}
+    assert client.post(url, headers=outsider, json=one).status_code == 404
+    assert client.post(url, json=one).status_code == 401
