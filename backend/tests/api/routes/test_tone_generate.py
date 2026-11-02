@@ -340,6 +340,19 @@ def test_exclude_is_sent_to_the_model_and_never_returned(
     r = client.post(url, headers=h, json={"count": 5, "exclude": ["平实 叙述"]})
     assert r.status_code == 200, r.text
     assert [i["tone"] for i in r.json()["items"]] == ["新语气"]
-    assert "already_shown" in llm.requests[0].messages[1].content
-    for bad in ([""], ["x" * 41], ["a"] * 31, "text"):
+    context = json.loads(llm.requests[0].messages[1].content)
+    assert context["existing_tones"]["already_shown"] == ["平实 叙述"]
+    assert set(context["existing_tones"]) == {
+        "history",
+        "template",
+        "results",
+        "already_shown",
+    }
+    from app.domain.tone_prompt import TONE_SYSTEM_PROMPT
+
+    assert llm.requests[0].messages[0].content == TONE_SYSTEM_PROMPT
+    assert r.json()["prompt_version"] == "tone-v1"
+    calls = len(llm.requests)
+    for bad in ([""], ["x" * 41], ["a"] * 31, [1], None, "text"):
         assert client.post(url, headers=h, json={"exclude": bad}).status_code == 422
+    assert len(llm.requests) == calls

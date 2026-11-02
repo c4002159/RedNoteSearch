@@ -211,7 +211,7 @@ def tone_key(value: str) -> str:
     return "".join(
         c
         for c in unicodedata.normalize("NFKC", value).casefold()
-        if not c.isspace() and unicodedata.category(c)[0] not in ("P", "S", "C")
+        if not c.isspace() and not unicodedata.category(c).startswith("P")
     )
 
 
@@ -263,7 +263,7 @@ def filter_generated_tones(
     forbidden_words: Sequence[str] = (),
     count: int = 5,
 ) -> list[ToneCandidate]:
-    """Strict JSON envelope, per-item validation, filtering, and stable exact deduplication."""
+    """Strict JSON envelope, validation, filtering and stable normalized deduplication."""
     if not 1 <= count <= 5:
         raise ValueError("count must be between 1 and 5")
     try:
@@ -277,13 +277,15 @@ def filter_generated_tones(
             item = ToneCandidate.model_validate(raw)
         except ValidationError:
             continue
+        key = tone_key(item.tone)
         if (
-            tone_key(item.tone) in seen
+            not key
+            or key in seen
             or not safe_tone_text(item.tone, forbidden_words)
             or not safe_tone_text(item.reason, forbidden_words)
         ):
             continue
-        seen.add(tone_key(item.tone))
+        seen.add(key)
         items.append(item)
         if len(items) == count:
             break
