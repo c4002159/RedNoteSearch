@@ -178,6 +178,9 @@ test("Positive decisions require individual checkboxes and a note; no all-positi
   await dialog
     .getByLabel("判断备注（必填）", { exact: true })
     .fill("已逐项人工核对自编材料（演示）")
+  await expect
+    .poll(() => dialog.evaluate((element) => getComputedStyle(element).opacity))
+    .toBe("1")
   await page.screenshot({
     path: test.info().outputPath("evidence-selection-note.png"),
   })
