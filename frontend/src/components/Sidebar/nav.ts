@@ -45,6 +45,12 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: History,
         access: "member",
       },
+      {
+        title: "成绩记录",
+        path: "/results",
+        icon: BarChart3,
+        access: "member",
+      },
     ],
   },
   {
