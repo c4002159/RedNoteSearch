@@ -873,3 +873,11 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 复用现有 OpenAI 兼容适配器、provider_keys 的数据库/环境密钥解析和模型配置。适配器内部重试关闭，由本服务统一控制：首次加最多 2 次重试（至多 3 次 complete/HTTP 请求），传输失败、空响应、JSON 错误及全部被过滤共用同一额度，不嵌套放大；超时沿用 LLM_TIMEOUT_SECONDS。最后一次的失败类型决定最终错误。
 
 `LLM_MODE=demo_fake` 使用固定假模型：有生效调性关键词时循环使用关键词与固定句式拼接最多 5 条；无关键词时返回“平实清楚的叙述”“简洁自然的表达”两条，count=1 时仅一条。假模型输出也必须经过同一过滤，可能被禁词、长度或已有语气规则全部丢弃。测试只用 fake 与 MockTransport，不访问真实模型。未用真实模型验证效果与成本。
+
+## R6 B3：评测样本修改与删除生成新版本
+
+`POST /evaluation/datasets/{dataset_id}/revisions`，成功 201 返回既有 DatasetPublic。资源来自路径，继承原评测集的名称、类型、brand_id、group_id；不接收这些字段覆盖。品牌评测集仅本品牌 admin 可写（非成员、不存在或不可见统一404，editor按既有评测权限404）；全局集仅平台管理员可写（可见全局集的品牌管理员写入返回403）；未登录401。
+
+请求 `{"updates":[{"case_index":0,"input":{},"expected":{},"annotators":[]}],"delete_case_indexes":[1]}`。updates 每项为该序号的完整替换，沿用 CaseIn 的 input/expected/annotators；两个列表默认空，各最多200项。序号为严格非负整数，对应旧版本零起始 case_index，不是分页行号。未知字段、重复序号、同项同时改删、越界、两列表均空、删到零条或类型校验失败均422。全有或全无，无半成品。
+
+保留原顺序，替换后删除指定项，新版本重新从0编号。原集、原样本及已有运行不修改或删除。新版本号为同 group_id 当前最大版本加1（不要求源版本是最新），哈希按现有规范重新计算；并发同组写入用最早版本行锁串行化，已有创建下一版本接口也使用该锁，不能以唯一约束500代替并发控制。成功沿用 eval_dataset.create 审计，只记类型、版本、数量，不记录样本正文；无模型调用、无迁移。
