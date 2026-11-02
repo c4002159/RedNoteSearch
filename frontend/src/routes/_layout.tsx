@@ -42,7 +42,7 @@ function Layout() {
           </div>
         </header>
         <AppSidebar />
-        <SidebarInset className="pt-16">
+        <SidebarInset className="min-w-0 pt-16">
           <main className="flex-1 p-4 md:p-8">
             <div className="mx-auto max-w-7xl">
               <Outlet />
