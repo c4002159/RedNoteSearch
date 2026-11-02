@@ -33,7 +33,6 @@ from app.models import (
     GenerationVersionPublic,
     GenerationVersionsPublic,
     MemberRole,
-    ScenarioPublic,
     ScenariosPublic,
     StyleParams,
     StylePresetCreate,
@@ -202,7 +201,9 @@ VersionAccessDep = Annotated[
 ]
 
 
-def _task_public(task: Task, labels: tuple[str, str, str] = ("", "", "")) -> TaskPublic:
+def _task_public(
+    task: Task, labels: tuple[str, str, str, int] = ("", "", "", 0)
+) -> TaskPublic:
     return TaskPublic(
         id=task.id,
         brand_id=task.brand_id,
@@ -211,6 +212,7 @@ def _task_public(task: Task, labels: tuple[str, str, str] = ("", "", "")) -> Tas
         product_name=labels[0],
         scenario_name=labels[1],
         scene=labels[2],
+        scenario_version=labels[3],
         style=StyleParams.model_validate(task.style),
         brief=task.brief,
         required_terms=task.required_terms,
@@ -228,9 +230,7 @@ def read_scenarios(session: SessionDep, current_user: CurrentUser) -> ScenariosP
     rows = scenario_service.list_scenarios_for_user(
         session=session, user_id=current_user.id
     )
-    return ScenariosPublic(
-        items=[ScenarioPublic.model_validate(r, from_attributes=True) for r in rows]
-    )
+    return ScenariosPublic(items=scenario_service.to_public(session, rows))
 
 
 @router.get("/brands/{brand_id}/style-presets", response_model=StylePresetsPublic)

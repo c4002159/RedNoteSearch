@@ -75,8 +75,8 @@ function ProductsPage() {
   })
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1 basis-80">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold">{T.products}</h1>
             <FilterSelect
@@ -94,7 +94,7 @@ function ProductsPage() {
           </div>
           <p className="text-sm text-muted-foreground">{T.productHint}</p>
         </div>
-        <div className="flex flex-wrap items-start gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <SearchBox
             value={q}
             placeholder="搜索商品名称或产品线"

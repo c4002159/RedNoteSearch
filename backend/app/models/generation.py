@@ -4,7 +4,8 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import Field as PydanticField
 from sqlalchemy import (
     CheckConstraint,
     Column,
@@ -59,6 +60,10 @@ class ScenarioTemplate(SQLModel, table=True):
     structure: str = Field(sa_type=Text)
     template_version: int = Field(default=1)
     enabled: bool = Field(default=True)
+    # The viral structure this template was made from (set by "convert to template"); null otherwise.
+    source_pattern_id: uuid.UUID | None = Field(
+        default=None, foreign_key="viral_pattern.id", ondelete="SET NULL"
+    )
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc, sa_type=DateTime(timezone=True)
     )
@@ -240,10 +245,32 @@ class ScenarioPublic(SQLModel):
     structure: str
     template_version: int
     brand_id: uuid.UUID | None
+    enabled: bool = True
+    source_pattern_id: uuid.UUID | None = None
+    # Name of the viral structure it came from (its hook type), for display only.
+    source_pattern_title: str | None = None
 
 
 class ScenariosPublic(SQLModel):
     items: list[ScenarioPublic]
+
+
+class ScenarioCreate(BaseModel):
+    """A new brand template, or the next version when the scene and name already exist."""
+
+    model_config = ConfigDict(extra="forbid")
+    scene: Scene
+    name: str = PydanticField(min_length=1, max_length=100)
+    structure: str = PydanticField(min_length=1, max_length=2000)
+
+    @field_validator("name", "structure", mode="before")
+    @classmethod
+    def stripped(cls, value: Any) -> Any:
+        return value.strip() if isinstance(value, str) else value
+
+
+class ScenarioUpdate(SQLModel):
+    enabled: bool
 
 
 class StylePresetCreate(SQLModel):
@@ -291,6 +318,7 @@ class TaskPublic(SQLModel):
     scenario_id: uuid.UUID
     product_name: str = ""
     scenario_name: str = ""
+    scenario_version: int = 0
     scene: str = ""
     style: StyleParams
     brief: str

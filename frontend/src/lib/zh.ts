@@ -962,3 +962,34 @@ export const MODEL_CONFIG_TEXT = {
   enabled: "已启用",
   disabled: "未启用",
 } as const
+
+export const SCENARIO_TEXT = {
+  title: "场景模板",
+  description:
+    "内置模板由平台提供；品牌管理员可以新建本品牌的模板，也可以把爆款结构转成模板。同名保存会生成新版本，旧版本不再出现在工作台，已用它的任务不受影响。",
+  add: "新建模板",
+  newVersion: "存为新版本",
+  name: "模板名称",
+  scene: "创作类型",
+  structure: "结构指引",
+  structureHint:
+    "写出这类笔记的开头、展开和结尾怎么安排，只写结构与写法，不写具体宣称或事实；生成时会作为写作指引，事实仍只取自已审核资料。",
+  builtin: "内置",
+  fromViral: "来自爆款",
+  fromViralTitle: "来自爆款结构：",
+  version: "版本",
+  source: "来源",
+  status: "状态",
+  on: "使用中",
+  off: "已停用",
+  replaced: "已被新版本取代",
+  turnOn: "启用",
+  turnOff: "停用",
+  empty: "还没有本品牌的模板。",
+  save: "保存",
+  cancel: "取消",
+  selectBrand: "请先选择品牌",
+  useThis: "用这个模板去生成",
+  adopted: "采用结构：",
+  manage: "管理场景模板",
+} as const

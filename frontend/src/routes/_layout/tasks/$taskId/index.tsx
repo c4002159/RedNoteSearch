@@ -61,6 +61,7 @@ function TaskDetail() {
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold tracking-tight">
           {t.product_name ?? "任务"} · {t.scenario_name ?? ""}
+          {t.scenario_version ? ` v${t.scenario_version}` : ""}
         </h1>
         <FlowStatusBadge status={t.flow_status} />
         <Button asChild variant="outline" size="sm" className="ml-auto">

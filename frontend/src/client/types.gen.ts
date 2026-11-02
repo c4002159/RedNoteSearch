@@ -1987,6 +1987,23 @@ export type RunsPublic = {
 };
 
 /**
+ * ScenarioCreate
+ *
+ * A new brand template, or the next version when the scene and name already exist.
+ */
+export type ScenarioCreate = {
+    scene: Scene;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Structure
+     */
+    structure: string;
+};
+
+/**
  * ScenarioPublic
  */
 export type ScenarioPublic = {
@@ -2014,6 +2031,28 @@ export type ScenarioPublic = {
      * Brand Id
      */
     brand_id: string | null;
+    /**
+     * Enabled
+     */
+    enabled?: boolean;
+    /**
+     * Source Pattern Id
+     */
+    source_pattern_id?: string | null;
+    /**
+     * Source Pattern Title
+     */
+    source_pattern_title?: string | null;
+};
+
+/**
+ * ScenarioUpdate
+ */
+export type ScenarioUpdate = {
+    /**
+     * Enabled
+     */
+    enabled: boolean;
 };
 
 /**
@@ -2289,6 +2328,10 @@ export type TaskPublic = {
      * Scenario Name
      */
     scenario_name?: string;
+    /**
+     * Scenario Version
+     */
+    scenario_version?: number;
     /**
      * Scene
      */
@@ -3951,6 +3994,96 @@ export type tasksGenerateTaskResponses = {
 };
 
 export type tasksGenerateTaskResponse = tasksGenerateTaskResponses[keyof tasksGenerateTaskResponses];
+
+export type scenariosReadBrandTemplatesData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/scenario-templates';
+};
+
+export type scenariosReadBrandTemplatesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type scenariosReadBrandTemplatesError = scenariosReadBrandTemplatesErrors[keyof scenariosReadBrandTemplatesErrors];
+
+export type scenariosReadBrandTemplatesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ScenariosPublic;
+};
+
+export type scenariosReadBrandTemplatesResponse = scenariosReadBrandTemplatesResponses[keyof scenariosReadBrandTemplatesResponses];
+
+export type scenariosCreateBrandTemplateData = {
+    body: ScenarioCreate;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/scenario-templates';
+};
+
+export type scenariosCreateBrandTemplateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type scenariosCreateBrandTemplateError = scenariosCreateBrandTemplateErrors[keyof scenariosCreateBrandTemplateErrors];
+
+export type scenariosCreateBrandTemplateResponses = {
+    /**
+     * Successful Response
+     */
+    201: ScenarioPublic;
+};
+
+export type scenariosCreateBrandTemplateResponse = scenariosCreateBrandTemplateResponses[keyof scenariosCreateBrandTemplateResponses];
+
+export type scenariosUpdateTemplateData = {
+    body: ScenarioUpdate;
+    path: {
+        /**
+         * Template Id
+         */
+        template_id: string;
+    };
+    query?: never;
+    url: '/api/v1/scenario-templates/{template_id}';
+};
+
+export type scenariosUpdateTemplateErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type scenariosUpdateTemplateError = scenariosUpdateTemplateErrors[keyof scenariosUpdateTemplateErrors];
+
+export type scenariosUpdateTemplateResponses = {
+    /**
+     * Successful Response
+     */
+    200: ScenarioPublic;
+};
+
+export type scenariosUpdateTemplateResponse = scenariosUpdateTemplateResponses[keyof scenariosUpdateTemplateResponses];
 
 export type evidenceReadVersionEvidenceData = {
     body?: never;

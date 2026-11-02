@@ -26,6 +26,7 @@ from app.models.viral import (
 )
 from app.ports.llm import LlmClient
 from app.services import model_catalog, provider_keys, viral
+from app.services import scenarios as scenario_service
 from app.services.errors import NotFoundError
 from app.services.llm_log import DbLlmCallRecorder
 
@@ -194,6 +195,5 @@ def convert_pattern(
     member = session.get(BrandMember, (pattern.brand_id, user.id))
     if member is None or member.role != MemberRole.ADMIN.value:
         raise HTTPException(status_code=403, detail="Brand admin role required")
-    return ScenarioPublic.model_validate(
-        viral.to_template(session, pattern, user.id, body), from_attributes=True
-    )
+    row = viral.to_template(session, pattern, user.id, body)
+    return scenario_service.to_public(session, [row])[0]

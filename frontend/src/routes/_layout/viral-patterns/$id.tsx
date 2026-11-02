@@ -23,7 +23,7 @@ import { ViralError } from "@/components/Viral/Feedback"
 import { useBrand } from "@/hooks/useBrand"
 import { parseApiError } from "@/lib/apiError"
 import { codePointCount } from "@/lib/count"
-import { SCENE_LABEL, VIRAL_TEXT as T } from "@/lib/zh"
+import { SCENARIO_TEXT, SCENE_LABEL, VIRAL_TEXT as T } from "@/lib/zh"
 
 const schema = z.object({
   name: z
@@ -185,6 +185,14 @@ function PatternPage() {
           <p className="break-words">
             {result.name} · {T.templateVersion} {result.template_version}
           </p>
+          <Button asChild size="sm" className="mt-2">
+            <Link
+              to="/generate"
+              search={{ task: undefined, scenario: result.id }}
+            >
+              {SCENARIO_TEXT.useThis}
+            </Link>
+          </Button>
         </div>
       )}
       <section className="grid gap-4 rounded-xl border bg-card p-4 sm:grid-cols-2">

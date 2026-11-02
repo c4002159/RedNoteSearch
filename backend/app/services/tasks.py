@@ -163,8 +163,8 @@ def set_task_status(
 
 def task_labels(
     *, session: Session, tasks: list[Task]
-) -> dict[uuid.UUID, tuple[str, str, str]]:
-    """Product name, scenario name and scene of each task, for list and detail views."""
+) -> dict[uuid.UUID, tuple[str, str, str, int]]:
+    """Product name, scenario name, scene and template version of each task, for list and detail views."""
     if not tasks:
         return {}
     products = {
@@ -174,7 +174,7 @@ def task_labels(
         ).all()
     }
     scenarios = {
-        s.id: (s.name, s.scene)
+        s.id: (s.name, s.scene, s.template_version)
         for s in session.exec(
             select(ScenarioTemplate).where(
                 col(ScenarioTemplate.id).in_({t.scenario_id for t in tasks})
@@ -184,7 +184,7 @@ def task_labels(
     return {
         t.id: (
             products.get(t.product_id, ""),
-            *scenarios.get(t.scenario_id, ("", "")),
+            *scenarios.get(t.scenario_id, ("", "", 0)),
         )
         for t in tasks
     }

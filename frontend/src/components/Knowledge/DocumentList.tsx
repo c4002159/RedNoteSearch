@@ -112,8 +112,8 @@ function BrandDocuments({
   })
   return (
     <div className="min-w-0 space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1 basis-80">
           <h1 className="text-2xl font-bold">
             {review ? T.reviewTitle : T.title}
           </h1>
@@ -125,7 +125,7 @@ function BrandDocuments({
             {brandName}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <SearchBox
             value={q}
             placeholder="搜索资料标题或文件名"

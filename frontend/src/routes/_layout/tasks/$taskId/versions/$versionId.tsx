@@ -45,7 +45,13 @@ import {
 } from "@/lib/count"
 import { formatTime } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { COUNT_LABEL, LAYER_LABEL, label, ORIGIN_LABEL } from "@/lib/zh"
+import {
+  COUNT_LABEL,
+  LAYER_LABEL,
+  label,
+  ORIGIN_LABEL,
+  SCENARIO_TEXT,
+} from "@/lib/zh"
 
 export const Route = createFileRoute(
   "/_layout/tasks/$taskId/versions/$versionId",
@@ -758,6 +764,15 @@ function ResultPage() {
         </h1>
         <FlowStatusBadge status={v.flow_status} />
         {!isLatest && task.isSuccess && <Pill tone="gray">历史版本</Pill>}
+        {task.data?.scenario_name && (
+          <Pill tone="softBlue">
+            {SCENARIO_TEXT.adopted}
+            {task.data.scenario_name}
+            {task.data.scenario_version
+              ? ` v${task.data.scenario_version}`
+              : ""}
+          </Pill>
+        )}
         <div className="ml-auto flex gap-2">
           <Button asChild variant="outline" size="sm">
             <Link to="/tasks/$taskId" params={{ taskId }}>

@@ -10,7 +10,7 @@ from app.domain.viral import (
     contains_copied_text,
     has_format_artifacts,
 )
-from app.models import Brand, ScenarioTemplate
+from app.models import ScenarioTemplate
 from app.models.viral import (
     ViralPattern,
     ViralSample,
@@ -18,6 +18,7 @@ from app.models.viral import (
     ViralToTemplateRequest,
 )
 from app.ports.llm import LlmClient, LlmMessage, LlmRequest
+from app.services import scenarios
 from app.services.audit import record_audit
 from app.services.errors import InvalidModelOutputError
 from app.services.llm_structured import LlmOutputError, generate_structured
@@ -160,25 +161,14 @@ def to_template(
     data: ViralToTemplateRequest,
 ) -> ScenarioTemplate:
     try:
-        # Lock a stable parent even when no matching template exists yet.
-        session.exec(
-            select(Brand.id).where(Brand.id == pattern.brand_id).with_for_update()
-        ).one()
-        previous = session.exec(
-            select(func.max(ScenarioTemplate.template_version)).where(
-                ScenarioTemplate.brand_id == pattern.brand_id,
-                ScenarioTemplate.scene == data.scene.value,
-                ScenarioTemplate.name == data.name,
-            )
-        ).one()
-        row = ScenarioTemplate(
+        row = scenarios.add_brand_template(
+            session,
             brand_id=pattern.brand_id,
             scene=data.scene.value,
             name=data.name,
             structure=pattern.abstract_template,
-            template_version=(previous or 0) + 1,
+            source_pattern_id=pattern.id,
         )
-        session.add(row)
         record_audit(
             session,
             action="viral.to_template",

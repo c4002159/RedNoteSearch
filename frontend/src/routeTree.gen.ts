@@ -19,6 +19,7 @@ import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutBrandsRouteImport } from './routes/_layout/brands'
 import { Route as LayoutGenerateRouteImport } from './routes/_layout/generate'
 import { Route as LayoutProductsRouteImport } from './routes/_layout/products'
+import { Route as LayoutScenariosRouteImport } from './routes/_layout/scenarios'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
 import { Route as LayoutVoiceProfileRouteImport } from './routes/_layout/voice-profile'
 import { Route as LayoutComplianceRulesRouteImport } from './routes/_layout/compliance/rules'
@@ -84,6 +85,11 @@ const LayoutGenerateRoute = LayoutGenerateRouteImport.update({
 const LayoutProductsRoute = LayoutProductsRouteImport.update({
   id: '/products',
   path: '/products',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutScenariosRoute = LayoutScenariosRouteImport.update({
+  id: '/scenarios',
+  path: '/scenarios',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
@@ -187,6 +193,7 @@ export interface FileRoutesByFullPath {
   '/brands': typeof LayoutBrandsRoute
   '/generate': typeof LayoutGenerateRoute
   '/products': typeof LayoutProductsRoute
+  '/scenarios': typeof LayoutScenariosRoute
   '/settings': typeof LayoutSettingsRoute
   '/voice-profile': typeof LayoutVoiceProfileRoute
   '/compliance/rules': typeof LayoutComplianceRulesRoute
@@ -214,6 +221,7 @@ export interface FileRoutesByTo {
   '/brands': typeof LayoutBrandsRoute
   '/generate': typeof LayoutGenerateRoute
   '/products': typeof LayoutProductsRoute
+  '/scenarios': typeof LayoutScenariosRoute
   '/settings': typeof LayoutSettingsRoute
   '/voice-profile': typeof LayoutVoiceProfileRoute
   '/': typeof LayoutIndexRoute
@@ -244,6 +252,7 @@ export interface FileRoutesById {
   '/_layout/brands': typeof LayoutBrandsRoute
   '/_layout/generate': typeof LayoutGenerateRoute
   '/_layout/products': typeof LayoutProductsRoute
+  '/_layout/scenarios': typeof LayoutScenariosRoute
   '/_layout/settings': typeof LayoutSettingsRoute
   '/_layout/voice-profile': typeof LayoutVoiceProfileRoute
   '/_layout/': typeof LayoutIndexRoute
@@ -275,6 +284,7 @@ export interface FileRouteTypes {
     | '/brands'
     | '/generate'
     | '/products'
+    | '/scenarios'
     | '/settings'
     | '/voice-profile'
     | '/compliance/rules'
@@ -302,6 +312,7 @@ export interface FileRouteTypes {
     | '/brands'
     | '/generate'
     | '/products'
+    | '/scenarios'
     | '/settings'
     | '/voice-profile'
     | '/'
@@ -331,6 +342,7 @@ export interface FileRouteTypes {
     | '/_layout/brands'
     | '/_layout/generate'
     | '/_layout/products'
+    | '/_layout/scenarios'
     | '/_layout/settings'
     | '/_layout/voice-profile'
     | '/_layout/'
@@ -429,6 +441,13 @@ declare module '@tanstack/react-router' {
       path: '/products'
       fullPath: '/products'
       preLoaderRoute: typeof LayoutProductsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/scenarios': {
+      id: '/_layout/scenarios'
+      path: '/scenarios'
+      fullPath: '/scenarios'
+      preLoaderRoute: typeof LayoutScenariosRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/settings': {
@@ -558,6 +577,7 @@ interface LayoutRouteChildren {
   LayoutBrandsRoute: typeof LayoutBrandsRoute
   LayoutGenerateRoute: typeof LayoutGenerateRoute
   LayoutProductsRoute: typeof LayoutProductsRoute
+  LayoutScenariosRoute: typeof LayoutScenariosRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
   LayoutVoiceProfileRoute: typeof LayoutVoiceProfileRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
@@ -583,6 +603,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutBrandsRoute: LayoutBrandsRoute,
   LayoutGenerateRoute: LayoutGenerateRoute,
   LayoutProductsRoute: LayoutProductsRoute,
+  LayoutScenariosRoute: LayoutScenariosRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
   LayoutVoiceProfileRoute: LayoutVoiceProfileRoute,
   LayoutIndexRoute: LayoutIndexRoute,
