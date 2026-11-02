@@ -19,7 +19,13 @@ import {
 } from "@/components/ui/sheet"
 import { Textarea } from "@/components/ui/textarea"
 import { codePointCount } from "@/lib/count"
-import { BRAND_CATEGORY_LABEL, CATALOG_TEXT as T } from "@/lib/zh"
+import {
+  BRAND_CATEGORY_LABEL,
+  PRODUCT_CATEGORY_TEXT as C,
+  label,
+  productCategoryValue,
+  CATALOG_TEXT as T,
+} from "@/lib/zh"
 import { ListField } from "./Fields"
 import { SourcePicker, SourceReference } from "./Sources"
 
@@ -30,13 +36,12 @@ const schema = z.object({
     .min(1, T.nameRequired)
     .refine((v) => codePointCount(v) <= 100, T.nameLimit),
   product_line: z.string().refine((v) => codePointCount(v) <= 100, T.nameLimit),
-  category: z.enum([
-    "perfume",
-    "skincare",
-    "makeup",
-    "home_fragrance",
-    "other",
-  ]),
+  category: z
+    .string()
+    .trim()
+    .min(1, C.required)
+    .refine((v) => codePointCount(v) <= 30, C.limit)
+    .refine((v) => !/[\p{Cc}\p{Cf}\u2028\u2029]/u.test(v), C.invalid),
   notes: z.object({
     top: z.array(z.string()),
     middle: z.array(z.string()),
@@ -69,14 +74,15 @@ export function ProductForm({
   onSaved: () => void
 }) {
   const [source, setSource] = useState<number | null>(null)
+  const [notesOpened, setNotesOpened] = useState(
+    !!product && Object.values(product.notes).some((items) => items.length > 0),
+  )
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: product?.name ?? "",
       product_line: product?.product_line ?? "",
-      category: (product?.category ?? "other") as z.infer<
-        typeof schema
-      >["category"],
+      category: label(BRAND_CATEGORY_LABEL, product?.category ?? "other"),
       notes: {
         top: product?.notes.top ?? [],
         middle: product?.notes.middle ?? [],
@@ -95,16 +101,22 @@ export function ProductForm({
     control: form.control,
     name: "selling_points",
   })
+  const category = form.watch("category")
+  const notes = form.watch("notes")
+  const showNotes =
+    notesOpened ||
+    ["perfume", "home_fragrance"].includes(productCategoryValue(category)) ||
+    Object.values(notes).some((items) => items.length > 0)
   const mutation = useMutation({
     mutationFn: (v: z.infer<typeof schema>) =>
       product
         ? ProductsService.updateProduct({
             path: { product_id: product.id },
-            body: v,
+            body: { ...v, category: productCategoryValue(v.category) },
           })
         : ProductsService.createProduct({
             path: { brand_id: brandId },
-            body: v,
+            body: { ...v, category: productCategoryValue(v.category) },
           }),
     onSuccess: onSaved,
   })
@@ -141,33 +153,55 @@ export function ProductForm({
             </div>
             <div>
               <label htmlFor="product-category">{T.category}</label>
-              <select
+              <Input
                 id="product-category"
-                className="h-10 w-full rounded-lg border border-transparent bg-surface-low px-2 text-sm"
+                list="product-category-options"
+                placeholder={C.placeholder}
+                aria-describedby="product-category-hint product-category-error"
                 {...form.register("category")}
-              >
-                {Object.entries(BRAND_CATEGORY_LABEL).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {(["top", "middle", "base"] as const).map((k) => (
-              <Controller
-                key={k}
-                name={`notes.${k}`}
-                control={form.control}
-                render={({ field }) => (
-                  <ListField
-                    id={`notes-${k}`}
-                    title={T[k]}
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
-                )}
               />
-            ))}
+              <datalist id="product-category-options">
+                {Object.values(BRAND_CATEGORY_LABEL).map((text) => (
+                  <option key={text} value={text} />
+                ))}
+              </datalist>
+              <div className="flex justify-between gap-2 text-xs text-muted-foreground">
+                <p id="product-category-hint">{C.hint}</p>
+                <CharCounter value={codePointCount(category)} limit={30} />
+              </div>
+              <p
+                id="product-category-error"
+                className="text-xs text-destructive"
+              >
+                {form.formState.errors.category?.message}
+              </p>
+              {!showNotes && (
+                <Button
+                  type="button"
+                  variant="link"
+                  className="px-0 text-link"
+                  onClick={() => setNotesOpened(true)}
+                >
+                  {C.addNotes}
+                </Button>
+              )}
+            </div>
+            {showNotes &&
+              (["top", "middle", "base"] as const).map((k) => (
+                <Controller
+                  key={k}
+                  name={`notes.${k}`}
+                  control={form.control}
+                  render={({ field }) => (
+                    <ListField
+                      id={`notes-${k}`}
+                      title={T[k]}
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+              ))}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium">{T.points}</h3>

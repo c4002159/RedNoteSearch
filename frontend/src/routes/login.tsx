@@ -26,7 +26,8 @@ const schema = z.object({
 export const Route = createFileRoute("/login")({
   component: Login,
   beforeLoad: () => {
-    if (isLoggedIn()) throw redirect({ to: "/" })
+    if (isLoggedIn())
+      throw redirect({ to: "/generate", search: { task: undefined } })
   },
   head: () => ({ meta: [{ title: `${T.login} - RedNoteSearch` }] }),
 })
@@ -60,7 +61,7 @@ function Login() {
       if (result.token) {
         cache.clear()
         localStorage.setItem("access_token", result.token)
-        void navigate({ to: "/" })
+        void navigate({ to: "/generate", search: { task: undefined } })
       }
     },
   })

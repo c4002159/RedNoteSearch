@@ -108,6 +108,9 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 - `GET /brands/{brand_id}/products?status=active|archived&page=`：品牌成员。
 - `POST /brands/{brand_id}/products`、`PATCH /products/{product_id}`：品牌 admin。
 - `POST /products/{product_id}/archive`：软删除，不物理删除；已被历史任务引用的商品保留。
+- 商品 `category` 为可自定义字符串（默认 `other`），去首尾空白后 1–30 个 Unicode 码点；不允许换行、Unicode 控制字符或格式控制字符（Cc/Cf，及 U+2028/U+2029）。非字符串、空白、超长或含上述字符返回 422。预设中文名精确归一化：香水→`perfume`、护肤→`skincare`、彩妆→`makeup`、家居香氛→`home_fragrance`、其他→`other`；其余文字只去首尾空白，保留大小写和原文。旧五个键继续有效；品牌自己的 category 仍为原枚举，不变。
+- 创建/更新使用同一校验；PATCH 未传 category 或显式 null 仍保持原值。响应 `ProductPublic.category` 保持字符串；前端已知键显示中文、自定义值显示原文字。香调字段及其含义不变，隐藏输入框不删除已有香调。
+- 迁移只去掉商品表 `ck_product_category`，不动品牌约束。降级先把自定义值转为 `other` 再恢复原五值约束；降级会丢失自定义种类文字，执行前应备份相关商品。
 
 ```json
 {"id":"p-uuid","brand_id":"b-uuid","name":"…","product_line":"…","category":"perfume",

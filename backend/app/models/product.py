@@ -1,9 +1,10 @@
 import enum
+import unicodedata
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator, StringConstraints
 from sqlalchemy import (
     CheckConstraint,
     Column,
@@ -16,7 +17,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
-from app.models.catalog import BrandCategory, _in_list
+from app.models.catalog import _in_list
 from app.models.common import get_datetime_utc
 
 
@@ -25,14 +26,33 @@ class ProductStatus(enum.StrEnum):
     ARCHIVED = "archived"
 
 
+def _normalize_product_category(value: object) -> object:
+    if not isinstance(value, str):
+        return value  # the string schema rejects other JSON types
+    if any(unicodedata.category(char) in {"Cc", "Cf", "Zl", "Zp"} for char in value):
+        raise ValueError("商品种类不能包含换行或控制字符")
+    cleaned = value.strip()
+    return {
+        "香水": "perfume",
+        "护肤": "skincare",
+        "彩妆": "makeup",
+        "家居香氛": "home_fragrance",
+        "其他": "other",
+    }.get(cleaned, cleaned)
+
+
+ProductCategory = Annotated[
+    str,
+    BeforeValidator(_normalize_product_category),
+    StringConstraints(min_length=1, max_length=30),
+]
+
+
 class Product(SQLModel, table=True):
     """A product of a brand. Archived instead of deleted: past tasks may reference it."""
 
     __tablename__ = "product"  # type: ignore[assignment]
     __table_args__ = (
-        CheckConstraint(
-            _in_list("category", BrandCategory), name="ck_product_category"
-        ),
         CheckConstraint(_in_list("status", ProductStatus), name="ck_product_status"),
         Index("ix_product_brand_status", "brand_id", "status"),
     )
@@ -43,7 +63,7 @@ class Product(SQLModel, table=True):
     )
     name: str = Field(max_length=100)
     product_line: str | None = Field(default=None, max_length=100)
-    category: str = Field(default=BrandCategory.OTHER.value, max_length=30)
+    category: str = Field(default="other", max_length=30)
     notes: dict[str, Any] = Field(
         default_factory=dict, sa_column=Column(JSONB, nullable=False)
     )
@@ -124,7 +144,7 @@ class SellingPointPublic(SellingPoint):
 class ProductCreate(SQLModel):
     name: str = Field(min_length=1, max_length=100)
     product_line: str | None = Field(default=None, max_length=100)
-    category: BrandCategory = BrandCategory.OTHER
+    category: ProductCategory = "other"
     notes: ProductNotes = ProductNotes()
     selling_points: list[SellingPoint] = Field(default_factory=list, max_length=30)
     restricted_claims: list[str] = Field(default_factory=list, max_length=50)
@@ -133,7 +153,7 @@ class ProductCreate(SQLModel):
 class ProductUpdate(SQLModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     product_line: str | None = Field(default=None, max_length=100)
-    category: BrandCategory | None = None
+    category: ProductCategory | None = None
     notes: ProductNotes | None = None
     selling_points: list[SellingPoint] | None = Field(default=None, max_length=30)
     restricted_claims: list[str] | None = Field(default=None, max_length=50)
