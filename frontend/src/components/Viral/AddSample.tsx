@@ -65,7 +65,7 @@ export function AddSample({
   return (
     <Dialog open onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
       <DialogContent
-        className="max-h-[90vh] overflow-y-auto sm:max-w-2xl"
+        className="max-h-[85vh] overflow-y-auto rounded-xl border-0 p-6 sm:max-w-2xl"
         showCloseButton={!mutation.isPending}
         onEscapeKeyDown={(e) => mutation.isPending && e.preventDefault()}
         onInteractOutside={(e) => mutation.isPending && e.preventDefault()}
@@ -75,10 +75,10 @@ export function AddSample({
           <DialogDescription>{T.immutable}</DialogDescription>
         </DialogHeader>
         <form
-          className="space-y-3"
+          className="space-y-5"
           onSubmit={form.handleSubmit((v) => mutation.mutate(v))}
         >
-          <fieldset disabled={mutation.isPending} className="space-y-3">
+          <fieldset disabled={mutation.isPending} className="space-y-5">
             <legend className="sr-only">{T.add}</legend>
             {(
               [

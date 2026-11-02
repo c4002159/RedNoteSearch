@@ -3,11 +3,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { type DatasetPublic, type EvalKind, EvaluationService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
-import { FilterSelect } from "@/components/Common/FilterSelect"
+import { HeaderFilter } from "@/components/Common/FilterSelect"
 import { Pill } from "@/components/Common/StatusBadge"
 import { CreateDataset } from "@/components/Evaluation/CreateDataset"
 import { CreateRun } from "@/components/Evaluation/CreateRun"
 import {
+  EVAL_TABLE,
+  EvalPager,
   EvaluationError,
   EvaluationGuard,
 } from "@/components/Evaluation/shared"
@@ -31,6 +33,7 @@ import {
   EVAL_LIST_TEXT,
   label,
   EVAL_TEXT as T,
+  ANALYSIS_VISUAL_TEXT as V,
 } from "@/lib/zh"
 export const Route = createFileRoute("/_layout/evaluation/datasets/")({
   component: () => (
@@ -50,6 +53,8 @@ function DatasetsPage() {
   const brand = useBrand(),
     cache = useQueryClient(),
     navigate = useNavigate()
+  const [scope, setScope] = useState("")
+  const [page, setPage] = useState(1)
   const [kind, setKind] = useState<EvalKind | "">(""),
     [creating, setCreating] = useState(false),
     [run, setRun] = useState<DatasetPublic | null>(null)
@@ -63,8 +68,13 @@ function DatasetsPage() {
         })
       ).data.items,
   })
+  const items = (datasets.data ?? []).filter(
+    (row) =>
+      !scope ||
+      (scope === "global" ? row.brand_id === null : row.brand_id === scope),
+  )
   return (
-    <div className="min-w-0 space-y-5">
+    <div className="min-w-0 space-y-6 [&_[data-slot=table-container]]:border-0">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{T.datasets}</h1>
@@ -79,58 +89,88 @@ function DatasetsPage() {
           <Button onClick={() => setCreating(true)}>{T.newDataset}</Button>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <FilterSelect
-          title={T.kind}
-          value={kind}
-          onChange={(v) => setKind(v as EvalKind | "")}
-          options={[
-            { value: "", label: T.allKinds },
-            ...Object.entries(EVAL_KIND_LABEL).map(([value, label]) => ({
-              value,
-              label,
-            })),
-          ]}
-        />
-        <Button variant="outline" onClick={() => setKind("")}>
-          {EVAL_LIST_TEXT.clear}
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setKind("")
+            setScope("")
+            setPage(1)
+          }}
+        >
+          {V.clear}
         </Button>
       </div>
-      {datasets.isLoading && <Skeleton className="h-48 w-full" />}
-      {datasets.isError && (
-        <EvaluationError
-          error={datasets.error}
-          retry={() => datasets.refetch()}
-        />
-      )}
-      {datasets.data &&
-        !datasets.isError &&
-        (datasets.data.length === 0 ? (
-          <EmptyState title={T.emptyDatasets} />
-        ) : (
-          <div className="min-w-0 rounded-xl border bg-card">
-            <Table className="w-full table-fixed">
-              <TableHeader>
+      <div className="overflow-hidden rounded-xl bg-card shadow-sm">
+        <div className="overflow-x-auto">
+          <Table className={EVAL_TABLE}>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[28%]">{EVAL_LIST_TEXT.name}</TableHead>
+                <TableHead aria-label={T.kind}>
+                  <HeaderFilter
+                    title={T.kind}
+                    value={kind}
+                    onChange={(value) => {
+                      setKind(value as EvalKind | "")
+                      setPage(1)
+                    }}
+                    options={Object.entries(EVAL_KIND_LABEL).map(
+                      ([value, label]) => ({ value, label }),
+                    )}
+                  />
+                </TableHead>
+                <TableHead>{T.version}</TableHead>
+                <TableHead>{EVAL_CASE_COUNT_LABEL}</TableHead>
+                <TableHead aria-label={T.scope}>
+                  <HeaderFilter
+                    title={T.scope}
+                    value={scope}
+                    onChange={(value) => {
+                      setScope(value)
+                      setPage(1)
+                    }}
+                    options={[
+                      { value: "global", label: T.global },
+                      ...brand.brands.map((b) => ({
+                        value: b.id,
+                        label: b.name,
+                      })),
+                    ]}
+                  />
+                </TableHead>
+                <TableHead>{T.created}</TableHead>
+                <TableHead className="text-right">{V.actions}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {datasets.isLoading ? (
+                Array.from({ length: 3 }, (_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={7}>
+                      <Skeleton className="h-12 w-full" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : datasets.isError ? (
                 <TableRow>
-                  {[
-                    EVAL_LIST_TEXT.name,
-                    T.kind,
-                    T.scope,
-                    T.version,
-                    EVAL_CASE_COUNT_LABEL,
-                    T.created,
-                    EVAL_LIST_TEXT.actions,
-                  ].map((heading) => (
-                    <TableHead key={heading} className="whitespace-normal">
-                      {heading}
-                    </TableHead>
-                  ))}
+                  <TableCell colSpan={7}>
+                    <EvaluationError
+                      error={datasets.error}
+                      retry={() => datasets.refetch()}
+                    />
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {datasets.data.map((row) => (
+              ) : items.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7}>
+                    <EmptyState title={T.emptyDatasets} />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                items.slice((page - 1) * 20, page * 20).map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell className="whitespace-normal break-words">
+                    <TableCell className="whitespace-normal font-medium">
                       <Link
                         className="text-link hover:underline"
                         to="/evaluation/datasets/$id"
@@ -139,8 +179,9 @@ function DatasetsPage() {
                         {row.name}
                       </Link>
                     </TableCell>
-                    <TableCell className="whitespace-normal">
+                    <TableCell>
                       <Pill
+                        className="whitespace-nowrap"
                         tone={
                           row.kind in kindTone
                             ? kindTone[row.kind as keyof typeof kindTone]
@@ -150,20 +191,25 @@ function DatasetsPage() {
                         {label(EVAL_KIND_LABEL, row.kind)}
                       </Pill>
                     </TableCell>
-                    <TableCell className="whitespace-normal break-words">
+                    <TableCell>v{row.version}</TableCell>
+                    <TableCell>{row.case_count}</TableCell>
+                    <TableCell className="whitespace-normal">
                       {row.brand_id === null
                         ? T.global
                         : (brand.brands.find((b) => b.id === row.brand_id)
                             ?.name ?? EVAL_DESIGN_TEXT.otherBrand)}
                     </TableCell>
-                    <TableCell>v{row.version}</TableCell>
-                    <TableCell>{row.case_count}</TableCell>
-                    <TableCell className="whitespace-normal break-words">
+                    <TableCell className="whitespace-normal text-xs text-muted-foreground">
                       {formatTime(row.created_at)}
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-2">
-                        <Button size="sm" variant="ghost" asChild>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-link"
+                          asChild
+                        >
                           <Link
                             to="/evaluation/datasets/$id"
                             params={{ id: row.id }}
@@ -172,8 +218,9 @@ function DatasetsPage() {
                           </Link>
                         </Button>
                         <Button
+                          variant="ghost"
                           size="sm"
-                          variant="outline"
+                          className="text-link"
                           onClick={() => setRun(row)}
                         >
                           {T.newRun}
@@ -181,11 +228,15 @@ function DatasetsPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ))}
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        {!datasets.isError && !datasets.isLoading && (
+          <EvalPager page={page} total={items.length} onPage={setPage} />
+        )}
+      </div>
       {creating && (
         <CreateDataset
           onClose={() => setCreating(false)}

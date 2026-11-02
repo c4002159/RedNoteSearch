@@ -18,7 +18,7 @@ import { LoadingButton } from "@/components/ui/loading-button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { codePointCount } from "@/lib/count"
-import { EVAL_TEXT as T } from "@/lib/zh"
+import { EVAL_TEXT as T, ANALYSIS_VISUAL_TEXT as V } from "@/lib/zh"
 import { EvaluationError } from "./shared"
 export const rubricSchema = z.object({
   rubric_version: z.string(),
@@ -60,14 +60,16 @@ export function RatingDialog({
   return (
     <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
       <DialogContent
-        className="max-h-[90vh] overflow-y-auto sm:max-w-xl"
+        className="max-h-[85vh] overflow-y-auto rounded-xl border-0 p-6 sm:max-w-2xl"
         showCloseButton={false}
         onEscapeKeyDown={(e) => busy && e.preventDefault()}
         onInteractOutside={(e) => busy && e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle>{T.rate}</DialogTitle>
-          <DialogDescription>{T.ratingHint}</DialogDescription>
+          <DialogDescription>
+            {V.manual} · {T.ratingHint}
+          </DialogDescription>
         </DialogHeader>
         {rubric.isLoading && <Skeleton className="h-32 w-full" />}
         {rubric.isError && (
@@ -176,14 +178,14 @@ function ScoreForm({
             name={`scores.${d.key}`}
             control={form.control}
             render={({ field, fieldState }) => (
-              <fieldset className="space-y-2 rounded-lg border p-3">
+              <fieldset className="space-y-2 rounded-xl bg-surface-low p-5">
                 <legend className="px-1 text-sm font-medium">{d.name}</legend>
                 <p className="text-xs text-muted-foreground">{d.description}</p>
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-wrap gap-2">
                   {options.map((score) => (
                     <label
                       key={score}
-                      className="flex items-center gap-1 text-sm"
+                      className="flex min-w-12 flex-1 cursor-pointer items-center justify-center gap-1 rounded-lg bg-card px-3 py-3 text-sm has-checked:bg-selected-tint has-checked:text-link has-checked:ring-2 has-checked:ring-primary"
                     >
                       <input
                         type="radio"

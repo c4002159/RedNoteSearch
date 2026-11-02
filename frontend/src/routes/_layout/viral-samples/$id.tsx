@@ -6,13 +6,26 @@ import { EmptyState } from "@/components/Common/EmptyState"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { AnalyzeSample } from "@/components/Viral/AnalyzeSample"
-import { ViralError, ViralPager } from "@/components/Viral/Feedback"
+import {
+  VIRAL_TABLE,
+  ViralBreadcrumb,
+  ViralError,
+  ViralPager,
+} from "@/components/Viral/Feedback"
 import { useBrand } from "@/hooks/useBrand"
 import { parseApiError } from "@/lib/apiError"
 import { codePointCount } from "@/lib/count"
 import { formatTime } from "@/lib/format"
-import { VIRAL_TEXT as T } from "@/lib/zh"
+import { VIRAL_TEXT as T, ANALYSIS_VISUAL_TEXT as V } from "@/lib/zh"
 export const Route = createFileRoute("/_layout/viral-samples/$id")({
   component: SamplePage,
   head: () => ({ meta: [{ title: `${T.detail} - RedNoteSearch` }] }),
@@ -61,10 +74,8 @@ function SamplePage() {
   if (!allowed) return <ForbiddenPage />
   const row = sample.data
   return (
-    <div className="min-w-0 space-y-5">
-      <Button asChild variant="ghost">
-        <Link to="/viral-samples">{T.back}</Link>
-      </Button>
+    <div className="min-w-0 space-y-6 [&_[data-slot=table-container]]:border-0">
+      <ViralBreadcrumb current={T.detail} />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{T.detail}</h1>
@@ -72,69 +83,132 @@ function SamplePage() {
             {codePointCount(row.text)} {T.chars} · {formatTime(row.created_at)}
           </p>
         </div>
-        <Button
-          disabled={!patterns.data || patterns.isFetching || patterns.isError}
-          onClick={() => setAnalyzing(true)}
-        >
-          {T.analysis}
-        </Button>
       </div>
-      <section className="space-y-3 rounded-xl border bg-card p-4">
-        <h2 className="font-semibold">{T.text}</h2>
-        <p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">
-          {row.text}
-        </p>
-        {row.note && (
-          <p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">
-            {T.note}：{row.note}
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="min-w-0 space-y-6 [&_[data-slot=table-container]]:border-0">
+          {" "}
+          <section className="space-y-3 rounded-xl bg-card p-6 shadow-sm">
+            <h2 className="font-semibold">{T.text}</h2>
+            <p className="whitespace-pre-wrap rounded-lg bg-surface-low p-5 text-sm leading-7 [overflow-wrap:anywhere]">
+              {row.text}
+            </p>
+            {row.note && (
+              <p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">
+                {T.note}：{row.note}
+              </p>
+            )}
+            {row.source_url && (
+              <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                {T.source}：{row.source_url}
+              </p>
+            )}
+          </section>
+          <section className="space-y-3 rounded-xl bg-card p-6 shadow-sm">
+            <h2 className="font-semibold">{T.patterns}</h2>
+            <div className="overflow-x-auto">
+              <Table className={`${VIRAL_TABLE} min-w-[720px]`}>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{T.titlePattern}</TableHead>
+                    <TableHead>{T.hook}</TableHead>
+                    <TableHead>{T.model}</TableHead>
+                    <TableHead>{V.sort}</TableHead>
+                    <TableHead>{V.actions}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {patterns.isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={5}>
+                        <Skeleton className="h-24 w-full" />
+                      </TableCell>
+                    </TableRow>
+                  ) : patterns.isError ? (
+                    <TableRow>
+                      <TableCell colSpan={5}>
+                        <ViralError
+                          error={patterns.error}
+                          retry={() => patterns.refetch()}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ) : !patterns.data?.items.length ? (
+                    <TableRow>
+                      <TableCell colSpan={5}>
+                        <EmptyState title={T.emptyPatterns} />
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    patterns.data.items.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="max-w-72 whitespace-normal font-medium">
+                          <Link
+                            className="text-link hover:underline"
+                            to="/viral-patterns/$id"
+                            params={{ id: p.id }}
+                          >
+                            {p.title_pattern}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="max-w-40 whitespace-normal">
+                          {p.hook_type}
+                        </TableCell>
+                        <TableCell className="max-w-40 whitespace-normal break-words">
+                          {p.model_id}
+                        </TableCell>
+                        <TableCell className="whitespace-normal text-xs text-muted-foreground">
+                          {formatTime(p.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            asChild
+                            className="text-link"
+                          >
+                            <Link
+                              to="/viral-patterns/$id"
+                              params={{ id: p.id }}
+                            >
+                              {T.view}
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            {patterns.data && !patterns.isError && (
+              <ViralPager
+                page={page}
+                total={patterns.data.total}
+                onPage={setPage}
+              />
+            )}
+          </section>
+        </div>
+        <aside className="space-y-4 rounded-xl bg-card p-6 shadow-sm">
+          <h2 className="text-base font-semibold">{V.next}</h2>
+          <p className="text-xs leading-6 text-muted-foreground">
+            {T.waitHint}
+          </p>{" "}
+          <Button
+            className="w-full"
+            disabled={!patterns.data || patterns.isFetching || patterns.isError}
+            onClick={() => setAnalyzing(true)}
+          >
+            {T.analysis}
+          </Button>
+          <Button variant="outline" asChild className="w-full">
+            <Link to="/viral-samples">{T.back}</Link>
+          </Button>
+          <p className="text-xs leading-6 text-muted-foreground">
+            {V.textOnly}
           </p>
-        )}
-        {row.source_url && (
-          <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
-            {T.source}：{row.source_url}
-          </p>
-        )}
-      </section>
-      <section className="space-y-3 rounded-xl border bg-card p-4">
-        <h2 className="font-semibold">{T.patterns}</h2>
-        {patterns.isLoading && <Skeleton className="h-20 w-full" />}
-        {patterns.isError && (
-          <ViralError error={patterns.error} retry={() => patterns.refetch()} />
-        )}
-        {patterns.data &&
-          !patterns.isError &&
-          (patterns.data.items.length === 0 ? (
-            <EmptyState title={T.emptyPatterns} />
-          ) : (
-            <ul className="space-y-3">
-              {patterns.data.items.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
-                >
-                  <div className="min-w-0">
-                    <p className="break-words font-medium">{p.title_pattern}</p>
-                    <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
-                      {p.hook_type} · {p.model_id} · {formatTime(p.created_at)}
-                    </p>
-                  </div>
-                  <Button asChild size="sm" variant="outline">
-                    <Link to="/viral-patterns/$id" params={{ id: p.id }}>
-                      {T.view}
-                    </Link>
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ))}
-        {patterns.data && !patterns.isError && (
-          <ViralPager
-            page={page}
-            total={patterns.data.total}
-            onPage={setPage}
-          />
-        )}
-      </section>
+        </aside>
+      </div>
       {analyzing && patterns.data && (
         <AnalyzeSample
           key={id}

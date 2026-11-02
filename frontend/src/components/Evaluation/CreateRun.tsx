@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { type DatasetPublic, EvaluationService, type RunPublic } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { FilterSelect } from "@/components/Common/FilterSelect"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -23,6 +24,7 @@ import {
   evaluationSystemLabel,
   label,
   EVAL_TEXT as T,
+  ANALYSIS_VISUAL_TEXT as V,
 } from "@/lib/zh"
 import { EvaluationError } from "./shared"
 
@@ -113,6 +115,7 @@ export function CreateRun({
   return (
     <Dialog open onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
       <DialogContent
+        className="max-h-[85vh] overflow-y-auto rounded-xl border-0 p-6 sm:max-w-2xl"
         showCloseButton={!mutation.isPending}
         onEscapeKeyDown={(e) => mutation.isPending && e.preventDefault()}
         onInteractOutside={(e) => mutation.isPending && e.preventDefault()}
@@ -122,33 +125,34 @@ export function CreateRun({
           <DialogDescription>{T.description}</DialogDescription>
         </DialogHeader>
         <form
-          className="space-y-3"
+          className="space-y-5"
           onSubmit={form.handleSubmit((v) => mutation.mutate(v))}
         >
-          <fieldset disabled={mutation.isPending} className="space-y-3">
+          <fieldset disabled={mutation.isPending} className="space-y-5">
             <legend className="sr-only">{T.newRun}</legend>
             {dataset ? (
-              <p className="text-sm">
+              <p className="rounded-lg bg-surface-low p-4 text-sm">
                 {dataset.name} · v{dataset.version} ·{" "}
                 {label(EVAL_KIND_LABEL, dataset.kind)}
               </p>
             ) : (
               <div>
-                <label htmlFor="run-dataset" className="text-sm font-medium">
-                  {T.selectDataset}
-                </label>
-                <select
-                  id="run-dataset"
-                  className="h-10 w-full rounded-lg border border-transparent bg-surface-low px-3 text-sm"
-                  {...form.register("dataset_id")}
-                >
-                  <option value="">{T.selectDataset}</option>
-                  {datasets.data?.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.name} · v{row.version}
-                    </option>
-                  ))}
-                </select>
+                <FilterSelect
+                  title={T.selectDataset}
+                  value={form.watch("dataset_id")}
+                  onChange={(value) => {
+                    form.setValue("dataset_id", value, { shouldValidate: true })
+                    form.setValue("model_ids", [])
+                  }}
+                  options={[
+                    { value: "", label: T.selectDataset },
+                    ...(datasets.data ?? []).map((row) => ({
+                      value: row.id,
+                      label: `${row.name} · v${row.version}`,
+                    })),
+                  ]}
+                />
+
                 <p className="text-xs text-destructive">
                   {form.formState.errors.dataset_id?.message}
                 </p>
@@ -185,21 +189,25 @@ export function CreateRun({
                 {models.data?.filter((m) => m.enabled).length === 0 && (
                   <EmptyState title={T.noModels} />
                 )}{" "}
-                {models.data
-                  ?.filter((m) => m.enabled)
-                  .map((m) => (
-                    <label
-                      key={m.id}
-                      className="flex items-center gap-2 text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        value={m.id}
-                        {...form.register("model_ids")}
-                      />
+                {models.data?.map((m) => (
+                  <label
+                    key={m.id}
+                    className={`flex items-center gap-3 rounded-lg p-4 text-sm ${m.enabled ? "bg-surface-low" : "bg-muted text-muted-foreground opacity-60"}`}
+                  >
+                    <input
+                      type="checkbox"
+                      disabled={!m.enabled}
+                      value={m.id}
+                      {...form.register("model_ids")}
+                    />
+                    <span className="min-w-0 break-words">
                       {m.model_name}
-                    </label>
-                  ))}
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {m.enabled ? V.modelEnabled : V.modelDisabled}
+                      </span>
+                    </span>
+                  </label>
+                ))}
                 <p className="text-xs text-destructive">
                   {form.formState.errors.model_ids?.message}
                 </p>

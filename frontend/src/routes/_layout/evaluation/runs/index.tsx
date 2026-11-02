@@ -3,9 +3,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { EvaluationService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
-import { FilterSelect } from "@/components/Common/FilterSelect"
+import { HeaderFilter } from "@/components/Common/FilterSelect"
 import { CreateRun } from "@/components/Evaluation/CreateRun"
 import {
+  EVAL_TABLE,
   EvalPager,
   EvalStatus,
   EvaluationError,
@@ -14,8 +15,21 @@ import {
 } from "@/components/Evaluation/shared"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { formatTime } from "@/lib/format"
-import { EVAL_KIND_LABEL, label, EVAL_TEXT as T } from "@/lib/zh"
+import {
+  EVAL_KIND_LABEL,
+  label,
+  EVAL_TEXT as T,
+  ANALYSIS_VISUAL_TEXT as V,
+} from "@/lib/zh"
 export const Route = createFileRoute("/_layout/evaluation/runs/")({
   component: () => (
     <EvaluationGuard>
@@ -47,7 +61,7 @@ function RunsPage() {
       q.state.data?.items.some((r) => running(r.status)) ? 2000 : false,
   })
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-6 [&_[data-slot=table-container]]:border-0">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{T.runs}</h1>
@@ -60,22 +74,16 @@ function RunsPage() {
           <Button onClick={() => setCreating(true)}>{T.newRun}</Button>
         </div>
       </div>
-      <div>
-        <FilterSelect
-          title={T.selectDataset}
-          value={dataset}
-          onChange={(v) => {
-            setDataset(v)
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setDataset("")
             setPage(1)
           }}
-          options={[
-            { value: "", label: T.allDatasets },
-            ...(datasets.data ?? []).map((d) => ({
-              value: d.id,
-              label: `${d.name} · v${d.version}`,
-            })),
-          ]}
-        />
+        >
+          {V.clear}
+        </Button>
       </div>
       {datasets.isError && (
         <EvaluationError
@@ -83,44 +91,111 @@ function RunsPage() {
           retry={() => datasets.refetch()}
         />
       )}
-      {runs.isLoading && <Skeleton className="h-48 w-full" />}
-      {runs.isError && (
-        <EvaluationError error={runs.error} retry={() => runs.refetch()} />
-      )}
-      {runs.data &&
-        !runs.isError &&
-        (runs.data.items.length === 0 ? (
-          <EmptyState title={T.emptyRuns} />
-        ) : (
-          <ul className="space-y-3">
-            {runs.data.items.map((r) => (
-              <li
-                key={r.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4"
-              >
-                <div className="min-w-0 space-y-1">
-                  <Link
-                    to="/evaluation/runs/$id"
-                    params={{ id: r.id }}
-                    className="break-words font-medium text-link hover:underline"
-                  >
-                    {datasets.data?.find((d) => d.id === r.dataset_id)?.name ??
-                      r.dataset_id}{" "}
-                    · v{r.versions.dataset_version}
-                  </Link>
-                  <p className="text-xs text-muted-foreground">
-                    {label(EVAL_KIND_LABEL, r.kind)} · {r.sample_count}{" "}
-                    {T.cases} · {formatTime(r.created_at)}
-                  </p>
-                </div>
-                <EvalStatus status={r.status} />
-              </li>
-            ))}
-          </ul>
-        ))}
-      {runs.data && !runs.isError && (
-        <EvalPager page={page} total={runs.data.total} onPage={setPage} />
-      )}
+      <div className="overflow-hidden rounded-xl bg-card shadow-sm">
+        <div className="overflow-x-auto">
+          <Table className={EVAL_TABLE}>
+            <TableHeader>
+              <TableRow>
+                <TableHead aria-label={T.datasets} className="w-[30%]">
+                  <HeaderFilter
+                    title={T.datasets}
+                    value={dataset}
+                    onChange={(value) => {
+                      setDataset(value)
+                      setPage(1)
+                    }}
+                    options={(datasets.data ?? []).map((d) => ({
+                      value: d.id,
+                      label: d.name,
+                    }))}
+                  />
+                </TableHead>
+                <TableHead>{T.kind}</TableHead>
+                <TableHead>{T.models}</TableHead>
+                <TableHead>{V.status}</TableHead>
+                <TableHead>{T.created}</TableHead>
+                <TableHead className="text-right">{V.actions}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {runs.isLoading ? (
+                Array.from({ length: 3 }, (_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={6}>
+                      <Skeleton className="h-12 w-full" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : runs.isError ? (
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <EvaluationError
+                      error={runs.error}
+                      retry={() => runs.refetch()}
+                    />
+                  </TableCell>
+                </TableRow>
+              ) : !runs.data?.items.length ? (
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <EmptyState title={T.emptyRuns} />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                runs.data.items.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="whitespace-normal font-medium">
+                      <Link
+                        className="text-link hover:underline"
+                        to="/evaluation/runs/$id"
+                        params={{ id: r.id }}
+                      >
+                        {datasets.data?.find((d) => d.id === r.dataset_id)
+                          ?.name ?? T.datasets}
+                      </Link>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        v{r.versions.dataset_version} · {r.sample_count}{" "}
+                        {T.cases}
+                      </p>
+                    </TableCell>
+                    <TableCell>{label(EVAL_KIND_LABEL, r.kind)}</TableCell>
+                    <TableCell className="max-w-56 whitespace-normal break-words">
+                      {r.versions.models.join("、") || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <EvalStatus status={r.status} />
+                      {running(r.status) && (
+                        <div
+                          className="mt-2 h-1.5 w-20 animate-pulse rounded-full bg-surface"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell className="whitespace-normal text-xs text-muted-foreground">
+                      {formatTime(r.created_at)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="text-link"
+                      >
+                        <Link to="/evaluation/runs/$id" params={{ id: r.id }}>
+                          {V.view}
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        {runs.data && !runs.isError && (
+          <EvalPager page={page} total={runs.data.total} onPage={setPage} />
+        )}
+      </div>
       {creating && (
         <CreateRun
           onClose={() => setCreating(false)}

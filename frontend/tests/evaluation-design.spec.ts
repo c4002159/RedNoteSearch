@@ -1,4 +1,7 @@
 import { expect, test } from "@playwright/test"
+import { mockAnalysis } from "./utils/analysisVisual"
+
+test.use({ storageState: { cookies: [], origins: [] } })
 
 const brand = "11111111-1111-4111-8111-111111111111"
 const known = "22222222-2222-4222-8222-222222222222"
@@ -24,6 +27,7 @@ const datasets = [
 }))
 
 test.beforeEach(async ({ page }) => {
+  await mockAnalysis(page)
   await page.route("**/api/v1/brands", (r) =>
     r.fulfill({
       json: {
