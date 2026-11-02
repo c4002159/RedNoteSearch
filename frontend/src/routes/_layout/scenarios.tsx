@@ -5,6 +5,7 @@ import { type ScenarioPublic, ScenariosService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { Pill } from "@/components/Common/StatusBadge"
+import { TemplateAnalysisTabs } from "@/components/Common/TemplateAnalysisTabs"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -81,6 +82,7 @@ function ScenariosPage() {
 
   return (
     <div className="min-w-0 space-y-6">
+      <TemplateAnalysisTabs />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 flex-1 basis-80">
           <h1 className="text-2xl font-bold">{T.title}</h1>

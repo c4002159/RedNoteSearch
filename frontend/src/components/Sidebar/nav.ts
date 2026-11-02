@@ -59,6 +59,12 @@ export const NAV_GROUPS: NavGroup[] = [
         access: "member",
       },
       {
+        title: "爆款结构分析",
+        path: "/viral-samples",
+        icon: TrendingUp,
+        access: "member",
+      },
+      {
         title: "品牌档案",
         path: "/voice-profile",
         icon: BookUser,
@@ -111,17 +117,6 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: "用户设置", path: "/settings", icon: Settings, access: "all" },
       { title: "用户管理", path: "/admin", icon: Users, access: "platform" },
-    ],
-  },
-  {
-    title: "增强",
-    items: [
-      {
-        title: "爆款结构分析",
-        path: "/viral-samples",
-        icon: TrendingUp,
-        access: "member",
-      },
     ],
   },
 ]
