@@ -146,7 +146,7 @@ def test_prompt_separates_verified_facts_from_unverified_points() -> None:
     )
     assert "第二人称" in user and "标签 3 个" in user and "语气：克制" in user
     assert "合规通过" not in system + user  # the prompt never claims compliance
-    assert PROMPT_VERSION == "gen-v5"
+    assert PROMPT_VERSION == "gen-v6"
 
 
 def test_prompt_handles_missing_context_and_adds_problems_on_retry() -> None:
@@ -181,3 +181,26 @@ def test_prompt_forbids_inventing_the_writers_own_experience() -> None:
         "不要说“我最近在用某某品牌”",
     ):
         assert phrase in SYSTEM_PROMPT
+
+
+def test_activity_prompt_tells_the_model_not_to_invent_steps() -> None:
+    base = {
+        "brand_name": "品牌",
+        "category": "perfume",
+        "scene_name": "活动促销",
+        "scene_structure": "1. 参与方式",
+    }
+    activity = PromptInput(
+        **base,
+        product_name="香氛季",
+        promo_type="activity",
+        activity_detail="香氛季期间多款参与",
+        activity_perks=("满 500 减 50",),
+    )
+    text = build_messages(activity)[1].content
+    assert "活动「香氛季」" in text and "满 500 减 50" in text
+    assert "不要自己编写" in text and "以活动页面公布的为准" in text
+    # the instruction comes after the template's structure, where the steps are asked for
+    assert text.index("参与方式") < text.index("不要自己编写")
+    plain = build_messages(PromptInput(**base, product_name="晨雾"))[1].content
+    assert "不要自己编写" not in plain

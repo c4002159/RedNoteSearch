@@ -12,7 +12,7 @@ from typing import Any, Literal
 from app.domain.constraints import BODY_LIMIT, TAG_LIMIT, TITLE_LIMIT
 from app.ports.llm import LlmMessage
 
-PROMPT_VERSION = "gen-v5"
+PROMPT_VERSION = "gen-v6"
 
 # A conservative guess of what one tag costs in the body budget (``#`` + a short name + a space).
 APPROX_TAG_COST = 8
@@ -103,6 +103,13 @@ def _style_text(style: dict[str, Any]) -> str:
     return "；".join(parts)
 
 
+# The structure of a promotion note asks for dates and steps; the operator may not have given them.
+ACTIVITY_GAPS = (
+    "（结构建议里要求写的活动时间、参与方式、规则：上面的“活动说明”和“活动福利”没有写明的，"
+    "一律不要自己编写，不要编出购买或领取的操作步骤；只写“具体以活动页面公布的为准”。）\n"
+)
+
+
 def _target_text(inp: PromptInput, notes: str) -> str:
     """Who or what the note promotes."""
     if inp.promo_type == "activity":
@@ -163,7 +170,9 @@ def build_messages(
         + _lines("禁止宣称（不得出现）", inp.restricted_claims)
         + _lines("禁用词（不得出现）", inp.forbidden_words)
         + _lines("必含词（必须自然出现）", inp.required_terms)
-        + f"笔记场景：{inp.scene_name}\n结构建议：\n{inp.scene_structure}\n\n"
+        + f"笔记场景：{inp.scene_name}\n结构建议：\n{inp.scene_structure}\n"
+        + (ACTIVITY_GAPS if inp.promo_type == "activity" else "")
+        + "\n"
         + f"风格要求：{_style_text(inp.style)}；正文大约不超过 {body_budget(inp.style)} 个字符\n\n"
         + (f"运营补充说明：{inp.brief}\n\n" if inp.brief else "")
         + (
