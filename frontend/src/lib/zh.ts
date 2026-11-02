@@ -1460,6 +1460,10 @@ export const R6_SAMPLE_TEXT = {
   analyzedAt: "分析时间",
   builtinSave: "存为本品牌新版本",
   ownSave: "保存为新版本",
+  saveAsNew: "另存为新模板",
+  savedAsNew: (name: string) => `已另存为新模板「${name}」，原模板保留`,
+  renameHint:
+    "名称已修改：会另存为一个新模板（从 v1 开始），原模板保留，不会生成新版本。",
   savedVersion: (n: number) => `已保存为新版本 v${n}`,
   selectLimit: "每次最多选择 50 个",
   selectAll: (n: number) => `选择全部 ${n} 条`,

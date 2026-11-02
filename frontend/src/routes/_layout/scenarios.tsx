@@ -335,7 +335,11 @@ function BrandScenarios({
           onClose={() => setViewing(null)}
           onSaved={(saved) => {
             setViewing(saved)
-            toast.success(R.savedVersion(saved.template_version))
+            toast.success(
+              saved.name !== viewing.name
+                ? R.savedAsNew(saved.name)
+                : R.savedVersion(saved.template_version),
+            )
             void refresh()
           }}
         />
@@ -348,7 +352,11 @@ function BrandScenarios({
           onSaved={(saved) => {
             setEditing(null)
             setViewing(saved)
-            toast.success(R.savedVersion(saved.template_version))
+            toast.success(
+              editing !== "new" && saved.name !== editing.name
+                ? R.savedAsNew(saved.name)
+                : R.savedVersion(saved.template_version),
+            )
             void refresh()
           }}
         />
@@ -386,6 +394,7 @@ function TemplateDialog({
     !!structure.trim() &&
     codePointCount(name.trim()) <= 100 &&
     codePointCount(structure.trim()) <= MAX_STRUCTURE
+  const renamed = !!from && name.trim() !== from.name
   return (
     <Dialog open onOpenChange={(o) => !o && !save.isPending && onClose()}>
       <DialogContent
@@ -393,7 +402,9 @@ function TemplateDialog({
         showCloseButton={!save.isPending}
       >
         <DialogHeader>
-          <DialogTitle>{from ? R.ownSave : T.add}</DialogTitle>
+          <DialogTitle>
+            {from ? (renamed ? R.saveAsNew : R.ownSave) : T.add}
+          </DialogTitle>
           <DialogDescription>
             {from
               ? `${from.name} v${from.template_version} · ${from.brand_id === null ? D.builtinCopy : D.newVersionHint}`
@@ -472,7 +483,7 @@ function TemplateDialog({
               loading={save.isPending}
               disabled={!valid}
             >
-              {from ? R.ownSave : T.save}
+              {from ? (renamed ? R.saveAsNew : R.ownSave) : T.save}
             </LoadingButton>
           </DialogFooter>
         </form>
@@ -521,6 +532,7 @@ function TemplateSheet({
     !!structure.trim() &&
     codePointCount(name.trim()) <= 100 &&
     codePointCount(structure.trim()) <= MAX_STRUCTURE
+  const renamed = name.trim() !== row.name
   return (
     <Sheet open onOpenChange={(open) => !open && !save.isPending && onClose()}>
       <SheetContent
@@ -604,9 +616,11 @@ function TemplateSheet({
           </fieldset>
           <p className="text-xs leading-6 text-muted-foreground">
             {isAdmin
-              ? row.brand_id === null
-                ? D.builtinCopy
-                : D.newVersionHint
+              ? renamed
+                ? R.renameHint
+                : row.brand_id === null
+                  ? D.builtinCopy
+                  : D.newVersionHint
               : D.readonly}
           </p>
           {save.isError && <ErrorBanner error={parseApiError(save.error)} />}
@@ -625,7 +639,11 @@ function TemplateSheet({
                 loading={save.isPending}
                 disabled={!valid}
               >
-                {row.brand_id === null ? R.builtinSave : R.ownSave}
+                {renamed
+                  ? R.saveAsNew
+                  : row.brand_id === null
+                    ? R.builtinSave
+                    : R.ownSave}
               </LoadingButton>
             )}
           </SheetFooter>

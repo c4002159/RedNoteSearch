@@ -160,6 +160,46 @@ test("A row opens full template details and admin can save the old version as a 
   })
 })
 
+test("Renaming a template saves it as a new template, not a new version", async ({
+  page,
+}) => {
+  const writes = await setup(page)
+  await page.goto("/scenarios")
+  await page
+    .getByRole("row")
+    .filter({
+      has: page.getByRole("button", {
+        name: "查看模板详情：品牌种草模板（演示） v1",
+        exact: true,
+      }),
+    })
+    .getByRole("cell")
+    .nth(1)
+    .click()
+  const drawer = page.getByRole("dialog", {
+    name: "模板详情 · 品牌种草模板（演示）",
+    exact: true,
+  })
+  await expect(
+    drawer.getByRole("button", { name: "保存为新版本", exact: true }),
+  ).toBeVisible()
+  await drawer.getByLabel("模板名称", { exact: true }).fill("另一个模板名")
+  await expect(drawer).toContainText("会另存为一个新模板")
+  await expect(
+    drawer.getByRole("button", { name: "保存为新版本", exact: true }),
+  ).toHaveCount(0)
+  await drawer
+    .getByRole("button", { name: "另存为新模板", exact: true })
+    .click()
+  await expect(
+    page.getByText("已另存为新模板「另一个模板名」，原模板保留", {
+      exact: true,
+    }),
+  ).toBeVisible()
+  expect(writes).toHaveLength(1)
+  expect(writes[0].body).toMatchObject({ name: "另一个模板名" })
+})
+
 test("Creative type header filter and clear filter work on the complete authorized list", async ({
   page,
 }) => {
