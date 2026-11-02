@@ -873,3 +873,13 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 复用现有 OpenAI 兼容适配器、provider_keys 的数据库/环境密钥解析和模型配置。适配器内部重试关闭，由本服务统一控制：首次加最多 2 次重试（至多 3 次 complete/HTTP 请求），传输失败、空响应、JSON 错误及全部被过滤共用同一额度，不嵌套放大；超时沿用 LLM_TIMEOUT_SECONDS。最后一次的失败类型决定最终错误。
 
 `LLM_MODE=demo_fake` 使用固定假模型：有生效调性关键词时循环使用关键词与固定句式拼接最多 5 条；无关键词时返回“平实清楚的叙述”“简洁自然的表达”两条，count=1 时仅一条。假模型输出也必须经过同一过滤，可能被禁词、长度或已有语气规则全部丢弃。测试只用 fake 与 MockTransport，不访问真实模型。未用真实模型验证效果与成本。
+
+## R6 B4：风险规则批量停用与恢复
+
+新增 `POST /compliance-rules/batch-state`（仅平台管理员，全局范围）与 `POST /brands/{brand_id}/compliance-rules/batch-state`（仅路径品牌admin）。未登录401；整体权限不满足403，不进入处理。请求 `{"ids":["UUID"],"enabled":false,"reason":"调整原因"}`：1–100个不同UUID，enabled为严格布尔，reason去首尾空白后1–500码点；未知字段、重复/空/超量ids及无效原因422，全批不写入。品牌不来自请求体。
+
+成功200 `{"items":[{"id":"UUID","success":true,"changed":true,"rule_version":2,"status_code":200,"error_code":null,"message":null}]}`，按输入顺序逐条返回。不存在或不属于本次范围的id记为单条404/NOT_FOUND，不泄露其他品牌信息；单条数据库故障记500/INTERNAL_ERROR通用提示。逐条事务、行锁和提交，失败只回滚本条，后续继续；因此不是文件导入的全有或全无。无物理删除。
+
+状态实际变化才加rule_version、更新updated_at；重复设置为同状态返回success=true、changed=false且不加版本。保留is_sample和所有来源/规则内容，切换不表示来源已核对。每个成功条目（含未变化）写compliance_rule.batch_state审计，记录状态、是否变化、版本与原因，不含规则全文。历史风险记录不改写。
+
+GET /compliance-rules增加include_inactive，默认true以兼容现有包含停用项的调用；R6页面默认显式传false，即默认隐藏停用项，开启查看停用项时传true，之后可恢复。false在服务端过滤后再分页计数。现有scope和品牌授权语义不变，无迁移、无模型调用。
