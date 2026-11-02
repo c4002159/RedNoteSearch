@@ -3,6 +3,7 @@ from typing import Literal, Self
 
 from pydantic import (
     EmailStr,
+    Field,
     HttpUrl,
     PostgresDsn,
     computed_field,
@@ -31,6 +32,7 @@ class Settings(BaseSettings):
     DASHSCOPE_API_KEY: str | None = None
     EMBEDDING_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     EMBEDDING_MODEL: str = "text-embedding-v4"
+    KB_SIMILARITY_THRESHOLD: float = Field(default=0.90, ge=0, le=1)
     SENTRY_DSN: HttpUrl | None = None
     DATABASE_URL: PostgresDsn
 
