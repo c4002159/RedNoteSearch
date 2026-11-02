@@ -16,6 +16,7 @@ import { FilterSelect } from "@/components/Common/FilterSelect"
 import { MissingPage } from "@/components/Common/ForbiddenPage"
 import { LoadingState } from "@/components/Common/LoadingState"
 import { ReasonDialog } from "@/components/Common/ReasonDialog"
+import { SearchBox } from "@/components/Common/SearchBox"
 import { Pill, SeverityBadge } from "@/components/Common/StatusBadge"
 import { RuleErrors } from "@/components/Compliance/RuleErrors"
 import { RuleForm } from "@/components/Compliance/RuleForm"
@@ -169,6 +170,7 @@ function ScopedRules({
   const [layer, setLayer] = useState<Layer | "">("")
   const [type, setType] = useState<RuleType | "">("")
   const [severity, setSeverity] = useState<Severity | "">("")
+  const [q, setQ] = useState("")
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<RulePublic | "new" | null>(null)
   const [detail, setDetail] = useState<string | null>(null)
@@ -182,9 +184,18 @@ function ScopedRules({
     ...(brandId && isAdmin ? (["brand"] as const) : []),
     ...(isPlatform ? (["global"] as const) : []),
   ]
-  const activeFilters = [layer, type, severity].filter(Boolean).length
+  const activeFilters = [q, layer, type, severity].filter(Boolean).length
   const rules = useQuery({
-    queryKey: ["compliance-rules", brandId, scope, layer, type, severity, page],
+    queryKey: [
+      "compliance-rules",
+      brandId,
+      scope,
+      layer,
+      type,
+      severity,
+      q,
+      page,
+    ],
     queryFn: async ({ signal }) =>
       (
         await ComplianceService.readRules({
@@ -194,6 +205,7 @@ function ScopedRules({
             layer: layer || undefined,
             rule_type: type || undefined,
             severity: severity || undefined,
+            q: q || undefined,
             page,
             page_size: PAGE_SIZE,
           },
@@ -363,6 +375,14 @@ function ScopedRules({
           </button>
           {filtersOpen && (
             <div className="flex flex-wrap items-center gap-3 px-6 pb-4">
+              <SearchBox
+                value={q}
+                placeholder="搜索规则内容、建议或来源"
+                onChange={(v) => {
+                  setQ(v)
+                  setPage(1)
+                }}
+              />
               <FilterSelect
                 title="规则范围"
                 value={scope}
@@ -419,6 +439,7 @@ function ScopedRules({
               <Button
                 variant="ghost"
                 onClick={() => {
+                  setQ("")
                   setLayer("")
                   setType("")
                   setSeverity("")
