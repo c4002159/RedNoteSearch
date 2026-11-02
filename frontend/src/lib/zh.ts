@@ -1046,3 +1046,21 @@ export const SCENARIO_TEXT = {
   adopted: "采用结构：",
   manage: "管理场景模板",
 } as const
+
+export const VIRAL_DELETE_TEXT = {
+  sampleHint:
+    "添加后不能编辑原文；品牌管理员可以删除样本及其分析结构。请仅粘贴已获授权的文本，最多 5000 个 Unicode 码点。",
+  single: "删除",
+  bulk: "批量删除",
+  clear: "清除选择",
+  selectColumn: "选择样本",
+  select: (excerpt: string) => `选择样本：${excerpt}`,
+  selected: (count: number) => `已选 ${count} 个，最多 50 个（可跨页选择）`,
+  actions: "操作",
+  confirmTitle: "确认删除样本",
+  confirm: (count: number) => `将删除 ${count} 个样本，无法撤销。`,
+  consequence:
+    "样本及其分析结构会一起删除；已转换的场景模板会保留，来源名称也会保留。",
+  cancel: "取消",
+  confirmAction: "确认删除",
+} as const
