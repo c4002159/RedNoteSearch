@@ -328,6 +328,8 @@ test("Unknown creative type strings retain labels and the original value when co
     ...templates[1],
     scene: "custom-scene-fixture",
     name: "自定义类型模板（演示）",
+    // A stopped newest version now counts as deleted and is hidden by default.
+    enabled: true,
   }
   await page.route("**/api/v1/brands/*/scenario-templates", (route) =>
     route.request().method() === "GET"

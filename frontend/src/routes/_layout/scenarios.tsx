@@ -16,6 +16,7 @@ import { Pill } from "@/components/Common/StatusBadge"
 import { TemplateAnalysisTabs } from "@/components/Common/TemplateAnalysisTabs"
 import { TypeBadge } from "@/components/Common/TypeBadge"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -53,6 +54,7 @@ import {
   R6_SAMPLE_TEXT as R,
   SCENE_LABEL,
   SCENARIO_TEXT as T,
+  R6_TEMPLATE_TEXT as X,
 } from "@/lib/zh"
 
 export const Route = createFileRoute("/_layout/scenarios")({
@@ -92,6 +94,8 @@ function BrandScenarios({
   const cache = useQueryClient()
   const [editing, setEditing] = useState<ScenarioPublic | "new" | null>(null)
   const [viewing, setViewing] = useState<ScenarioPublic | null>(null)
+  const [deleting, setDeleting] = useState<ScenarioPublic | null>(null)
+  const [showDeleted, setShowDeleted] = useState(false)
   const [sceneFilter, setSceneFilter] = useState("")
   const list = useQuery({
     queryKey: ["scenario-templates", brandId],
@@ -134,8 +138,20 @@ function BrandScenarios({
     ])
 
   const rows = list.data ?? []
+  const isDeleted = (row: ScenarioPublic) =>
+    !row.enabled &&
+    row.brand_id !== null &&
+    !rows.some(
+      (o) =>
+        o.brand_id === row.brand_id &&
+        o.scene === row.scene &&
+        o.name === row.name &&
+        o.template_version > row.template_version,
+    )
   const filtered = rows.filter(
-    (row) => !sceneFilter || row.scene === sceneFilter,
+    (row) =>
+      (!sceneFilter || row.scene === sceneFilter) &&
+      (showDeleted || !isDeleted(row)),
   )
   const own = rows.filter((r) => r.brand_id === brandId)
   const newest = (r: ScenarioPublic) =>
@@ -146,7 +162,7 @@ function BrandScenarios({
         o.template_version > r.template_version,
     )
   const status = (row: ScenarioPublic) =>
-    row.enabled ? T.on : newest(row) ? T.off : T.replaced
+    row.enabled ? T.on : newest(row) ? X.deleted : T.replaced
   const source = (row: ScenarioPublic) =>
     row.brand_id === null ? (
       <Pill tone="gray">{T.builtin}</Pill>
@@ -182,7 +198,19 @@ function BrandScenarios({
       </div>
       <TemplateAnalysisTabs />
       {toggle.isError && <ErrorBanner error={parseApiError(toggle.error)} />}
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-4">
+        {isAdmin && (
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="show-deleted-templates"
+              checked={showDeleted}
+              onCheckedChange={(checked) => setShowDeleted(checked === true)}
+            />
+            <label htmlFor="show-deleted-templates" className="text-sm">
+              {X.showDeleted}
+            </label>
+          </div>
+        )}
         <Button variant="ghost" onClick={() => setSceneFilter("")}>
           {D.clear}
         </Button>
@@ -273,7 +301,7 @@ function BrandScenarios({
                         <Pill tone="ok">{T.on}</Pill>
                       ) : (
                         <Pill tone="gray">
-                          {newest(r) ? T.off : T.replaced}
+                          {newest(r) ? X.deleted : T.replaced}
                         </Pill>
                       )}
                     </TableCell>
@@ -297,12 +325,18 @@ function BrandScenarios({
                               disabled={toggle.isPending}
                               onClick={(event) => {
                                 event.stopPropagation()
-                                toggle.mutate(r)
+                                if (r.enabled) setDeleting(r)
+                                else toggle.mutate(r)
                               }}
                             >
-                              {r.enabled ? T.turnOff : T.turnOn}
+                              {r.enabled ? X.delete : X.restore}
                             </Button>
                           </>
+                        )}
+                        {global && (
+                          <span className="text-xs text-muted-foreground">
+                            {X.builtinFixed}
+                          </span>
                         )}
                       </TableCell>
                     )}
@@ -323,6 +357,31 @@ function BrandScenarios({
           </TableBody>
         </Table>
       </div>
+      {deleting && (
+        <Dialog open onOpenChange={(open) => !open && setDeleting(null)}>
+          <DialogContent className="border-0">
+            <DialogHeader>
+              <DialogTitle>{X.confirmTitle(deleting.name)}</DialogTitle>
+              <DialogDescription>{X.confirmBody}</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleting(null)}>
+                {X.cancel}
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={toggle.isPending}
+                onClick={() => {
+                  toggle.mutate(deleting)
+                  setDeleting(null)
+                }}
+              >
+                {X.confirm}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
       {viewing && (
         <TemplateSheet
           key={viewing.id}
