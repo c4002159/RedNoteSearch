@@ -31,5 +31,23 @@
 - 密钥保存在本浏览器的本地存储里，没有加密。丢了或换了电脑，请在系统里作废（`DELETE /brands/{brand_id}/extension-keys/{id}`）再生成新的。
 - 同一篇笔记一小时内最多接收 12 条来自插件的读数。
 
+## 在自己电脑上试用（不需要别人的服务器和密钥）
+插件只连你填的地址，所以最省事的试法是在自己电脑上起一套后端，不需要模型密钥（用演示模式）。前端不用起。需要 Docker Desktop、Git、[uv](https://docs.astral.sh/uv/) 和 Python。
+
+1. 拉最新 `main`，在仓库根目录复制环境文件并打开演示模式：`cp .env.example .env`，再往 `.env` 末尾加一行 `LLM_MODE=demo_fake`。本机 5432 端口被别的程序占用时，把 `.env` 里 `POSTGRES_PORT` 和 `DATABASE_URL` 的端口一起改成 5433。
+2. `docker compose up -d db`
+3. `cd backend`，然后依次：`uv sync`、`uv run bash scripts/prestart.sh`（迁移和内置场景模板）、`uv run python -m app.seed --fake-embeddings`（演示品牌和商品）。
+4. 另开一个终端，在 `backend` 里：`uv run fastapi run --port 8000`。
+5. 回到仓库根目录，把要测的笔记网址交给脚本（可重复写多个 `--note-url`，网址里的查询串会被丢掉）：
+   `python scripts/plugin_test_setup.py --note-url https://www.xiaohongshu.com/explore/<24 位笔记 id>`
+   脚本会为每个网址生成并确认一篇测试文案、把网址绑定上去，再生成一个插件密钥，最后打印一整串**连接配置**。
+6. 把这串粘贴到插件“连接设置”的第一栏，点“使用配置并授权”。然后在 Chrome 里打开那篇笔记，点“读取当前页面”和“发送到系统”。
+7. 回到系统（或调 `GET /confirmed-copies/{id}/metrics`）能看到来源为 `extension` 的读数。
+
+注意：
+- 脚本里的文案是演示模式假模型写的，只用来承载网址，不要当作文案效果；这个库只用来试插件，不要用它录视频。
+- 连接配置含密钥，只在终端显示一次，不要发到聊天、PR 或 Issue。要再试一遍，重新运行脚本即可（已绑定的网址会跳过，会生成新的密钥，旧密钥可继续用或在系统里作废）。
+- 默认管理员账号来自 `.env` 的 `FIRST_SUPERUSER` 与 `FIRST_SUPERUSER_PASSWORD`，脚本自动读取。
+
 ## 测试
 `node --test extensions/results-helper/test/parse.test.js`（解析与交叉核对的单元测试；`test/fixture.html` 是页面结构副本）。后端的密钥与接口测试在 `backend/tests/api/routes/test_extension.py`。
