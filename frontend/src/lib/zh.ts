@@ -1430,3 +1430,52 @@ export function productCategoryValue(text: string): string {
     )?.[0] ?? value
   )
 }
+
+export const R6_EVAL_TEXT = {
+  edit: "编辑",
+  editTitle: (index: number) => `编辑样本 ${index}`,
+  editNotice: "保存会生成新版本，旧版本和已有运行记录保留。",
+  inputJson: "输入（JSON 对象）",
+  expectedJson: "期望（JSON 对象，可为空对象）",
+  invalidObject: "必须是合法的 JSON 对象。",
+  saveNewVersion: "保存为新版本",
+  saving: "保存中…",
+  revised: (version: number) => `已生成新版本 v${version}`,
+  delete: "删除所选样本",
+  deleteTitle: (count: number) => `删除 ${count} 个样本？`,
+  deleteNotice: "会生成不含这些样本的新版本，旧版本和已有运行记录保留。",
+  confirmDelete: "生成新版本",
+  readOnly:
+    "只读：全局评测集仅平台管理员可编辑，品牌评测集仅该品牌管理员可编辑。",
+  hashLabel: "内容哈希",
+  groupLabel: "版本组",
+  createdLabel: "创建时间",
+} as const
+
+export const R6_RULE_TEXT = {
+  delete: "删除",
+  restore: "恢复",
+  deleted: "已删除",
+  active: "启用",
+  showDeleted: "显示已删除的规则",
+  batchDelete: "批量删除",
+  batchRestore: "批量恢复",
+  reason: "原因（必填，写入审计）",
+  confirm: "确认",
+  cancel: "取消",
+  close: "关闭",
+  retryFailed: "重试失败项",
+  batchFailed: "处理失败",
+  batchNotice: (count: number, enabled: boolean) =>
+    enabled
+      ? `将恢复 ${count} 条规则，之后的新检查会再次使用它们。`
+      : `将删除 ${count} 条规则：新检查不再使用，已有提示保持不变，规则不会被物理删除，可在“显示已删除的规则”里恢复。`,
+  batchDone: (count: number) => `已处理 ${count} 条`,
+  deleteTitle: "删除规则",
+  restoreTitle: "恢复规则",
+  deleteDescription:
+    "删除即停用：新检查不再使用，已有提示保持不变，不会物理删除，可在“显示已删除的规则”里恢复。原因只写入审计。",
+  source: "来源",
+  sourceSample: "待核对",
+  sourceMissing: "待补充",
+} as const
