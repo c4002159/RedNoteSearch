@@ -1,12 +1,23 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+)
 from sqlmodel import col, select
 
 from app.api.brand_deps import BrandAccess, BrandAccessDep, BrandAdminDep
 from app.api.deps import CurrentUser, SessionDep
 from app.core.config import settings
+from app.core.errors import error_response
 from app.fakes.embedding import FakeEmbeddingProvider
 from app.infra.dashscope import DashScopeEmbeddingProvider
 from app.models import (
@@ -26,9 +37,18 @@ from app.models import (
     ReviewPublic,
     User,
 )
+from app.models.knowledge import (
+    KnowledgeNoteCreate,
+    KnowledgeReviewResult,
+    KnowledgeTextVersion,
+    SourceKind,
+)
+from app.models.knowledge_similarity import SimilarityPreview
 from app.ports.embedding import EmbeddingProvider
 from app.services import knowledge as kb
+from app.services import knowledge_notes, knowledge_review, knowledge_similarity
 from app.services.errors import NotFoundError
+from app.services.knowledge_similarity import SimilarContentRequired
 from app.services.parsing import check_size, size_limit_for
 from app.services.search import SEARCH_MAX_LENGTH
 
@@ -211,12 +231,55 @@ def submit_document(
     return _public(session, doc)
 
 
+@router.post(
+    "/brands/{brand_id}/knowledge-notes", response_model=DocumentPublic, status_code=201
+)
+def submit_note(
+    access: BrandAccessDep, session: SessionDep, body: KnowledgeNoteCreate
+) -> DocumentPublic:
+    return _public(
+        session,
+        knowledge_notes.create_note(
+            session=session, brand_id=access.brand_id, user_id=access.user_id, data=body
+        ),
+    )
+
+
+@router.post(
+    "/knowledge-documents/{document_id}/text-versions",
+    response_model=DocumentPublic,
+    status_code=201,
+)
+def create_text_version(
+    access: Annotated[tuple[KbDocument, BrandAccess], Depends(get_document_access)],
+    session: SessionDep,
+    body: KnowledgeTextVersion,
+) -> DocumentPublic:
+    return _public(
+        session,
+        knowledge_notes.text_version(
+            session=session, source=access[0], user_id=access[1].user_id, data=body
+        ),
+    )
+
+
+@router.post(
+    "/knowledge-documents/{document_id}/similarity-preview",
+    response_model=SimilarityPreview,
+)
+def preview_similar_documents(
+    doc: DocumentAdminDep, session: SessionDep, embedder: EmbedderDep
+) -> SimilarityPreview:
+    return knowledge_similarity.preview(session, doc, embedder)
+
+
 @router.get("/brands/{brand_id}/knowledge-documents", response_model=DocumentsPublic)
 def read_documents(
     access: BrandAccessDep,
     session: SessionDep,
     status: DocumentStatus | None = None,
     doc_type: DocumentType | None = None,
+    source_kind: SourceKind | None = None,
     q: Annotated[str | None, Query(max_length=SEARCH_MAX_LENGTH)] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
@@ -229,6 +292,7 @@ def read_documents(
         page=page,
         page_size=page_size,
         q=q,
+        source_kind=source_kind.value if source_kind else None,
     )
     names = _user_names(session, [d.submitted_by for d in rows])
     return DocumentsPublic(
@@ -305,24 +369,35 @@ def reindex_document(
 
 
 @router.post(
-    "/knowledge-documents/{document_id}/reviews", response_model=DocumentPublic
+    "/knowledge-documents/{document_id}/reviews", response_model=KnowledgeReviewResult
 )
 def review_document(
+    request: Request,
     doc: DocumentAdminDep,
     session: SessionDep,
     access: Annotated[tuple[KbDocument, BrandAccess], Depends(get_document_access)],
     embedder: EmbedderDep,
     body: ReviewCreate,
-) -> DocumentPublic:
-    reviewed = kb.review_document(
-        session=session,
-        embedder=embedder,
-        doc=doc,
-        action=body.action,
-        reason=body.reason,
-        reviewer_id=access[1].user_id,
+) -> KnowledgeReviewResult | Response:
+    try:
+        reviewed, report = knowledge_review.review(
+            session=session,
+            embedder=embedder,
+            doc=doc,
+            data=body,
+            user_id=access[1].user_id,
+        )
+    except SimilarContentRequired as exc:
+        return error_response(
+            request,
+            status_code=409,
+            code="KB_SIMILAR_CONTENT",
+            message="内容相近，请核对",
+            details=exc.details,
+        )
+    return KnowledgeReviewResult(
+        **_public(session, reviewed).model_dump(), similarity=report
     )
-    return _public(session, reviewed)
 
 
 @router.post(

@@ -930,6 +930,14 @@ export type DocumentDetail = {
      */
     title: string;
     /**
+     * Source Kind
+     */
+    source_kind?: string;
+    /**
+     * Source Description
+     */
+    source_description?: string | null;
+    /**
      * Doc Type
      */
     doc_type: string;
@@ -995,6 +1003,14 @@ export type DocumentPublic = {
      * Title
      */
     title: string;
+    /**
+     * Source Kind
+     */
+    source_kind?: string;
+    /**
+     * Source Description
+     */
+    source_description?: string | null;
     /**
      * Doc Type
      */
@@ -1518,6 +1534,111 @@ export type HottestPublic = {
      * Items
      */
     items: Array<HotStat>;
+};
+
+/**
+ * KnowledgeNoteCreate
+ */
+export type KnowledgeNoteCreate = {
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Source Description
+     */
+    source_description: string;
+    /**
+     * Text
+     */
+    text: string;
+    doc_type?: DocumentType;
+};
+
+/**
+ * KnowledgeReviewResult
+ */
+export type KnowledgeReviewResult = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Group Id
+     */
+    group_id: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Source Kind
+     */
+    source_kind?: string;
+    /**
+     * Source Description
+     */
+    source_description?: string | null;
+    /**
+     * Doc Type
+     */
+    doc_type: string;
+    /**
+     * Status
+     */
+    status: string;
+    /**
+     * Index Status
+     */
+    index_status: string;
+    /**
+     * Version
+     */
+    version: number;
+    /**
+     * Is Current
+     */
+    is_current: boolean;
+    /**
+     * Source Filename
+     */
+    source_filename: string | null;
+    /**
+     * Submitted By
+     */
+    submitted_by: string | null;
+    /**
+     * Submitted By Name
+     */
+    submitted_by_name?: string | null;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+    similarity?: SimilarityPreview | null;
+};
+
+/**
+ * KnowledgeTextVersion
+ */
+export type KnowledgeTextVersion = {
+    /**
+     * Title
+     */
+    title?: string | null;
+    /**
+     * Source Description
+     */
+    source_description?: string | null;
+    /**
+     * Text
+     */
+    text?: string | null;
+    doc_type?: DocumentType | null;
 };
 
 /**
@@ -2154,11 +2275,23 @@ export type ReviewCreate = {
     /**
      * Action
      */
-    action: 'approve' | 'reject';
+    action: 'approve' | 'reject' | 'cancel';
     /**
      * Reason
      */
     reason?: string | null;
+    /**
+     * Similar Decision
+     */
+    similar_decision?: 'coexist' | 'new_wins' | null;
+    /**
+     * Related Document Ids
+     */
+    related_document_ids?: Array<string>;
+    /**
+     * Similarity Token
+     */
+    similarity_token?: string | null;
 };
 
 /**
@@ -2181,6 +2314,14 @@ export type ReviewPublic = {
      * Reason
      */
     reason: string | null;
+    /**
+     * Similar Decision
+     */
+    similar_decision?: string | null;
+    /**
+     * Related Document Ids
+     */
+    related_document_ids?: Array<string>;
     /**
      * Created At
      */
@@ -2753,6 +2894,55 @@ export type SellingPointPublic = {
  * Severity
  */
 export type Severity = 'block' | 'warn';
+
+/**
+ * SimilarDocument
+ */
+export type SimilarDocument = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Similarity
+     */
+    similarity?: number | null;
+    /**
+     * Reasons
+     */
+    reasons?: Array<'title_match' | 'content_near'>;
+};
+
+/**
+ * SimilarityPreview
+ */
+export type SimilarityPreview = {
+    /**
+     * Status
+     */
+    status: 'ready' | 'unavailable';
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Items
+     */
+    items?: Array<SimilarDocument>;
+    /**
+     * Token
+     */
+    token?: string | null;
+};
+
+/**
+ * SourceKind
+ */
+export type SourceKind = 'file' | 'note';
 
 /**
  * StyleParams
@@ -6535,6 +6725,10 @@ export type knowledgeReadDocumentsData = {
          */
         doc_type?: DocumentType | null;
         /**
+         * Source Kind
+         */
+        source_kind?: SourceKind | null;
+        /**
          * Q
          */
         q?: string | null;
@@ -6657,6 +6851,96 @@ export type knowledgeSubmitDocumentResponses = {
 };
 
 export type knowledgeSubmitDocumentResponse = knowledgeSubmitDocumentResponses[keyof knowledgeSubmitDocumentResponses];
+
+export type knowledgeSubmitNoteData = {
+    body: KnowledgeNoteCreate;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/knowledge-notes';
+};
+
+export type knowledgeSubmitNoteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeSubmitNoteError = knowledgeSubmitNoteErrors[keyof knowledgeSubmitNoteErrors];
+
+export type knowledgeSubmitNoteResponses = {
+    /**
+     * Successful Response
+     */
+    201: DocumentPublic;
+};
+
+export type knowledgeSubmitNoteResponse = knowledgeSubmitNoteResponses[keyof knowledgeSubmitNoteResponses];
+
+export type knowledgeCreateTextVersionData = {
+    body: KnowledgeTextVersion;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-documents/{document_id}/text-versions';
+};
+
+export type knowledgeCreateTextVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgeCreateTextVersionError = knowledgeCreateTextVersionErrors[keyof knowledgeCreateTextVersionErrors];
+
+export type knowledgeCreateTextVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: DocumentPublic;
+};
+
+export type knowledgeCreateTextVersionResponse = knowledgeCreateTextVersionResponses[keyof knowledgeCreateTextVersionResponses];
+
+export type knowledgePreviewSimilarDocumentsData = {
+    body?: never;
+    path: {
+        /**
+         * Document Id
+         */
+        document_id: string;
+    };
+    query?: never;
+    url: '/api/v1/knowledge-documents/{document_id}/similarity-preview';
+};
+
+export type knowledgePreviewSimilarDocumentsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type knowledgePreviewSimilarDocumentsError = knowledgePreviewSimilarDocumentsErrors[keyof knowledgePreviewSimilarDocumentsErrors];
+
+export type knowledgePreviewSimilarDocumentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: SimilarityPreview;
+};
+
+export type knowledgePreviewSimilarDocumentsResponse = knowledgePreviewSimilarDocumentsResponses[keyof knowledgePreviewSimilarDocumentsResponses];
 
 export type knowledgeReadDocumentData = {
     body?: never;
@@ -6782,7 +7066,7 @@ export type knowledgeReviewDocumentResponses = {
     /**
      * Successful Response
      */
-    200: DocumentPublic;
+    200: KnowledgeReviewResult;
 };
 
 export type knowledgeReviewDocumentResponse = knowledgeReviewDocumentResponses[keyof knowledgeReviewDocumentResponses];
