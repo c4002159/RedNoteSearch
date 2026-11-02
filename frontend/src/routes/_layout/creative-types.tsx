@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { Pill } from "@/components/Common/StatusBadge"
+import { TypeBadge } from "@/components/Common/TypeBadge"
 import {
   type TypeAction,
   TypeDialog,
@@ -199,7 +200,9 @@ function TypeList({
               ) : (
                 rows.map((row) => (
                   <TableRow key={row.key}>
-                    <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <TypeBadge typeKey={row.key}>{row.name}</TypeBadge>
+                    </TableCell>
                     <TableCell>
                       {row.builtin ? (
                         row.name

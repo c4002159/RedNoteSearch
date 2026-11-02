@@ -72,6 +72,15 @@ test("Creative types admin creates, renames and handles referenced deletion", as
 }) => {
   const state = await setup(page)
   await page.goto("/creative-types")
+  await expect(page.locator("[data-type-key]")).toHaveCount(7)
+  const colors = await page
+    .locator("[data-type-key]")
+    .evaluateAll((elements) =>
+      elements.map((e) => getComputedStyle(e).backgroundColor),
+    )
+  expect(new Set(colors.slice(0, 6)).size).toBe(6)
+  expect(colors[6]).not.toBe("rgba(0, 0, 0, 0)")
+
   await page.getByRole("button", { name: "新建类型", exact: true }).click()
   const dialog = page.getByRole("dialog")
   const input = dialog.getByLabel("类型名称", { exact: true })
@@ -92,6 +101,10 @@ test("Creative types admin creates, renames and handles referenced deletion", as
   await dialog.getByRole("button", { name: "保存", exact: true }).click()
   await expect(dialog).not.toBeVisible()
   expect(state.writes[1].path).toContain(own.key)
+  await expect(page.locator(`[data-type-key="${own.key}"]`)).toHaveCSS(
+    "background-color",
+    colors[6],
+  )
   state.conflict = true
   await page
     .getByRole("button", { name: "管理类型：调香对谈", exact: true })

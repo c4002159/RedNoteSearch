@@ -22,7 +22,7 @@ for (const width of [1433, 1024, 720]) {
       [`/evaluation/runs/${ids.run}`, "评测运行详情"],
       ["/viral-samples", "爆款结构分析"],
       [`/viral-samples/${ids.sample}`, "样本详情"],
-      [`/viral-patterns/${ids.pattern}`, "结构详情"],
+      [`/viral-patterns/${ids.pattern}`, "样本详情"],
     ]) {
       await page.goto(url)
       await expect(

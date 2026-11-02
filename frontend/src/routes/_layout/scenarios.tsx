@@ -1,7 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { useState } from "react"
-import { type ScenarioPublic, ScenariosService } from "@/client"
+import { type ReactNode, useState } from "react"
+import { toast } from "sonner"
+import {
+  CreativeTypesService,
+  type ScenarioPublic,
+  ScenariosService,
+} from "@/client"
 import { CharCounter } from "@/components/Common/CharCounter"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
@@ -9,6 +14,7 @@ import { HeaderFilter } from "@/components/Common/FilterSelect"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { Pill } from "@/components/Common/StatusBadge"
 import { TemplateAnalysisTabs } from "@/components/Common/TemplateAnalysisTabs"
+import { TypeBadge } from "@/components/Common/TypeBadge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -44,6 +50,7 @@ import { codePointCount } from "@/lib/count"
 import {
   SCENARIO_DETAIL_TEXT as D,
   label,
+  R6_SAMPLE_TEXT as R,
   SCENE_LABEL,
   SCENARIO_TEXT as T,
 } from "@/lib/zh"
@@ -96,6 +103,20 @@ function BrandScenarios({
       ).data.items,
     enabled: !!brandId,
   })
+  const types = useQuery({
+    queryKey: ["creative-types", brandId],
+    queryFn: async ({ signal }) =>
+      (
+        await CreativeTypesService.typesReadCreativeTypes({
+          path: { brand_id: brandId },
+          signal,
+        })
+      ).data.items,
+  })
+  const typeName = (key: string) =>
+    types.data?.find((type) => type.key === key)?.name ??
+    (SCENE_LABEL as Record<string, string>)[key] ??
+    key
   const toggle = useMutation({
     mutationFn: async (row: ScenarioPublic) =>
       (
@@ -183,7 +204,7 @@ function BrandScenarios({
                     ]),
                   ].map((value) => ({
                     value,
-                    label: label(SCENE_LABEL, value),
+                    label: typeName(value),
                   }))}
                 />
               </TableHead>
@@ -239,7 +260,9 @@ function BrandScenarios({
                       </button>
                     </TableCell>
                     <TableCell className="min-w-28">
-                      {label(SCENE_LABEL, r.scene)}
+                      <TypeBadge typeKey={r.scene}>
+                        {typeName(r.scene)}
+                      </TypeBadge>
                     </TableCell>
                     <TableCell>v{r.template_version}</TableCell>
                     <TableCell className="max-w-72 whitespace-normal break-words">
@@ -266,7 +289,7 @@ function BrandScenarios({
                                 setEditing(r)
                               }}
                             >
-                              {T.newVersion}
+                              {R.ownSave}
                             </Button>
                             <Button
                               size="sm"
@@ -301,77 +324,39 @@ function BrandScenarios({
         </Table>
       </div>
       {viewing && (
-        <Sheet open onOpenChange={(open) => !open && setViewing(null)}>
-          <SheetContent className="w-full gap-6 overflow-y-auto border-0 p-6 sm:max-w-2xl">
-            <SheetHeader className="p-0 pr-6">
-              <SheetTitle>
-                {D.detail} · {viewing.name}
-              </SheetTitle>
-              <SheetDescription>
-                {viewing.brand_id === null ? T.builtin : T.title} · v
-                {viewing.template_version}
-              </SheetDescription>
-            </SheetHeader>
-            <dl className="grid grid-cols-2 gap-5 rounded-xl bg-surface-low p-5 text-sm">
-              <div>
-                <dt className="text-xs text-muted-foreground">{T.scene}</dt>
-                <dd className="mt-1">{label(SCENE_LABEL, viewing.scene)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">{T.version}</dt>
-                <dd className="mt-1">v{viewing.template_version}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">{T.source}</dt>
-                <dd className="mt-1 break-words">{source(viewing)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">{T.status}</dt>
-                <dd className="mt-1">
-                  <Pill tone={viewing.enabled ? "ok" : "gray"}>
-                    {status(viewing)}
-                  </Pill>
-                </dd>
-              </div>
-            </dl>
-            <section className="space-y-3">
-              <h2 className="text-sm font-semibold">{T.structure}</h2>
-              <p className="rounded-xl bg-surface-low p-5 text-sm leading-7 whitespace-pre-wrap [overflow-wrap:anywhere]">
-                {viewing.structure}
-              </p>
-            </section>
-            <p className="text-xs leading-6 text-muted-foreground">
-              {isAdmin
-                ? viewing.brand_id === null
-                  ? D.builtinCopy
-                  : D.newVersionHint
-                : D.readonly}
-            </p>
-            <SheetFooter className="p-0 sm:flex-row sm:justify-end">
-              <Button variant="outline" onClick={() => setViewing(null)}>
-                {D.close}
-              </Button>
-              {isAdmin && (
-                <Button
-                  onClick={() => {
-                    setEditing(viewing)
-                    setViewing(null)
-                  }}
-                >
-                  {T.newVersion}
-                </Button>
-              )}
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
+        <TemplateSheet
+          key={viewing.id}
+          row={viewing}
+          brandId={brandId}
+          isAdmin={isAdmin}
+          typeName={typeName(viewing.scene)}
+          source={source(viewing)}
+          status={status(viewing)}
+          onClose={() => setViewing(null)}
+          onSaved={(saved) => {
+            setViewing(saved)
+            toast.success(
+              saved.name !== viewing.name
+                ? R.savedAsNew(saved.name)
+                : R.savedVersion(saved.template_version),
+            )
+            void refresh()
+          }}
+        />
       )}
       {editing && isAdmin && (
         <TemplateDialog
           brandId={brandId}
           from={editing === "new" ? null : editing}
           onClose={() => setEditing(null)}
-          onSaved={() => {
+          onSaved={(saved) => {
             setEditing(null)
+            setViewing(saved)
+            toast.success(
+              editing !== "new" && saved.name !== editing.name
+                ? R.savedAsNew(saved.name)
+                : R.savedVersion(saved.template_version),
+            )
             void refresh()
           }}
         />
@@ -389,7 +374,7 @@ function TemplateDialog({
   brandId: string
   from: ScenarioPublic | null
   onClose: () => void
-  onSaved: () => void
+  onSaved: (saved: ScenarioPublic) => void
 }) {
   const [scene, setScene] = useState(from?.scene ?? "seeding")
   const [name, setName] = useState(from?.name ?? "")
@@ -399,7 +384,7 @@ function TemplateDialog({
       (
         await ScenariosService.createBrandTemplate({
           path: { brand_id: brandId },
-          body: { scene, name, structure },
+          body: { scene, name: name.trim(), structure: structure.trim() },
         })
       ).data,
     onSuccess: onSaved,
@@ -409,6 +394,7 @@ function TemplateDialog({
     !!structure.trim() &&
     codePointCount(name.trim()) <= 100 &&
     codePointCount(structure.trim()) <= MAX_STRUCTURE
+  const renamed = !!from && name.trim() !== from.name
   return (
     <Dialog open onOpenChange={(o) => !o && !save.isPending && onClose()}>
       <DialogContent
@@ -416,7 +402,9 @@ function TemplateDialog({
         showCloseButton={!save.isPending}
       >
         <DialogHeader>
-          <DialogTitle>{from ? T.newVersion : T.add}</DialogTitle>
+          <DialogTitle>
+            {from ? (renamed ? R.saveAsNew : R.ownSave) : T.add}
+          </DialogTitle>
           <DialogDescription>
             {from
               ? `${from.name} v${from.template_version} · ${from.brand_id === null ? D.builtinCopy : D.newVersionHint}`
@@ -460,7 +448,6 @@ function TemplateDialog({
                 id="tpl-name"
                 value={name}
                 maxLength={100}
-                readOnly={!!from}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
@@ -496,11 +483,172 @@ function TemplateDialog({
               loading={save.isPending}
               disabled={!valid}
             >
-              {T.save}
+              {from ? (renamed ? R.saveAsNew : R.ownSave) : T.save}
             </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function TemplateSheet({
+  row,
+  brandId,
+  isAdmin,
+  source,
+  typeName,
+  status,
+  onClose,
+  onSaved,
+}: {
+  row: ScenarioPublic
+  brandId: string
+  isAdmin: boolean
+  typeName: string
+  source: ReactNode
+  status: string
+  onClose: () => void
+  onSaved: (saved: ScenarioPublic) => void
+}) {
+  const [name, setName] = useState(row.name)
+  const [structure, setStructure] = useState(row.structure)
+  const save = useMutation({
+    mutationFn: async () =>
+      (
+        await ScenariosService.createBrandTemplate({
+          path: { brand_id: brandId },
+          body: {
+            scene: row.scene,
+            name: name.trim(),
+            structure: structure.trim(),
+          },
+        })
+      ).data,
+    onSuccess: onSaved,
+  })
+  const valid =
+    !!name.trim() &&
+    !!structure.trim() &&
+    codePointCount(name.trim()) <= 100 &&
+    codePointCount(structure.trim()) <= MAX_STRUCTURE
+  const renamed = name.trim() !== row.name
+  return (
+    <Sheet open onOpenChange={(open) => !open && !save.isPending && onClose()}>
+      <SheetContent
+        className="w-full gap-6 overflow-y-auto border-0 p-6 sm:max-w-2xl"
+        onEscapeKeyDown={(e) => save.isPending && e.preventDefault()}
+        onInteractOutside={(e) => save.isPending && e.preventDefault()}
+      >
+        <SheetHeader className="p-0 pr-6">
+          <SheetTitle>
+            {D.detail} · {row.name}
+          </SheetTitle>
+          <SheetDescription>
+            {row.brand_id === null ? T.builtin : T.title} · v
+            {row.template_version}
+          </SheetDescription>
+        </SheetHeader>
+        <dl className="grid grid-cols-2 gap-5 rounded-xl bg-surface-low p-5 text-sm">
+          <div>
+            <dt className="text-xs text-muted-foreground">{T.scene}</dt>
+            <dd className="mt-1">
+              <TypeBadge typeKey={row.scene}>{typeName}</TypeBadge>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">{T.version}</dt>
+            <dd className="mt-1">v{row.template_version}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">{T.source}</dt>
+            <dd className="mt-1 break-words">{source}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">{T.status}</dt>
+            <dd className="mt-1">
+              <Pill tone={row.enabled ? "ok" : "gray"}>{status}</Pill>
+            </dd>
+          </div>
+        </dl>
+        <form
+          className="space-y-5"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (isAdmin && valid) save.mutate()
+          }}
+        >
+          <fieldset className="space-y-4" disabled={save.isPending}>
+            <div className="space-y-2">
+              <label
+                htmlFor="drawer-template-name"
+                className="text-sm font-semibold"
+              >
+                {T.name}
+              </label>
+              <Input
+                id="drawer-template-name"
+                value={name}
+                readOnly={!isAdmin}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <CharCounter value={codePointCount(name)} limit={100} />
+            </div>
+            <div className="space-y-2">
+              <label
+                htmlFor="drawer-template-structure"
+                className="text-sm font-semibold"
+              >
+                {T.structure}
+              </label>
+              <Textarea
+                id="drawer-template-structure"
+                rows={10}
+                value={structure}
+                readOnly={!isAdmin}
+                onChange={(e) => setStructure(e.target.value)}
+              />
+              <CharCounter
+                value={codePointCount(structure)}
+                limit={MAX_STRUCTURE}
+              />
+            </div>
+          </fieldset>
+          <p className="text-xs leading-6 text-muted-foreground">
+            {isAdmin
+              ? renamed
+                ? R.renameHint
+                : row.brand_id === null
+                  ? D.builtinCopy
+                  : D.newVersionHint
+              : D.readonly}
+          </p>
+          {save.isError && <ErrorBanner error={parseApiError(save.error)} />}
+          <SheetFooter className="p-0 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={save.isPending}
+              onClick={onClose}
+            >
+              {D.close}
+            </Button>
+            {isAdmin && (
+              <LoadingButton
+                type="submit"
+                loading={save.isPending}
+                disabled={!valid}
+              >
+                {renamed
+                  ? R.saveAsNew
+                  : row.brand_id === null
+                    ? R.builtinSave
+                    : R.ownSave}
+              </LoadingButton>
+            )}
+          </SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
   )
 }
