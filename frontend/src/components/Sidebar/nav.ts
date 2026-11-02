@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react"
+import { CREATIVE_TYPES_TEXT } from "@/lib/zh"
 
 export type NavItem = {
   title: string
@@ -62,6 +63,12 @@ export const NAV_GROUPS: NavGroup[] = [
         title: "爆款结构分析",
         path: "/viral-samples",
         icon: TrendingUp,
+        access: "member",
+      },
+      {
+        title: CREATIVE_TYPES_TEXT.title,
+        path: "/creative-types",
+        icon: LayoutTemplate,
         access: "member",
       },
       {
