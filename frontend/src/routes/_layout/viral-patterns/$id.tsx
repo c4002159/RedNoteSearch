@@ -114,7 +114,11 @@ function ConvertDialog({
               </label>
               <Input
                 id="template-name"
-                {...form.register("name")}
+                {...form.register("name", {
+                  onChange: () => {
+                    if (conflict) mutation.reset()
+                  },
+                })}
                 aria-invalid={!!form.formState.errors.name}
               />
               <p className="text-xs text-destructive">

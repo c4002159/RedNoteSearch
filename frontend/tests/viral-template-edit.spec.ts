@@ -115,6 +115,62 @@ test("Structure uses codepoints and rejects blank or over 2000", async ({
   expect(writes[0].body.structure).toBe("🌿".repeat(2000))
 })
 
+test("Direct rename clears a conflict without the rename button and retains edited structure", async ({
+  page,
+}) => {
+  await mockAnalysis(page)
+  const bodies: Record<string, unknown>[] = []
+  await page.route("**/to-template", async (route) => {
+    const body = route.request().postDataJSON()
+    bodies.push(body)
+    if (bodies.length === 1)
+      return route.fulfill({
+        status: 409,
+        json: {
+          error: {
+            code: "CONFLICT",
+            message: "Name conflict",
+            request_id: "direct-rename-conflict",
+          },
+        },
+      })
+    return route.fulfill({
+      json: {
+        id: "new-template-fixture",
+        name: body.name,
+        template_version: 1,
+        scene: body.scene,
+        structure: body.structure,
+      },
+    })
+  })
+  const dialog = await openConvert(page)
+  const submit = dialog.getByRole("button", {
+    name: "转为场景模板",
+    exact: true,
+  })
+  await dialog.getByLabel("模板结构", { exact: true }).fill("保留这段编辑结构")
+  await submit.click()
+  await expect(dialog).toContainText("direct-rename-conflict")
+  await expect(submit).toBeDisabled()
+  await dialog
+    .getByLabel("场景模板名称", { exact: true })
+    .fill("直接修改名称（演示）")
+  await expect(submit).toBeEnabled()
+  await expect(dialog).not.toContainText("direct-rename-conflict")
+  await expect(dialog.getByLabel("模板结构", { exact: true })).toHaveValue(
+    "保留这段编辑结构",
+  )
+  expect(bodies).toHaveLength(1)
+  await submit.click()
+  await expect(dialog).not.toBeVisible()
+  expect(bodies[1]).toMatchObject({
+    name: "直接修改名称（演示）",
+    structure: "保留这段编辑结构",
+    on_name_conflict: "reject",
+  })
+})
+
 test("Editor has no conversion control", async ({ page }) => {
   const writes = await mockAnalysis(page, true)
   await page.goto(`/viral-patterns/${ids.pattern}`)
