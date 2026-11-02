@@ -80,6 +80,10 @@
 | F13 | P1：爆款结构分析（用户贴样本）。分析结构，不复刻原文；样本不入公共知识库；不爬取平台 | B | 分析页 | 分析服务；viral_sample、viral_pattern | TC-034 |
 | F14 | P1：品牌隔离与串味测试。先做跨品牌检索拒绝与固定串味集；RLS 视时间 | A | 串味测试结果展示 | 检索过滤；可选 RLS | TC-033 |
 | F15 | P1：多模型成本对比。同输入 2–3 个模型，并列约束通过率、人工评分、延迟、费用；失败模型单独显示 | B | 对比页 | 模型适配器复用 | TC-035 |
+| F16 | 推广对象：任务可以推单品、多个商品（主推加最多 4 个搭配商品）或一场活动（名称、说明、福利）；多品和活动的卖点与限制宣称取并集；活动里没写的时间、规则、步骤不得编造（提示词 gen-v6） | A | 工作台里的推广对象选择（设计稿待 B） | `POST /tasks` 的 promo_type、extra_product_ids、activity；task 表三列 | TC-201–204 |
+| F17 | 自定义创作类型：品牌 admin 在内置 6 类之外加自己的笔记类型（键 c+8 位十六进制），可用于品牌模板；仍被模板或已确认文案使用的类型不能删 | A | 创作类型管理（设计稿待 B） | creative-types 接口；creative_type 表 | TC-212–217 |
+| F18 | 成绩记录：确认文案时自动留一份“已确认文案”；填发布时间、帖子网址、点赞收藏评论读数（只增不改，来源 manual / extension / screenshot）；发布满 3 天无读数提示待补；“最热”至少 3 篇有读数才排序，否则写“数据不足”。网址只存不抓取 | A | 成绩记录页（设计稿待 B） | confirmed-copies、metrics、summary 接口；confirmed_copy、post_metric 表 | TC-205–211 |
+| F19 | 浏览器插件：用户在自己的 Chrome 里打开笔记页，插件读出页面已显示的三个数字，用户点“发送”后记到对应的已确认文案；只写不读的密钥，库里只存哈希；不抓取、不后台运行 | A | 插件密钥管理页（设计稿待 B）；插件本身在 `extensions/results-helper` | extension-keys 与 `POST /extension/metrics`；extension_key 表 | TC-218–224 |
 
 *表 2-1 功能需求与归属*
 
@@ -295,6 +299,7 @@ RedNoteSearch/
 | A | tenant、app_user、brand、brand_member、product、brand_voice_profile、kb_document、kb_review、kb_chunk（vector）、task_input、audit_log |
 | B | scenario_template、style_preset、task、generation_version、constraint_check、claim_evidence、compliance_rule、compliance_check、eval_dataset、eval_case、eval_run、eval_result、llm_model_config、llm_call_log |
 | P1 | viral_sample、viral_pattern（原标 B，现由 A 与 AI 助手负责，ADR-012；迁移 `a3d7e9f1b5c2`）；F12 任务资料沿用 task_input 与 task_input_chunk，无新表 |
+| 2026-11-02 起（A） | provider_credential（模型密钥，加密保存，ADR-013）；confirmed_copy、post_metric（成绩记录，迁移 `e8a2c6d0f4b3`）；creative_type（自定义创作类型，`f9b3d7e1a5c4`）；extension_key（插件密钥，只存 SHA-256，`a1c5e9b3d7f2`）；task 表新增 promo_type、extra_product_ids、activity（`d7f1b5c9e3a2`）。当前唯一 head：`a1c5e9b3d7f2` |
 
 *表 5-1 表归属*
 
@@ -336,6 +341,9 @@ RedNoteSearch/
 | 合规规则 | GET /compliance-rules；GET /compliance-rules/{id}（增改属 P2） | B | 登录 |
 | 评测 | GET、POST /evaluation/datasets；GET cases；GET rubrics；POST、GET runs；POST ratings；GET agreement | B | 品牌 admin |
 | 模型 | GET /models（价格为配置数据） | B | 登录 |
+| 创作类型 | GET、POST /brands/{id}/creative-types；PATCH、DELETE /brands/{id}/creative-types/{key}（被引用时不能删） | A | 成员读 / admin 写 |
+| 成绩记录 | GET /brands/{id}/confirmed-copies（可筛待补）；GET、PATCH /confirmed-copies/{id}（发布时间、帖子网址）；POST、GET /confirmed-copies/{id}/metrics；GET /brands/{id}/results/summary（最常用、最热） | A | 品牌成员 |
+| 浏览器插件 | POST、GET、DELETE /brands/{id}/extension-keys（密钥只在创建时返回一次）；POST /extension/metrics（请求头 X-Extension-Key，不带用户令牌） | A | 品牌 admin / 插件密钥 |
 | 审计（P2） | GET /audit-logs | A | 品牌 admin |
 
 *表 6-1 端点摘要*
@@ -496,7 +504,7 @@ RedNoteSearch/
 
 *表 10-1 测试分层*
 
-## 10.2 用例清单（docs/TEST_CASES.csv，当前共 230 条：P0 135、P1 95；以 CSV 为准）
+## 10.2 用例清单（docs/TEST_CASES.csv，当前共 269 条：P0 135、P1 134；以 CSV 为准）
 
 > 下表是 Phase 0 整理的前 69 条，之后新增的用例（TC-070 起，含 F12、F13、F14、批量导入、按邮箱添加成员 TC-186）只在 CSV 里，不在此表重复。
 

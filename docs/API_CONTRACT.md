@@ -244,6 +244,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 插件由我们自己写，装在用户自己的 Chrome 里，只读用户已经打开的笔记页上显示的数字，**不抓取、不后台运行、不访问小红书的接口**，用户点“发送”才发。使用说明见 `docs/EXTENSION.md`。
 
 - `POST /brands/{brand_id}/extension-keys` `{"label"(1-60)}`：品牌 admin；201；响应除 `id, label, prefix, created_at, last_used_at, revoked_at` 外有 `key`（以 `rnk_` 开头）——**只在这一次返回，之后无法再读**，库里只存哈希。每个品牌最多 10 个有效密钥（422）。
+- **连接配置串**（给前端的密钥页用，后端不返回、不保存）：`"rnk1." + base64url(JSON.stringify({"s": <接口所在的地址，例如 https://app.example.com>, "k": <刚生成的密钥>}))`。插件的“连接设置”粘贴它即可一步填好地址和密钥。它含密钥，和密钥一样只在生成那一刻显示，页面关闭后无法再取。
 - `GET /brands/{brand_id}/extension-keys`：品牌 admin；列出（无 `key`）。`DELETE /brands/{brand_id}/extension-keys/{key_id}`：品牌 admin；204；作废（重复作废无害）。
 - `POST /extension/metrics`（请求头 `X-Extension-Key`，**不带用户令牌**）：`{"note_url","likes","collects","comments","approximate"(默认 false),"captured_at"(可选,须带时区)}`，201 `{"recorded":true,"approximate":bool}`。服务端只取 `note_url` 的路径里的 24 位笔记 id（`/explore/<id>`、`/discovery/item/<id>`、`/search_result/<id>`、`/user/profile/<用户>/<id>`），丢弃查询串和片段（可能含令牌），并且不存网址；用它在**该密钥所属品牌**里找已保存同一笔记 id 的“已确认文案”，加一条来源为 `extension` 的读数。
 - 失败：密钥缺失、错误或已作废一律 401（不区分原因）；网址不是笔记页 422；该品牌没有保存这个笔记 id 的文案 404（提示先在系统里填帖子网址）；同一篇笔记一小时内来自插件的读数超过 12 条 429。该密钥不能读取任何东西，用户令牌也不能调用此接口。

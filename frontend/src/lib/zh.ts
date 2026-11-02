@@ -1063,3 +1063,11 @@ export const SCENARIO_DETAIL_TEXT = {
   readonly: "当前角色只读，可查看完整结构与来源。",
   close: "关闭",
 } as const
+
+// 场景模板与爆款分析的共用导航。
+export const TEMPLATE_ANALYSIS_TABS = {
+  group: "品牌与商品",
+  label: "模板与爆款分析",
+  templates: "场景模板",
+  viral: "爆款分析",
+} as const

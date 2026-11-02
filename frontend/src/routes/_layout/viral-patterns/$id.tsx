@@ -7,6 +7,7 @@ import { z } from "zod"
 import { type ScenarioPublic, ViralService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
+import { TemplateAnalysisTabs } from "@/components/Common/TemplateAnalysisTabs"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -215,6 +216,7 @@ function PatternPage() {
   const row = pattern.data
   return (
     <div className="min-w-0 space-y-5 [&_[data-slot=table-container]]:border-0">
+      <TemplateAnalysisTabs />
       <ViralBreadcrumb current={T.patternDetail} sampleId={row.sample_id} />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>

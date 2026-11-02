@@ -8,6 +8,7 @@ import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { HeaderFilter } from "@/components/Common/FilterSelect"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { Pill } from "@/components/Common/StatusBadge"
+import { TemplateAnalysisTabs } from "@/components/Common/TemplateAnalysisTabs"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -158,6 +159,7 @@ function BrandScenarios({
           </div>
         )}
       </div>
+      <TemplateAnalysisTabs />
       {toggle.isError && <ErrorBanner error={parseApiError(toggle.error)} />}
       <div className="flex justify-end">
         <Button variant="ghost" onClick={() => setSceneFilter("")}>
