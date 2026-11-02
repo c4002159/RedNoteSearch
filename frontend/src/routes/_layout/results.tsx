@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/Common/EmptyState"
 import { Pill } from "@/components/Common/StatusBadge"
 import { Pager } from "@/components/Knowledge/Feedback"
 import { ResultsError, reading } from "@/components/Results/Feedback"
+import { RecordDialog } from "@/components/Results/RecordDialog"
 import { SummaryCards } from "@/components/Results/SummaryCards"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,6 +53,10 @@ function BrandResults({ brandId }: { brandId: string }) {
   const [pending, setPending] = useState(false)
   const [search, setSearch] = useState("")
   const [q, setQ] = useState("")
+  const [record, setRecord] = useState<{
+    copy: ConfirmedCopyPublic
+    mode: "publish" | "metric"
+  } | null>(null)
   const summary = useQuery({
     queryKey: ["results-summary", brandId],
     queryFn: async ({ signal }) =>
@@ -248,7 +253,36 @@ function BrandResults({ brandId }: { brandId: string }) {
                       )}
                     </TableCell>
                     <TableCell>
-                      {/* Row actions are added with the recording dialogs. */}
+                      <div className="flex flex-col items-start gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-link"
+                          onClick={() =>
+                            setRecord({
+                              copy,
+                              mode:
+                                !copy.post_url || !copy.published_at
+                                  ? "publish"
+                                  : "metric",
+                            })
+                          }
+                        >
+                          {!copy.post_url || !copy.published_at
+                            ? T.publish
+                            : T.metric}
+                        </Button>
+                        {copy.post_url && copy.published_at && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-link"
+                            onClick={() => setRecord({ copy, mode: "publish" })}
+                          >
+                            {T.editPublish}
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -258,6 +292,14 @@ function BrandResults({ brandId }: { brandId: string }) {
         </div>
       </section>
       <Pager page={page} total={list.data?.total ?? 0} onPage={setPage} />
+      {record && (
+        <RecordDialog
+          copy={record.copy}
+          mode={record.mode}
+          brandId={brandId}
+          onClose={() => setRecord(null)}
+        />
+      )}
     </div>
   )
 }
