@@ -5,7 +5,9 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { type ScenarioPublic, ViralService } from "@/client"
+import { CharCounter } from "@/components/Common/CharCounter"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { TemplateAnalysisTabs } from "@/components/Common/TemplateAnalysisTabs"
 import { Button } from "@/components/ui/button"
@@ -20,12 +22,15 @@ import {
 import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea"
 import { ViralBreadcrumb, ViralError } from "@/components/Viral/Feedback"
 import { useBrand } from "@/hooks/useBrand"
 import { parseApiError } from "@/lib/apiError"
 import { codePointCount } from "@/lib/count"
 import { formatTime } from "@/lib/format"
 import {
+  VIRAL_TEMPLATE_EDIT_TEXT as E,
+  PAGE_ERROR_TEXT,
   SCENARIO_TEXT,
   SCENE_LABEL,
   VIRAL_TEXT as T,
@@ -46,6 +51,11 @@ const schema = z.object({
     "promotion",
     "story",
   ]),
+  structure: z
+    .string()
+    .trim()
+    .min(1, E.required)
+    .refine((v) => codePointCount(v) <= 2000, E.tooLong),
 })
 type Values = z.infer<typeof schema>
 export const Route = createFileRoute("/_layout/viral-patterns/$id")({
@@ -54,23 +64,34 @@ export const Route = createFileRoute("/_layout/viral-patterns/$id")({
 })
 function ConvertDialog({
   id,
+  structure,
   onClose,
   onSaved,
 }: {
   id: string
+  structure: string
   onClose: () => void
   onSaved: (r: ScenarioPublic) => void
 }) {
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { name: T.defaultName, scene: "seeding" },
+    defaultValues: { name: T.defaultName, scene: "seeding", structure },
   })
   const mutation = useMutation({
-    mutationFn: async (body: Values) =>
+    mutationFn: async (
+      body: Values & { on_name_conflict: "reject" | "new_version" },
+    ) =>
       (await ViralService.convertPattern({ path: { pattern_id: id }, body }))
         .data,
     onSuccess: onSaved,
   })
+  const error = mutation.isError ? parseApiError(mutation.error) : null
+  const conflict = error?.status === 409
+  const structureLength = codePointCount(form.watch("structure"))
+  const submit = (on_name_conflict: "reject" | "new_version") =>
+    form.handleSubmit((values) =>
+      mutation.mutate({ ...values, on_name_conflict }),
+    )
   return (
     <Dialog open onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
       <DialogContent
@@ -85,10 +106,7 @@ function ConvertDialog({
             {T.convertHint} {V.convertVersion}
           </DialogDescription>
         </DialogHeader>
-        <form
-          className="space-y-5"
-          onSubmit={form.handleSubmit((v) => mutation.mutate(v))}
-        >
+        <form className="space-y-5" onSubmit={submit("reject")}>
           <fieldset className="space-y-5" disabled={mutation.isPending}>
             <legend className="sr-only">{T.convert}</legend>
             <div className="space-y-1">
@@ -97,7 +115,11 @@ function ConvertDialog({
               </label>
               <Input
                 id="template-name"
-                {...form.register("name")}
+                {...form.register("name", {
+                  onChange: () => {
+                    if (conflict) mutation.reset()
+                  },
+                })}
                 aria-invalid={!!form.formState.errors.name}
               />
               <p className="text-xs text-destructive">
@@ -123,8 +145,62 @@ function ConvertDialog({
                 ))}
               </div>
             </fieldset>
+            <div className="space-y-2">
+              <label
+                htmlFor="template-structure"
+                className="text-sm font-medium"
+              >
+                {E.structure}
+              </label>
+              <Textarea
+                id="template-structure"
+                rows={8}
+                {...form.register("structure")}
+                aria-invalid={!!form.formState.errors.structure}
+              />
+              <div className="flex justify-between gap-3">
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.structure?.message}
+                </p>
+                <CharCounter value={structureLength} limit={2000} />
+              </div>
+              <p className="text-xs text-muted-foreground">{E.hint}</p>
+            </div>
           </fieldset>
-          {mutation.isError && <ViralError error={mutation.error} />}
+          {error && (
+            <ErrorBanner
+              error={{
+                ...error,
+                message: conflict
+                  ? E.conflict
+                  : /[\u3400-\u9fff]/.test(error.message)
+                    ? error.message
+                    : (PAGE_ERROR_TEXT.status[error.status ?? 0] ??
+                      PAGE_ERROR_TEXT.failed),
+              }}
+            />
+          )}
+          {conflict && (
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  mutation.reset()
+                  form.setFocus("name", { shouldSelect: true })
+                }}
+              >
+                {E.rename}
+              </Button>
+              <Button
+                type="button"
+                disabled={structureLength > 2000}
+                onClick={submit("new_version")}
+              >
+                {E.newVersion}
+              </Button>
+            </div>
+          )}
           <DialogFooter>
             <Button
               type="button"
@@ -134,7 +210,11 @@ function ConvertDialog({
             >
               {T.cancel}
             </Button>
-            <LoadingButton type="submit" loading={mutation.isPending}>
+            <LoadingButton
+              type="submit"
+              loading={mutation.isPending}
+              disabled={conflict || structureLength > 2000}
+            >
               {T.convert}
             </LoadingButton>
           </DialogFooter>
@@ -339,6 +419,7 @@ function PatternPage() {
       {converting && brand.isAdmin && (
         <ConvertDialog
           id={id}
+          structure={row.abstract_template}
           onClose={() => setConverting(false)}
           onSaved={(r) => {
             setResult(r)

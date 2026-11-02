@@ -2,8 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
 import { type ScenarioPublic, ScenariosService } from "@/client"
+import { CharCounter } from "@/components/Common/CharCounter"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
+import { HeaderFilter } from "@/components/Common/FilterSelect"
+import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { Pill } from "@/components/Common/StatusBadge"
 import { TemplateAnalysisTabs } from "@/components/Common/TemplateAnalysisTabs"
 import { Button } from "@/components/ui/button"
@@ -17,6 +20,14 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -29,7 +40,13 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { useBrand } from "@/hooks/useBrand"
 import { parseApiError } from "@/lib/apiError"
-import { SCENE_LABEL, SCENARIO_TEXT as T } from "@/lib/zh"
+import { codePointCount } from "@/lib/count"
+import {
+  SCENARIO_DETAIL_TEXT as D,
+  label,
+  SCENE_LABEL,
+  SCENARIO_TEXT as T,
+} from "@/lib/zh"
 
 export const Route = createFileRoute("/_layout/scenarios")({
   component: ScenariosPage,
@@ -39,10 +56,36 @@ export const Route = createFileRoute("/_layout/scenarios")({
 const MAX_STRUCTURE = 2000
 
 function ScenariosPage() {
-  const { current, isAdmin } = useBrand()
+  const brand = useBrand()
   const cache = useQueryClient()
-  const brandId = current?.id ?? ""
+  if (brand.isLoading) return <Skeleton className="h-48 w-full" />
+  if (brand.isError)
+    return (
+      <ErrorBanner
+        error={parseApiError(cache.getQueryState(["brands"])?.error)}
+        onRetry={brand.refetch}
+      />
+    )
+  if (!brand.current) return <EmptyState title={T.selectBrand} />
+  return (
+    <BrandScenarios
+      key={brand.current.id}
+      brandId={brand.current.id}
+      isAdmin={brand.isAdmin}
+    />
+  )
+}
+function BrandScenarios({
+  brandId,
+  isAdmin,
+}: {
+  brandId: string
+  isAdmin: boolean
+}) {
+  const cache = useQueryClient()
   const [editing, setEditing] = useState<ScenarioPublic | "new" | null>(null)
+  const [viewing, setViewing] = useState<ScenarioPublic | null>(null)
+  const [sceneFilter, setSceneFilter] = useState("")
   const list = useQuery({
     queryKey: ["scenario-templates", brandId],
     queryFn: async () =>
@@ -69,8 +112,10 @@ function ScenariosPage() {
       cache.invalidateQueries({ queryKey: ["scenarios"] }),
     ])
 
-  if (!current) return <EmptyState title={T.selectBrand} />
   const rows = list.data ?? []
+  const filtered = rows.filter(
+    (row) => !sceneFilter || row.scene === sceneFilter,
+  )
   const own = rows.filter((r) => r.brand_id === brandId)
   const newest = (r: ScenarioPublic) =>
     !own.some(
@@ -79,10 +124,30 @@ function ScenariosPage() {
         o.name === r.name &&
         o.template_version > r.template_version,
     )
+  const status = (row: ScenarioPublic) =>
+    row.enabled ? T.on : newest(row) ? T.off : T.replaced
+  const source = (row: ScenarioPublic) =>
+    row.brand_id === null ? (
+      <Pill tone="gray">{T.builtin}</Pill>
+    ) : row.source_pattern_id ? (
+      <Link
+        to="/viral-patterns/$id"
+        params={{ id: row.source_pattern_id }}
+        className="text-link hover:underline"
+        onClick={(event) => event.stopPropagation()}
+      >
+        {row.source_pattern_title || T.fromViral}
+      </Link>
+    ) : row.source_pattern_title ? (
+      <span>
+        {row.source_pattern_title} · {D.sourceUnavailable}
+      </span>
+    ) : (
+      D.noSource
+    )
 
   return (
-    <div className="min-w-0 space-y-6">
-      <TemplateAnalysisTabs />
+    <div className="min-w-0 space-y-6 [&_[data-slot=table-container]]:border-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 flex-1 basis-80">
           <h1 className="text-2xl font-bold">{T.title}</h1>
@@ -94,54 +159,91 @@ function ScenariosPage() {
           </div>
         )}
       </div>
-      {list.isLoading && <Skeleton className="h-48 w-full" />}
-      {list.isError && (
-        <ErrorBanner error={parseApiError(list.error)} onRetry={list.refetch} />
-      )}
+      <TemplateAnalysisTabs />
       {toggle.isError && <ErrorBanner error={parseApiError(toggle.error)} />}
-      {list.isSuccess && (
-        <div className="overflow-x-auto rounded-xl border bg-card">
-          <Table>
-            <TableHeader>
+      <div className="flex justify-end">
+        <Button variant="ghost" onClick={() => setSceneFilter("")}>
+          {D.clear}
+        </Button>
+      </div>
+      <div className="overflow-x-auto rounded-xl bg-card shadow-sm">
+        <Table className="min-w-[760px] text-sm [&_th]:bg-surface-low [&_th]:text-[13px] [&_th]:font-bold [&_th]:text-on-surface-variant">
+          <TableHeader>
+            <TableRow>
+              <TableHead>{T.name}</TableHead>
+              <TableHead aria-label={T.scene}>
+                <HeaderFilter
+                  title={T.scene}
+                  value={sceneFilter}
+                  onChange={setSceneFilter}
+                  options={[
+                    ...new Set([
+                      ...Object.keys(SCENE_LABEL),
+                      ...rows.map((row) => row.scene),
+                    ]),
+                  ].map((value) => ({
+                    value,
+                    label: label(SCENE_LABEL, value),
+                  }))}
+                />
+              </TableHead>
+              <TableHead>{T.version}</TableHead>
+              <TableHead>{T.source}</TableHead>
+              <TableHead>{T.status}</TableHead>
+              {isAdmin && (
+                <TableHead className="text-right">{D.actions}</TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {list.isLoading ? (
               <TableRow>
-                <TableHead>{T.name}</TableHead>
-                <TableHead>{T.scene}</TableHead>
-                <TableHead>{T.version}</TableHead>
-                <TableHead>{T.source}</TableHead>
-                <TableHead>{T.status}</TableHead>
-                {isAdmin && <TableHead className="text-right">操作</TableHead>}
+                <TableCell colSpan={isAdmin ? 6 : 5}>
+                  <Skeleton className="h-48 w-full" />
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((r) => {
+            ) : list.isError ? (
+              <TableRow>
+                <TableCell colSpan={isAdmin ? 6 : 5}>
+                  <ErrorBanner
+                    error={parseApiError(list.error)}
+                    onRetry={list.refetch}
+                  />
+                  {parseApiError(list.error).status === 403 && (
+                    <ForbiddenPage
+                      requestId={parseApiError(list.error).requestId}
+                    />
+                  )}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((r) => {
                 const global = r.brand_id === null
                 return (
-                  <TableRow key={r.id}>
-                    <TableCell className="max-w-64 break-words font-medium">
-                      {r.name}
+                  <TableRow
+                    key={r.id}
+                    className="cursor-pointer"
+                    onClick={() => setViewing(r)}
+                  >
+                    <TableCell className="max-w-64 whitespace-normal break-words font-medium">
+                      <button
+                        type="button"
+                        className="text-left text-link hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+                        aria-label={`${D.view}：${r.name} v${r.template_version}`}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setViewing(r)
+                        }}
+                      >
+                        {r.name}
+                      </button>
                     </TableCell>
-                    <TableCell>
-                      {SCENE_LABEL[r.scene as keyof typeof SCENE_LABEL] ??
-                        r.scene}
+                    <TableCell className="min-w-28">
+                      {label(SCENE_LABEL, r.scene)}
                     </TableCell>
                     <TableCell>v{r.template_version}</TableCell>
-                    <TableCell>
-                      {global ? (
-                        <Pill tone="gray">{T.builtin}</Pill>
-                      ) : r.source_pattern_id ? (
-                        <Link
-                          to="/viral-patterns/$id"
-                          params={{ id: r.source_pattern_id }}
-                          className="text-primary hover:underline"
-                        >
-                          {T.fromViral}
-                          {r.source_pattern_title
-                            ? `：${r.source_pattern_title}`
-                            : ""}
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
+                    <TableCell className="max-w-72 whitespace-normal break-words">
+                      {source(r)}
                     </TableCell>
                     <TableCell>
                       {r.enabled ? (
@@ -159,7 +261,10 @@ function ScenariosPage() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => setEditing(r)}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setEditing(r)
+                              }}
                             >
                               {T.newVersion}
                             </Button>
@@ -167,7 +272,10 @@ function ScenariosPage() {
                               size="sm"
                               variant="outline"
                               disabled={toggle.isPending}
-                              onClick={() => toggle.mutate(r)}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                toggle.mutate(r)
+                              }}
                             >
                               {r.enabled ? T.turnOff : T.turnOn}
                             </Button>
@@ -177,22 +285,87 @@ function ScenariosPage() {
                     )}
                   </TableRow>
                 )
-              })}
-              {own.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={isAdmin ? 6 : 5}
-                    className="py-6 text-center text-muted-foreground"
-                  >
-                    {T.empty}
-                  </TableCell>
-                </TableRow>
+              })
+            )}
+            {list.isSuccess && filtered.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={isAdmin ? 6 : 5}
+                  className="py-6 text-center text-muted-foreground"
+                >
+                  {sceneFilter ? D.filteredEmpty : T.empty}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      {viewing && (
+        <Sheet open onOpenChange={(open) => !open && setViewing(null)}>
+          <SheetContent className="w-full gap-6 overflow-y-auto border-0 p-6 sm:max-w-2xl">
+            <SheetHeader className="p-0 pr-6">
+              <SheetTitle>
+                {D.detail} · {viewing.name}
+              </SheetTitle>
+              <SheetDescription>
+                {viewing.brand_id === null ? T.builtin : T.title} · v
+                {viewing.template_version}
+              </SheetDescription>
+            </SheetHeader>
+            <dl className="grid grid-cols-2 gap-5 rounded-xl bg-surface-low p-5 text-sm">
+              <div>
+                <dt className="text-xs text-muted-foreground">{T.scene}</dt>
+                <dd className="mt-1">{label(SCENE_LABEL, viewing.scene)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">{T.version}</dt>
+                <dd className="mt-1">v{viewing.template_version}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">{T.source}</dt>
+                <dd className="mt-1 break-words">{source(viewing)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">{T.status}</dt>
+                <dd className="mt-1">
+                  <Pill tone={viewing.enabled ? "ok" : "gray"}>
+                    {status(viewing)}
+                  </Pill>
+                </dd>
+              </div>
+            </dl>
+            <section className="space-y-3">
+              <h2 className="text-sm font-semibold">{T.structure}</h2>
+              <p className="rounded-xl bg-surface-low p-5 text-sm leading-7 whitespace-pre-wrap [overflow-wrap:anywhere]">
+                {viewing.structure}
+              </p>
+            </section>
+            <p className="text-xs leading-6 text-muted-foreground">
+              {isAdmin
+                ? viewing.brand_id === null
+                  ? D.builtinCopy
+                  : D.newVersionHint
+                : D.readonly}
+            </p>
+            <SheetFooter className="p-0 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => setViewing(null)}>
+                {D.close}
+              </Button>
+              {isAdmin && (
+                <Button
+                  onClick={() => {
+                    setEditing(viewing)
+                    setViewing(null)
+                  }}
+                >
+                  {T.newVersion}
+                </Button>
               )}
-            </TableBody>
-          </Table>
-        </div>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
       )}
-      {editing && (
+      {editing && isAdmin && (
         <TemplateDialog
           brandId={brandId}
           from={editing === "new" ? null : editing}
@@ -231,14 +404,23 @@ function TemplateDialog({
       ).data,
     onSuccess: onSaved,
   })
-  const valid = !!name.trim() && !!structure.trim()
+  const valid =
+    !!name.trim() &&
+    !!structure.trim() &&
+    codePointCount(name.trim()) <= 100 &&
+    codePointCount(structure.trim()) <= MAX_STRUCTURE
   return (
     <Dialog open onOpenChange={(o) => !o && !save.isPending && onClose()}>
-      <DialogContent showCloseButton={!save.isPending}>
+      <DialogContent
+        className="max-h-[85vh] overflow-y-auto border-0 sm:max-w-2xl"
+        showCloseButton={!save.isPending}
+      >
         <DialogHeader>
           <DialogTitle>{from ? T.newVersion : T.add}</DialogTitle>
           <DialogDescription>
-            {from ? `${from.name} v${from.template_version}` : T.description}
+            {from
+              ? `${from.name} v${from.template_version} · ${from.brand_id === null ? D.builtinCopy : D.newVersionHint}`
+              : T.description}
           </DialogDescription>
         </DialogHeader>
         <form
@@ -260,6 +442,9 @@ function TemplateDialog({
                 disabled={!!from}
                 onChange={(e) => setScene(e.target.value)}
               >
+                {from && !(scene in SCENE_LABEL) && (
+                  <option value={scene}>{label(SCENE_LABEL, scene)}</option>
+                )}
                 {Object.entries(SCENE_LABEL).map(([k, v]) => (
                   <option key={k} value={k}>
                     {v}
@@ -286,13 +471,14 @@ function TemplateDialog({
               <Textarea
                 id="tpl-structure"
                 rows={8}
-                maxLength={MAX_STRUCTURE}
                 value={structure}
                 onChange={(e) => setStructure(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                {T.structureHint}（{structure.length} / {MAX_STRUCTURE}）
-              </p>
+              <p className="text-xs text-muted-foreground">{T.structureHint}</p>
+              <CharCounter
+                value={codePointCount(structure)}
+                limit={MAX_STRUCTURE}
+              />
             </div>
           </fieldset>
           {save.isError && <ErrorBanner error={parseApiError(save.error)} />}

@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { Textarea } from "@/components/ui/textarea"
 import { codePointCount } from "@/lib/count"
-import { VIRAL_TEXT as T } from "@/lib/zh"
+import { VIRAL_DELETE_TEXT as D, VIRAL_TEXT as T } from "@/lib/zh"
 import { ViralError } from "./Feedback"
 
 const limited = (n: number) =>
@@ -72,7 +72,7 @@ export function AddSample({
       >
         <DialogHeader>
           <DialogTitle>{T.add}</DialogTitle>
-          <DialogDescription>{T.immutable}</DialogDescription>
+          <DialogDescription>{D.sampleHint}</DialogDescription>
         </DialogHeader>
         <form
           className="space-y-5"

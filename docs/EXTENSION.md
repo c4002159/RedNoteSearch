@@ -26,6 +26,7 @@
 
 ## 会出错的地方
 - 评论数会和评论区的“共 N 条评论”交叉核对：不一致时不会通过，要你手动改；评论区没出现总数时只提示“未核对”。
+- 只读具体的笔记页（网址里有 24 位笔记编号）。在首页、搜索页、个人页打开插件，会提示“请先打开一篇具体的笔记”，不会读取，避免把信息流里别的笔记的数字当成这篇的。
 - 页面结构变了读不到时，会明确提示读不到什么，不会猜；你手填即可。
 - 这些选择器（`.like-wrapper .count`、`.collect-wrapper .count`、`.chat-wrapper .count`、`.total`）来自对桌面版 Chrome 一篇笔记页的观察（Issue #162），**只在该页面结构的副本上验证过，没有在线上页面自动验证**。
 - 密钥保存在本浏览器的本地存储里，没有加密。丢了或换了电脑，请在系统里作废（`DELETE /brands/{brand_id}/extension-keys/{id}`）再生成新的。
@@ -36,8 +37,9 @@
 
 1. 拉最新 `main`，在仓库根目录复制环境文件并打开演示模式：`cp .env.example .env`，再往 `.env` 末尾加一行 `LLM_MODE=demo_fake`。本机 5432 端口被别的程序占用时，把 `.env` 里 `POSTGRES_PORT` 和 `DATABASE_URL` 的端口一起改成 5433。
 2. `docker compose up -d db`
+   （在仓库根目录。如果本机装了系统代理，访问本机地址时设 `NO_PROXY=127.0.0.1,localhost`，否则脚本登录可能返回 502。）
 3. `cd backend`，然后依次：`uv sync`、`uv run bash scripts/prestart.sh`（迁移和内置场景模板）、`uv run python -m app.seed --fake-embeddings`（演示品牌和商品）。
-4. 另开一个终端，在 `backend` 里：`uv run fastapi run --port 8000`。
+4. 另开一个终端，在 `backend` 里：先 `mkdir -p app/frontend`（后端要求这个目录存在，它不进仓库，全新克隆的仓库里没有；前端不用起，空目录即可），再 `uv run fastapi run --port 8000`。
 5. 回到仓库根目录，把要测的笔记网址交给脚本（可重复写多个 `--note-url`，网址里的查询串会被丢掉）：
    `python scripts/plugin_test_setup.py --note-url https://www.xiaohongshu.com/explore/<24 位笔记 id>`
    脚本会为每个网址生成并确认一篇测试文案、把网址绑定上去，再生成一个插件密钥，最后打印一整串**连接配置**。

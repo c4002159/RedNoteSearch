@@ -3,6 +3,8 @@
 
 const $ = (id) => document.getElementById(id)
 const NOTE_HOSTS = ["xiaohongshu.com"]
+const NOT_A_NOTE = "请先打开一篇具体的笔记（网址里要有笔记编号，例如 xiaohongshu.com/explore/…）。首页、搜索页、个人页上的数字不是这篇笔记的，不会读取。"
+
 
 function show(kind, text) {
   const box = $("status")
@@ -14,8 +16,9 @@ function show(kind, text) {
 async function activeNoteTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
   if (!tab || !tab.url) return null
-  const host = new URL(tab.url).hostname
-  return NOTE_HOSTS.some((h) => host === h || host.endsWith(`.${h}`)) ? tab : null
+  const { hostname, pathname } = new URL(tab.url)
+  const onSite = NOTE_HOSTS.some((h) => hostname === h || hostname.endsWith(`.${h}`))
+  return onSite && isNotePath(pathname) ? tab : null
 }
 
 // Only the path of the page is sent: the address can carry tokens in its query.
@@ -57,7 +60,7 @@ $("useConfig").addEventListener("click", async () => {
 
 $("read").addEventListener("click", async () => {
   const tab = await activeNoteTab()
-  if (!tab) return show("warn", "请先在小红书笔记页打开本插件。")
+  if (!tab) return show("warn", NOT_A_NOTE)
   try {
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["parse.js"] })
     const [{ result }] = await chrome.scripting.executeScript({
@@ -87,7 +90,7 @@ $("send").addEventListener("click", async () => {
     return show("error", "请先在“连接设置”里填写系统地址和密钥。")
   }
   const tab = await activeNoteTab()
-  if (!tab) return show("warn", "请在小红书笔记页发送。")
+  if (!tab) return show("warn", NOT_A_NOTE)
   const numbers = ["likes", "collects", "comments"].map((id) => Number($(id).value))
   if (numbers.some((n) => !Number.isInteger(n) || n < 0)) {
     return show("error", "点赞、收藏、评论都需要是不小于 0 的整数。")
@@ -112,6 +115,7 @@ $("send").addEventListener("click", async () => {
       return show("error", "系统里没有保存这篇笔记的网址。请先在“已确认文案”里填入这篇笔记的帖子网址。")
     }
     if (response.status === 429) return show("warn", "这篇笔记一小时内记录得太多了，稍后再试。")
+    if (response.status === 422) return show("error", "系统不接受这次的数字或笔记网址，请确认当前页是具体的笔记页，数字是不小于 0 的整数。")
     show("error", `发送失败（${response.status}）。`)
   } catch {
     show("error", "连不上系统，请检查系统地址和网络。")

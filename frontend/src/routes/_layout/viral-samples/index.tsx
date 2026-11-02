@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/Common/EmptyState"
 import { HeaderFilter } from "@/components/Common/FilterSelect"
 import { TemplateAnalysisTabs } from "@/components/Common/TemplateAnalysisTabs"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -16,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { AddSample } from "@/components/Viral/AddSample"
+import { DeleteSamples } from "@/components/Viral/DeleteSamples"
 import {
   VIRAL_TABLE,
   ViralBreadcrumb,
@@ -25,7 +27,11 @@ import {
 import { SampleStructureCells } from "@/components/Viral/SampleStructureCells"
 import { useBrand } from "@/hooks/useBrand"
 import { formatTime } from "@/lib/format"
-import { VIRAL_TEXT as T, ANALYSIS_VISUAL_TEXT as V } from "@/lib/zh"
+import {
+  VIRAL_DELETE_TEXT as D,
+  VIRAL_TEXT as T,
+  ANALYSIS_VISUAL_TEXT as V,
+} from "@/lib/zh"
 export const Route = createFileRoute("/_layout/viral-samples/")({
   component: SamplesPage,
   head: () => ({ meta: [{ title: `${T.title} - RedNoteSearch` }] }),
@@ -47,10 +53,13 @@ function SamplesPage() {
 function BrandSamples({ brandId }: { brandId: string }) {
   const cache = useQueryClient(),
     navigate = useNavigate()
-  const currentBrandName = useBrand().current?.name ?? "—"
+  const brand = useBrand()
+  const currentBrandName = brand.current?.name ?? "—"
   const [page, setPage] = useState(1),
     [sort, setSort] = useState<"created_at" | "-created_at">("-created_at"),
     [adding, setAdding] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState<string[] | null>(null)
   const samples = useQuery({
     queryKey: ["viral-samples", brandId, page, sort],
     queryFn: async ({ signal }) =>
@@ -87,7 +96,30 @@ function BrandSamples({ brandId }: { brandId: string }) {
           </p>
         </div>
       </div>
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {brand.isAdmin ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {D.selected(selected.size)}
+            </span>
+            <Button
+              variant="destructive"
+              disabled={!selected.size}
+              onClick={() => setDeleting([...selected])}
+            >
+              {D.bulk}
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={!selected.size}
+              onClick={() => setSelected(new Set())}
+            >
+              {D.clear}
+            </Button>
+          </div>
+        ) : (
+          <span />
+        )}
         <Button
           variant="ghost"
           onClick={() => {
@@ -103,6 +135,11 @@ function BrandSamples({ brandId }: { brandId: string }) {
           <Table className={VIRAL_TABLE}>
             <TableHeader>
               <TableRow>
+                {brand.isAdmin && (
+                  <TableHead className="w-12">
+                    <span className="sr-only">{D.selectColumn}</span>
+                  </TableHead>
+                )}
                 <TableHead className="w-[30%]">{V.sampleSummary}</TableHead>
                 <TableHead>{V.charCount}</TableHead>
                 <TableHead className="w-[22%]">{V.source}</TableHead>
@@ -123,18 +160,19 @@ function BrandSamples({ brandId }: { brandId: string }) {
                     ]}
                   />
                 </TableHead>
+                {brand.isAdmin && <TableHead>{D.actions}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {samples.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={brand.isAdmin ? 8 : 6}>
                     <Skeleton className="h-32 w-full" />
                   </TableCell>
                 </TableRow>
               ) : samples.isError ? (
                 <TableRow>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={brand.isAdmin ? 8 : 6}>
                     <ViralError
                       error={samples.error}
                       retry={() => samples.refetch()}
@@ -143,13 +181,33 @@ function BrandSamples({ brandId }: { brandId: string }) {
                 </TableRow>
               ) : !samples.data?.items.length ? (
                 <TableRow>
-                  <TableCell colSpan={6}>
-                    <EmptyState title={T.empty} description={T.immutable} />
+                  <TableCell colSpan={brand.isAdmin ? 8 : 6}>
+                    <EmptyState title={T.empty} description={D.sampleHint} />
                   </TableCell>
                 </TableRow>
               ) : (
                 samples.data.items.map((row) => (
                   <TableRow key={row.id}>
+                    {brand.isAdmin && (
+                      <TableCell>
+                        <Checkbox
+                          aria-label={D.select(row.excerpt)}
+                          checked={selected.has(row.id)}
+                          disabled={
+                            selected.size >= 50 && !selected.has(row.id)
+                          }
+                          onCheckedChange={(checked) =>
+                            setSelected((previous) => {
+                              const next = new Set(previous)
+                              if (checked === true && next.size < 50)
+                                next.add(row.id)
+                              else next.delete(row.id)
+                              return next
+                            })
+                          }
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="whitespace-normal">
                       <Link
                         className="line-clamp-2 font-medium text-link hover:underline"
@@ -174,6 +232,17 @@ function BrandSamples({ brandId }: { brandId: string }) {
                     <TableCell className="whitespace-normal text-xs text-muted-foreground">
                       {formatTime(row.created_at)}
                     </TableCell>
+                    {brand.isAdmin && (
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          className="text-destructive"
+                          onClick={() => setDeleting([row.id])}
+                        >
+                          {D.single}
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}
@@ -195,6 +264,38 @@ function BrandSamples({ brandId }: { brandId: string }) {
             setAdding(false)
             void cache.invalidateQueries({ queryKey: ["viral-samples"] })
             void navigate({ to: "/viral-samples/$id", params: { id: row.id } })
+          }}
+        />
+      )}
+      {deleting && brand.isAdmin && (
+        <DeleteSamples
+          brandId={brandId}
+          ids={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={async () => {
+            const removed = new Set(deleting)
+            setSelected(
+              (previous) =>
+                new Set([...previous].filter((id) => !removed.has(id))),
+            )
+            setDeleting(null)
+            setPage(1)
+            await cache.invalidateQueries({
+              queryKey: ["viral-samples", brandId],
+            })
+            for (const key of [
+              "viral-pattern",
+              "viral-patterns",
+              "viral-sample",
+              "viral-pattern-count",
+              "scenario-templates",
+              "scenarios",
+            ]) {
+              void cache.invalidateQueries({
+                queryKey: [key],
+                refetchType: "none",
+              })
+            }
           }}
         />
       )}

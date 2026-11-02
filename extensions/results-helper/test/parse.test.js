@@ -1,7 +1,7 @@
 // Run: node --test extensions/results-helper/test
 const test = require("node:test")
 const assert = require("node:assert/strict")
-const { parseCount, parseCommentTotal, parseNoteDocument, normalizeServer, parseConnection } = require("../parse.js")
+const { parseCount, parseCommentTotal, parseNoteDocument, normalizeServer, parseConnection, isNotePath } = require("../parse.js")
 
 // A page with only the elements the parser asks for: selector -> text.
 const page = (map) => ({
@@ -127,4 +127,14 @@ test("a bad connection string is refused, never half-applied", () => {
     connection(null),
   ]
   for (const text of bad) assert.equal(parseConnection(text), null, String(text))
+})
+
+test("only the page of one note can be read", () => {
+  const id = "65a1b2c3d4e5f60718293a4b"
+  for (const ok of [`/explore/${id}`, `/explore/${id}/`, `/discovery/item/${id}`, `/search_result/${id}`, `/user/profile/5abc123/${id}`]) {
+    assert.equal(isNotePath(ok), true, ok)
+  }
+  for (const bad of ["/", "/explore", "/explore/", "/search_result", "/user/profile/5abc123", `/explore/${id.slice(1)}`, `/explore/${id.toUpperCase()}`, `/explore/${id}/extra`, `/other/${id}`, "", null]) {
+    assert.equal(isNotePath(bad), false, String(bad))
+  }
 })
