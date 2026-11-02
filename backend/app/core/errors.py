@@ -29,6 +29,7 @@ from app.services.errors import (
     ParseError,
     UnsupportedFileTypeError,
 )
+from app.services.llm_structured import LlmOutputError
 
 logger = logging.getLogger(__name__)
 
@@ -217,6 +218,18 @@ def _model_unavailable_handler(request: Request, exc: Exception) -> Response:
     )
 
 
+def _llm_output_handler(request: Request, exc: Exception) -> Response:
+    # Raised after the bounded retries; the model's raw output and the schema problem stay in the log.
+    assert isinstance(exc, LlmOutputError)
+    logger.warning("Model output rejected: %s", exc.message)
+    return error_response(
+        request,
+        status_code=422,
+        code="INVALID_MODEL_OUTPUT",
+        message="模型没有返回符合要求的内容，请重试或稍后再试",
+    )
+
+
 def _unhandled_exception_handler(request: Request, exc: Exception) -> Response:
     request_id = get_request_id(request)
     logger.error(
@@ -256,4 +269,5 @@ def install_error_handling(app: FastAPI) -> None:
     app.add_exception_handler(UnsupportedFileTypeError, _unsupported_file_type_handler)
     app.add_exception_handler(ParseError, _parse_error_handler)
     app.add_exception_handler(ModelUnavailableError, _model_unavailable_handler)
+    app.add_exception_handler(LlmOutputError, _llm_output_handler)
     app.add_exception_handler(Exception, _unhandled_exception_handler)

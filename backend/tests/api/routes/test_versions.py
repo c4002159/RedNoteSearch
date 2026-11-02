@@ -450,6 +450,28 @@ def test_rewriting_one_part_creates_a_checked_new_version(
         )
 
 
+def test_a_rewrite_with_invalid_model_output_is_a_422_and_stores_nothing(
+    client: TestClient, superuser_token_headers: dict[str, str], llm: FakeLlmClient
+) -> None:
+    h = superuser_token_headers
+    ids = _generated(client, h)
+    llm.answers["rewrite"] = "{}"  # type: ignore[attr-defined]
+    r = client.post(
+        f"{API}/generation-versions/{ids['version']}/rewrite",
+        headers=h,
+        json={"target": "titles"},
+    )
+    assert r.status_code == 422
+    error = r.json()["error"]
+    assert error["code"] == "INVALID_MODEL_OUTPUT"
+    assert "模型没有返回符合要求的内容" in error["message"]
+    assert "title_candidates" not in r.text
+    versions = client.get(f"{API}/tasks/{ids['task']}/versions", headers=h).json()[
+        "items"
+    ]
+    assert [v["version_no"] for v in versions] == [1]
+
+
 def test_a_failed_rewrite_stores_nothing(
     client: TestClient, superuser_token_headers: dict[str, str], llm: FakeLlmClient
 ) -> None:

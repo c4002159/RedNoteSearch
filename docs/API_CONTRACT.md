@@ -29,6 +29,7 @@ v1.1 在 v1.0 基础上补齐了登录、品牌与商品增改、品牌档案版
 | `PARSE_FAILED` | 422 | 解析失败；资料保持不可检索 |
 | `RATE_LIMITED` | 429 | 限流，带 `Retry-After` |
 | `MODEL_UNAVAILABLE` | 503 | 模型超时、限流或空响应，重试用尽 |
+| `INVALID_MODEL_OUTPUT` | 422 | 模型在有限重试后仍返回不符合结构的内容（例如局部重写）；不返回模型原始输出，不保存半成品。此前这种情况会漏成 500 |
 | `INTERNAL_ERROR` | 500 | 未处理的异常；不返回原因，只在服务端日志里记录并带 `request_id` |
 
 不得返回 traceback、API 密钥、模型原始敏感内容。
