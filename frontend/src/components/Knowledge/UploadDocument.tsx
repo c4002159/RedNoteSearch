@@ -150,8 +150,10 @@ export function UploadDocument({
                     )
                 }}
               />
-              <p className="text-xs text-muted-foreground">{T.fileHint}</p>
-              {fileError && (
+              {file && (
+                <p className="text-xs text-muted-foreground">{T.fileHint}</p>
+              )}
+              {file && fileError && (
                 <p role="alert" className="text-sm text-destructive">
                   {fileError}
                 </p>

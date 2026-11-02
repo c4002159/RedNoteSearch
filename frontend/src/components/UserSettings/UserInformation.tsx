@@ -68,14 +68,7 @@ export default function UserInformation({ user }: { user: UserPublic }) {
         </div>
       </fieldset>
       {mutation.isError && <SettingsError error={mutation.error} />}
-      <div className="flex gap-2">
-        <LoadingButton
-          type="submit"
-          loading={mutation.isPending}
-          disabled={!isDirty}
-        >
-          {T.save}
-        </LoadingButton>
+      <div className="flex justify-end gap-2">
         <Button
           type="button"
           variant="outline"
@@ -87,6 +80,13 @@ export default function UserInformation({ user }: { user: UserPublic }) {
         >
           {T.reset}
         </Button>
+        <LoadingButton
+          type="submit"
+          loading={mutation.isPending}
+          disabled={!isDirty}
+        >
+          {T.save}
+        </LoadingButton>
       </div>
     </form>
   )

@@ -72,7 +72,8 @@ test("Dataset table shows Chinese scope, columns and filter recovery", async ({
   await expect(
     page.getByRole("link", { name: "评测运行与报告", exact: true }).last(),
   ).toBeVisible()
-  await page.getByLabel("类型", { exact: true }).selectOption("compliance")
+  await page.getByRole("combobox", { name: /类型/ }).click()
+  await page.getByRole("option", { name: "合规检测", exact: true }).click()
   await expect(page.getByRole("table").getByRole("row")).toHaveCount(2)
   await page.getByRole("button", { name: "清除筛选", exact: true }).click()
   await expect(page.getByRole("table").getByRole("row")).toHaveCount(4)

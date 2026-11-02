@@ -28,9 +28,9 @@ test("Only supported settings tabs and actions are visible", async ({
   page,
 }) => {
   await page.goto("/settings")
-  for (const name of ["我的资料", "修改密码"])
+  for (const name of ["我的资料", "修改密码", "模型与密钥"])
     await expect(page.getByRole("tab", { name, exact: true })).toBeVisible()
-  await expect(page.getByRole("tab")).toHaveCount(2)
+  await expect(page.getByRole("tab")).toHaveCount(3)
   await expect(page.getByRole("tab", { name: "Danger zone" })).toHaveCount(0)
   await expect(
     page.getByRole("button", { name: /Delete Account|删除账号/ }),

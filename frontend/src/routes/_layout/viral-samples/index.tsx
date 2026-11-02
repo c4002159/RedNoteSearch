@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { ViralService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { FilterSelect } from "@/components/Common/FilterSelect"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AddSample } from "@/components/Viral/AddSample"
@@ -54,18 +55,20 @@ function BrandSamples({ brandId }: { brandId: string }) {
         </div>
         <Button onClick={() => setAdding(true)}>{T.add}</Button>
       </div>
-      <select
-        aria-label={T.sort}
-        className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
-        value={sort}
-        onChange={(e) => {
-          setSort(e.target.value as "created_at" | "-created_at")
-          setPage(1)
-        }}
-      >
-        <option value="-created_at">{T.newest}</option>
-        <option value="created_at">{T.oldest}</option>
-      </select>
+      <div>
+        <FilterSelect
+          title="创建时间"
+          value={sort}
+          onChange={(v) => {
+            setSort(v as "created_at" | "-created_at")
+            setPage(1)
+          }}
+          options={[
+            { value: "-created_at", label: T.newest },
+            { value: "created_at", label: T.oldest },
+          ]}
+        />
+      </div>
       {samples.isLoading && <Skeleton className="h-48 w-full" />}
       {samples.isError && (
         <ViralError error={samples.error} retry={() => samples.refetch()} />

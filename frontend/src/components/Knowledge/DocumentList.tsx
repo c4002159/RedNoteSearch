@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
+import { FileText } from "lucide-react"
 import { useState } from "react"
 import {
   type DocumentStatus,
@@ -7,6 +8,7 @@ import {
   KnowledgeService,
 } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { HeaderFilter } from "@/components/Common/FilterSelect"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { LoadingState } from "@/components/Common/LoadingState"
 import { DocumentStatusBadge } from "@/components/Common/StatusBadge"
@@ -71,6 +73,12 @@ function BrandDocuments({
   const [type, setType] = useState<DocumentType | "">("")
   const [page, setPage] = useState(1)
   const [upload, setUpload] = useState(false)
+  const clear = () => {
+    setType("")
+    setStatus("")
+    setPage(1)
+  }
+  const filtered = Boolean(type || (!review && status))
   const documents = useQuery({
     queryKey: ["knowledge", brandId, review, status, type, page],
     queryFn: async ({ signal }) =>
@@ -108,8 +116,17 @@ function BrandDocuments({
           <p className="text-sm text-muted-foreground">
             {review ? T.queueDescription : T.description}
           </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {V.workspace}
+            {brandName}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {filtered && (
+            <Button variant="ghost" onClick={clear}>
+              {T.clear}
+            </Button>
+          )}
           {review ? (
             <Button asChild variant="outline">
               <Link to="/knowledge">{T.back}</Link>
@@ -131,62 +148,6 @@ function BrandDocuments({
           )}
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-4 rounded-xl bg-card p-6 shadow-sm">
-        {!review && (
-          <label className="flex items-center gap-2 text-sm">
-            {V.status}
-            <select
-              aria-label={T.status}
-              className="h-10 rounded-lg border-0 bg-surface-low px-3 text-sm focus-visible:outline-ring"
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value as DocumentStatus | "")
-                setPage(1)
-              }}
-            >
-              <option value="">{T.allStatus}</option>
-              {Object.entries(DOCUMENT_STATUS_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <label className="flex items-center gap-2 text-sm">
-          {V.type}
-          <select
-            aria-label={T.type}
-            className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
-            value={type}
-            onChange={(e) => {
-              setType(e.target.value as DocumentType | "")
-              setPage(1)
-            }}
-          >
-            <option value="">{T.allTypes}</option>
-            {Object.entries(DOCUMENT_TYPE_LABEL).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </label>
-        <Button
-          variant="ghost"
-          onClick={() => {
-            setType("")
-            setStatus("")
-            setPage(1)
-          }}
-        >
-          {T.clear}
-        </Button>
-        <span className="ml-auto text-sm text-muted-foreground">
-          {V.workspace}
-          {brandName}
-        </span>
-      </div>
       {documents.isLoading && <LoadingState className="h-48 w-full" />}
       {documents.isError && (
         <KnowledgeError
@@ -194,118 +155,140 @@ function BrandDocuments({
           retry={() => documents.refetch()}
         />
       )}
-      {documents.data &&
-        !documents.isError &&
-        (documents.data.items.length === 0 ? (
-          <div className="rounded-xl bg-card p-6 shadow-sm [&>div]:border-0">
-            <EmptyState
-              title={
-                review
-                  ? T.noPending
-                  : status || type
-                    ? T.filteredEmpty
-                    : T.empty
-              }
-              description={T.emptyHint}
-            />
-          </div>
-        ) : (
-          <div className="min-w-0 overflow-hidden rounded-xl bg-card shadow-sm">
-            <Table className="w-full table-fixed">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-1/4">{V.documentTitle}</TableHead>
-                  <TableHead className="w-24 min-w-24 whitespace-nowrap">
-                    {V.typeColumn}
-                  </TableHead>
-                  <TableHead className="w-24 whitespace-nowrap">
-                    {review ? T.relation : V.documentStatus}
-                  </TableHead>
-                  {!review && (
-                    <TableHead className="w-24 whitespace-nowrap">
-                      {T.index}
-                    </TableHead>
-                  )}
-                  <TableHead className="w-16 whitespace-nowrap">
-                    {T.version}
-                  </TableHead>
-                  <TableHead className="w-36 min-w-32 whitespace-nowrap">
-                    {T.author}
-                  </TableHead>
-                  <TableHead className="w-32 whitespace-nowrap">
-                    {V.updated}
-                  </TableHead>
-                  <TableHead className="w-24 whitespace-nowrap text-right">
-                    {V.actions}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {documents.data.items.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="whitespace-normal [overflow-wrap:anywhere]">
-                      <Link
-                        className="font-medium text-link hover:underline"
-                        to="/knowledge/$id"
-                        params={{ id: row.id }}
-                      >
-                        {row.title}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {label(DOCUMENT_TYPE_LABEL, row.doc_type)}
-                    </TableCell>
-                    <TableCell>
-                      {review ? (
-                        row.version > 1 ? (
-                          T.update
-                        ) : (
-                          T.newDocument
-                        )
-                      ) : (
-                        <DocumentStatusBadge status={row.status} />
-                      )}
-                    </TableCell>
-                    {!review && (
-                      <TableCell>
-                        <IndexBadge
-                          documentStatus={row.status}
-                          status={row.index_status}
-                        />
-                      </TableCell>
+      {documents.data && !documents.isError && (
+        <div className="min-w-0 overflow-x-auto rounded-xl bg-card shadow-sm">
+          <Table className="w-full min-w-[62rem] text-sm">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-72 whitespace-nowrap">
+                  {V.documentTitle}
+                </TableHead>
+                <TableHead className="whitespace-nowrap">
+                  <HeaderFilter
+                    title={V.typeColumn}
+                    value={type}
+                    onChange={(v) => {
+                      setType(v as DocumentType | "")
+                      setPage(1)
+                    }}
+                    options={Object.entries(DOCUMENT_TYPE_LABEL).map(
+                      ([value, label]) => ({ value, label }),
                     )}
-                    <TableCell className="text-sm">
-                      v{row.version}
-                      {row.is_current && (
-                        <p className="mt-1 text-xs text-tone-ok">{T.current}</p>
+                  />
+                </TableHead>
+                <TableHead className="min-w-32 whitespace-nowrap">
+                  {review ? (
+                    T.relation
+                  ) : (
+                    <HeaderFilter
+                      title={V.documentStatus}
+                      value={status}
+                      onChange={(v) => {
+                        setStatus(v as DocumentStatus | "")
+                        setPage(1)
+                      }}
+                      options={Object.entries(DOCUMENT_STATUS_LABEL).map(
+                        ([value, label]) => ({ value, label }),
                       )}
-                    </TableCell>
-                    <TableCell className="min-w-32">
-                      <span
-                        className="block truncate"
-                        title={row.submitted_by_name || T.unknown}
-                      >
-                        {row.submitted_by_name || T.unknown}
+                    />
+                  )}
+                </TableHead>
+                {!review && (
+                  <TableHead className="whitespace-nowrap">{T.index}</TableHead>
+                )}
+                <TableHead className="whitespace-nowrap">{T.version}</TableHead>
+                <TableHead className="whitespace-nowrap">{T.author}</TableHead>
+                <TableHead className="whitespace-nowrap">{V.updated}</TableHead>
+                <TableHead className="whitespace-nowrap text-right">
+                  {V.actions}
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {documents.data.items.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={review ? 6 : 7}
+                    className="whitespace-normal py-10 text-center text-sm text-muted-foreground"
+                  >
+                    {review
+                      ? T.noPending
+                      : filtered
+                        ? T.filteredEmpty
+                        : T.empty}
+                  </TableCell>
+                </TableRow>
+              )}
+              {documents.data.items.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="min-w-72 whitespace-normal">
+                    <Link
+                      className="flex items-start gap-2.5 hover:text-link"
+                      to="/knowledge/$id"
+                      params={{ id: row.id }}
+                    >
+                      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-link">
+                        <FileText className="size-4" />
                       </span>
+                      <span className="line-clamp-2 text-sm font-medium leading-6 text-foreground [overflow-wrap:anywhere]">
+                        {row.title}
+                      </span>
+                    </Link>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {label(DOCUMENT_TYPE_LABEL, row.doc_type)}
+                  </TableCell>
+                  <TableCell>
+                    {review ? (
+                      row.version > 1 ? (
+                        T.update
+                      ) : (
+                        T.newDocument
+                      )
+                    ) : (
+                      <DocumentStatusBadge status={row.status} />
+                    )}
+                  </TableCell>
+                  {!review && (
+                    <TableCell>
+                      <IndexBadge
+                        documentStatus={row.status}
+                        status={row.index_status}
+                      />
                     </TableCell>
-                    <TableCell className="whitespace-normal text-xs text-muted-foreground">
-                      {formatTime(row.created_at)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Link
-                        className="whitespace-nowrap text-sm font-medium text-link hover:underline"
-                        to="/knowledge/$id"
-                        params={{ id: row.id }}
-                      >
-                        {review ? T.review : V.viewDetails}
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ))}
+                  )}
+                  <TableCell className="text-sm">
+                    v{row.version}
+                    {row.is_current && (
+                      <p className="mt-1 text-xs text-tone-ok">{T.current}</p>
+                    )}
+                  </TableCell>
+                  <TableCell className="min-w-32">
+                    <span
+                      className="block truncate"
+                      title={row.submitted_by_name || T.unknown}
+                    >
+                      {row.submitted_by_name || T.unknown}
+                    </span>
+                  </TableCell>
+                  <TableCell className="whitespace-normal text-xs text-muted-foreground">
+                    {formatTime(row.created_at)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Link
+                      className="whitespace-nowrap text-sm font-medium text-link hover:underline"
+                      to="/knowledge/$id"
+                      params={{ id: row.id }}
+                    >
+                      {review ? T.review : V.viewDetails}
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
       {documents.data && !documents.isError && (
         <Pager page={page} total={documents.data.total} onPage={setPage} />
       )}
