@@ -27,6 +27,7 @@ from app.domain.flow import FlowStatus
 from app.fakes.demo_llm import DemoLlmClient
 from app.infra.openai_compat import deepseek_client
 from app.models import (
+    ActivityInfo,
     BrandMember,
     EvidenceSummaryPublic,
     GenerationVersion,
@@ -207,7 +208,10 @@ def _task_public(
     return TaskPublic(
         id=task.id,
         brand_id=task.brand_id,
+        promo_type=task.promo_type,
         product_id=task.product_id,
+        extra_product_ids=[uuid.UUID(i) for i in task.extra_product_ids],
+        activity=ActivityInfo.model_validate(task.activity) if task.activity else None,
         scenario_id=task.scenario_id,
         product_name=labels[0],
         scenario_name=labels[1],

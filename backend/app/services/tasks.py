@@ -40,11 +40,13 @@ def create_task(
     scenario must belong to that brand (or be global, for scenarios); otherwise they look missing.
     Snapshots are embedded before anything is committed, so a model outage leaves nothing behind.
     """
-    product = session.get(Product, data.product_id)
-    if product is None or product.brand_id != data.brand_id:
-        raise NotFoundError("Product not found")
-    if product.status != ProductStatus.ACTIVE.value:
-        raise ConflictError("The product is archived")
+    product_ids = [i for i in [data.product_id, *data.extra_product_ids] if i]
+    for product_id in product_ids:
+        product = session.get(Product, product_id)
+        if product is None or product.brand_id != data.brand_id:
+            raise NotFoundError("Product not found")
+        if product.status != ProductStatus.ACTIVE.value:
+            raise ConflictError("The product is archived")
     scenario = session.get(ScenarioTemplate, data.scenario_id)
     if (
         scenario is None
@@ -55,7 +57,10 @@ def create_task(
 
     task = Task(
         brand_id=data.brand_id,
+        promo_type=data.promo_type,
         product_id=data.product_id,
+        extra_product_ids=[str(i) for i in data.extra_product_ids],
+        activity=data.activity.model_dump() if data.activity else None,
         scenario_id=data.scenario_id,
         style=data.style.model_dump(),
         brief=data.brief.strip(),
@@ -79,11 +84,46 @@ def create_task(
         actor_id=user_id,
         brand_id=data.brand_id,
         entity_id=task.id,
-        detail={"materials": len(data.task_materials)},
+        detail={
+            "materials": len(data.task_materials),
+            "promo_type": data.promo_type,
+            "products": len(product_ids),
+        },
     )
     session.commit()
     session.refresh(task)
     return task
+
+
+def task_product_ids(task: Task) -> list[uuid.UUID]:
+    """Every product of the task, the first one first; empty for an activity."""
+    return [
+        i
+        for i in [task.product_id, *(uuid.UUID(x) for x in task.extra_product_ids)]
+        if i
+    ]
+
+
+def task_products(*, session: Session, task: Task) -> list[Product]:
+    """The task's products in the order they were chosen; archived ones are still returned."""
+    found = {
+        p.id: p
+        for p in session.exec(
+            select(Product).where(col(Product.id).in_(task_product_ids(task)))
+        ).all()
+    }
+    return [found[i] for i in task_product_ids(task) if i in found]
+
+
+def restricted_claims(products: list[Product]) -> tuple[str, ...]:
+    """The claims no product of the task may make, each once."""
+    return tuple(dict.fromkeys(c for p in products for c in p.restricted_claims))
+
+
+def _promo_label(task: Task, names: dict[uuid.UUID, str]) -> str:
+    if task.promo_type == "activity":
+        return str((task.activity or {}).get("name", ""))
+    return "、".join(names.get(i, "") for i in task_product_ids(task) if i in names)
 
 
 def get_task(*, session: Session, task_id: uuid.UUID) -> Task:
@@ -106,19 +146,21 @@ def list_tasks(
     where: list[Any] = [Task.brand_id == brand_id]
     if status:
         where.append(Task.flow_status == status)
-    match = contains_any(q, col(Product.name), col(Task.brief))
+    match = contains_any(
+        q, col(Product.name), col(Task.brief), col(Task.activity)["name"].astext
+    )
     if match is not None:
         where.append(match)
     joined = (
         select(func.count())
         .select_from(Task)
-        .join(Product, col(Product.id) == col(Task.product_id))
+        .join(Product, col(Product.id) == col(Task.product_id), isouter=True)
     )
     total = session.exec(joined.where(*where)).one()
     order = col(Task.created_at).desc() if newest_first else col(Task.created_at).asc()
     rows = session.exec(
         select(Task)
-        .join(Product, col(Product.id) == col(Task.product_id))
+        .join(Product, col(Product.id) == col(Task.product_id), isouter=True)
         .where(*where)
         .order_by(order, col(Task.id))
         .offset((page - 1) * page_size)
@@ -167,11 +209,10 @@ def task_labels(
     """Product name, scenario name, scene and template version of each task, for list and detail views."""
     if not tasks:
         return {}
+    wanted = {i for t in tasks for i in task_product_ids(t)}
     products = {
         p.id: p.name
-        for p in session.exec(
-            select(Product).where(col(Product.id).in_({t.product_id for t in tasks}))
-        ).all()
+        for p in session.exec(select(Product).where(col(Product.id).in_(wanted))).all()
     }
     scenarios = {
         s.id: (s.name, s.scene, s.template_version)
@@ -183,7 +224,7 @@ def task_labels(
     }
     return {
         t.id: (
-            products.get(t.product_id, ""),
+            _promo_label(t, products),
             *scenarios.get(t.scenario_id, ("", "", 0)),
         )
         for t in tasks

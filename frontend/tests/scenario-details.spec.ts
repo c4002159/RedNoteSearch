@@ -271,3 +271,40 @@ test("Empty, error and loading states keep the table visible", async ({
   release?.()
   await expect(page.getByRole("table")).toContainText("还没有本品牌的模板")
 })
+
+test("Unknown creative type strings retain labels and the original value when copied", async ({
+  page,
+}) => {
+  const writes = await setup(page)
+  const custom = {
+    ...templates[1],
+    scene: "custom-scene-fixture",
+    name: "自定义类型模板（演示）",
+  }
+  await page.route("**/api/v1/brands/*/scenario-templates", (route) =>
+    route.request().method() === "GET"
+      ? route.fulfill({ json: { items: [custom] } })
+      : route.fallback(),
+  )
+  await page.goto("/scenarios")
+  await expect(page.getByRole("table")).toContainText(custom.scene)
+  await page
+    .getByRole("button", {
+      name: `查看模板详情：${custom.name} v1`,
+      exact: true,
+    })
+    .click()
+  const drawer = page.getByRole("dialog")
+  await expect(drawer).toContainText(custom.scene)
+  await drawer.getByRole("button", { name: "存为新版本", exact: true }).click()
+  const dialog = page.getByRole("dialog", { name: "存为新版本", exact: true })
+  await expect(dialog.getByLabel("创作类型", { exact: true })).toHaveValue(
+    custom.scene,
+  )
+  await expect(
+    dialog.getByLabel("创作类型", { exact: true }).locator("option:checked"),
+  ).toHaveText(custom.scene)
+  await dialog.getByRole("button", { name: "保存", exact: true }).click()
+  await expect.poll(() => writes.length).toBe(1)
+  expect(writes[0].body.scene).toBe(custom.scene)
+})

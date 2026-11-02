@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
-import { type ScenarioPublic, ScenariosService, type Scene } from "@/client"
+import { type ScenarioPublic, ScenariosService } from "@/client"
 import { CharCounter } from "@/components/Common/CharCounter"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
@@ -174,9 +174,15 @@ function BrandScenarios({
                   title={T.scene}
                   value={sceneFilter}
                   onChange={setSceneFilter}
-                  options={Object.entries(SCENE_LABEL).map(
-                    ([value, label]) => ({ value, label }),
-                  )}
+                  options={[
+                    ...new Set([
+                      ...Object.keys(SCENE_LABEL),
+                      ...rows.map((row) => row.scene),
+                    ]),
+                  ].map((value) => ({
+                    value,
+                    label: label(SCENE_LABEL, value),
+                  }))}
                 />
               </TableHead>
               <TableHead>{T.version}</TableHead>
@@ -231,8 +237,7 @@ function BrandScenarios({
                       </button>
                     </TableCell>
                     <TableCell className="min-w-28">
-                      {SCENE_LABEL[r.scene as keyof typeof SCENE_LABEL] ??
-                        r.scene}
+                      {label(SCENE_LABEL, r.scene)}
                     </TableCell>
                     <TableCell>v{r.template_version}</TableCell>
                     <TableCell className="max-w-72 whitespace-normal break-words">
@@ -392,7 +397,7 @@ function TemplateDialog({
       (
         await ScenariosService.createBrandTemplate({
           path: { brand_id: brandId },
-          body: { scene: scene as Scene, name, structure },
+          body: { scene, name, structure },
         })
       ).data,
     onSuccess: onSaved,
@@ -435,6 +440,9 @@ function TemplateDialog({
                 disabled={!!from}
                 onChange={(e) => setScene(e.target.value)}
               >
+                {from && !(scene in SCENE_LABEL) && (
+                  <option value={scene}>{label(SCENE_LABEL, scene)}</option>
+                )}
                 {Object.entries(SCENE_LABEL).map(([k, v]) => (
                   <option key={k} value={k}>
                     {v}
