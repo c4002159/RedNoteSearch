@@ -162,7 +162,12 @@ function TypeList({
                   T.count,
                   ...(admin ? [T.actions] : []),
                 ].map((text) => (
-                  <TableHead key={text}>{text}</TableHead>
+                  <TableHead
+                    key={text}
+                    className={text === T.count ? "text-right" : undefined}
+                  >
+                    {text}
+                  </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -207,7 +212,7 @@ function TypeList({
                         {row.builtin ? T.builtin : T.custom}
                       </Pill>
                     </TableCell>
-                    <TableCell className="tabular-nums">
+                    <TableCell className="text-right tabular-nums">
                       {row.template_count}
                     </TableCell>
                     {admin && (
