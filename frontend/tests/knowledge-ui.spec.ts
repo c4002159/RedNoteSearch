@@ -644,6 +644,47 @@ test.describe("R6 knowledge UI", () => {
     await expect(page.getByText("没有权限查看这个页面")).toBeVisible()
   })
 
+  test("预览不可用仍可成功批准，不要求相近处理决定", async ({ page }) => {
+    const state = await fixture(page, { unavailable: true })
+    await page.goto(`/knowledge/${id(3)}`)
+    await page
+      .getByRole("button", { name: "检查相近资料", exact: true })
+      .click()
+    await expect(
+      page.getByText("相似检查暂不可用", { exact: true }),
+    ).toBeVisible()
+    await beginReview(page)
+    await expect(
+      page.getByRole("button", { name: "审核通过", exact: true }),
+    ).toHaveCount(0)
+    expect(state.reviews).toHaveLength(1)
+    expect(state.reviews[0].similar_decision).toBeUndefined()
+    expect(state.documents.find((row) => row.id === id(3))?.status).toBe(
+      "approved",
+    )
+  })
+
+  test("临时来源提交失败保留表单并显示请求编号", async ({ page }) => {
+    const state = await fixture(page, { noteStatus: 500 })
+    await page.goto("/knowledge")
+    await page.getByRole("tab", { name: "临时来源", exact: true }).click()
+    await page
+      .getByRole("button", { name: "添加临时来源", exact: true })
+      .click()
+    const dialog = page.getByRole("dialog")
+    await dialog.getByLabel("标题", { exact: true }).fill("保留标题")
+    await dialog
+      .getByLabel("来源说明", { exact: true })
+      .fill("成员甲，今天会议")
+    await dialog.getByLabel("正文", { exact: true }).fill("保留正文")
+    await dialog.getByRole("button", { name: "提交", exact: true }).click()
+    await expect(dialog.getByText("kb-500", { exact: true })).toBeVisible()
+    await expect(dialog.getByLabel("正文", { exact: true })).toHaveValue(
+      "保留正文",
+    )
+    expect(state.notes).toHaveLength(1)
+  })
+
   test("1280 宽下编辑与对比弹窗无页面溢出且没有脚本错误", async ({
     page,
   }, info) => {
@@ -651,6 +692,24 @@ test.describe("R6 knowledge UI", () => {
     page.on("pageerror", (error) => errors.push(error.message))
     await fixture(page, { mode: "conflict" })
     await page.setViewportSize({ width: 1280, height: 900 })
+    await page.goto("/knowledge")
+    await page
+      .getByRole("row")
+      .filter({ hasText: "较旧来源" })
+      .getByRole("button", { name: "编辑", exact: true })
+      .click()
+    await expect(
+      page.getByRole("dialog", { name: "编辑资料并创建新版本", exact: true }),
+    ).toBeVisible()
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true)
+    await page.screenshot({
+      path: info.outputPath("edit-1280.png"),
+      animations: "disabled",
+    })
     await page.goto(`/knowledge/${id(3)}`)
     await beginReview(page)
     await expect(
@@ -663,7 +722,7 @@ test.describe("R6 knowledge UI", () => {
     ).toBe(true)
     await page.screenshot({
       path: info.outputPath("similarity-1280.png"),
-      fullPage: true,
+      animations: "disabled",
     })
     expect(errors).toEqual([])
   })
