@@ -1,6 +1,6 @@
 # 交接文档：接手的 AI 助手先读这个
 
-截至 2026-11-01，后端 P0 与 P1 都已合并进 `main`（P1：F12 #40、F14 #41、F13 #42、规则批量导入 #46、停用原因 #47；B 的设计稿第一、二批 #44、#45）。本文件由 A 的 AI 助手维护；事实以代码、`git log`、`docs/API_CONTRACT.md` 和 `docs/decisions/` 为准，冲突时听它们。接手后第一件事：`git fetch`、切到最新 `main`、读完本文件，再动手。
+截至 2026-11-02（第 11 节是最新事实），后端 P0 与 P1 都已合并进 `main`（P1：F12 #40、F14 #41、F13 #42、规则批量导入 #46、停用原因 #47；B 的设计稿第一、二批 #44、#45）。本文件由 A 的 AI 助手维护；事实以代码、`git log`、`docs/API_CONTRACT.md` 和 `docs/decisions/` 为准，冲突时听它们。接手后第一件事：`git fetch`、切到最新 `main`、读完本文件，再动手。
 
 ## 0. 一分钟版本
 
@@ -22,6 +22,10 @@
 | 人在回路 | 没有系统依据的断言必须由人逐条决定，成立才放行，导出里标注“人工确认，不是系统验证” | `domain/flow.py`、`services/versions.py` |
 | 评测 | 版本固定的评测集、三类评测（合规、核查、生成）、有定义的指标、人工评分与一致性 | `routes/evaluation.py`、`services/evaluation*.py` |
 | 演示数据 | `python -m app.seed`（占位内容，全部标“演示”） | `backend/app/seed.py` |
+| 推广对象 | 单品、多品、活动；提示词 gen-v6 | `models/generation.py`、`services/tasks.py`、`domain/generation/prompt.py` |
+| 创作类型 | 内置 6 类加品牌自定义 | `routes/creative_types.py`、`services/creative_types.py` |
+| 成绩记录 | 已确认文案、帖子网址、读数、待补与排序 | `routes/results.py`、`services/results.py`、`domain/results.py` |
+| 浏览器插件 | 只写密钥与 `POST /extension/metrics`；插件源码与说明 | `routes/extension.py`、`extensions/results-helper/`、`docs/EXTENSION.md` |
 
 **验证过的**：347 个测试在真实 PostgreSQL+pgvector 上通过，覆盖率 97%（基线 93），领域层 99%（门槛 90）；整栈 Docker 启动验证过；用真实的 DeepSeek 与百炼跑过一次完整流程（生成约 24 秒，防编造有效）。**没验证的**：真实模型的准确率与费用（价格没配置，费用显示为空，不猜）；评测集只有几条演示样本，说明不了模型好坏。
 
@@ -84,7 +88,7 @@
 - 协作规则：`CLAUDE.md`、`AI_TEAM_GUIDE.md`、`docs/INTEGRATION_FOR_B.md`
 - 需求与架构：`docs/TECHNICAL_DOC.md`（第 2 章需求、第 4 章前端、第 5 章数据库、第 7 章分工、第 10 章测试）
 - 接口：`docs/API_CONTRACT.md`（第 1 节通用约定，第 5 节任务与生成及“给前端的补充说明”，第 7 节评测）
-- 测试用例：`docs/TEST_CASES.csv`；决策：`docs/decisions/`（ADR-001 到 ADR-010）
+- 测试用例：`docs/TEST_CASES.csv`；决策：`docs/decisions/`（ADR-001 到 ADR-014）
 - 设计稿交付：`docs/design/README.md`
 
 ## 9. 2026-11-01 新增事实（接手前读）
@@ -112,3 +116,15 @@
 - **事实核查评测（真实模型，2026-11-02）**：把客户的评测样本中 12 条（award_claim、ingredient、product_spec、brand_story）配上来源段落，建成全局事实核查评测集，用 `deepseek-flash` 跑一次：准确率 0.75，对照基线（相信所有说法）0.50；“没有依据或相矛盾的说法被误判为有依据”0/6（基线 6/6）；“有依据的说法被正确判为有依据”3/6（偏保守）。来源段落与“违规”分成“没有依据 / 相矛盾”是我们按来源映射的，不是客户标注，样本只有 12 条，只能说明方向，不能写成准确率。另外 2 条 compliance_general 样本要靠规则库判，没有放进事实核查集。
 - **录视频前**：新建一个全新的库，用真实嵌入灌入真实资料；删除测试账号、评审数据和“（演示）”占位商品；不要与 `--fake-embeddings` 的库混用。
 - **2026-11-02 终检（本机）**：后端全量测试 473 通过，覆盖率 97%（基线文件仍为 93，可上调）。干净录制库 `app_rec` 已按真实嵌入建好（1 个品牌、1 个管理员、3 个真实商品、29 条 S1 规则、爆款模板、12 条事实核查评测集，无测试账号与“（演示）”商品），3 个商品各用真实模型生成一次，均在约 40 至 50 秒内到 `needs_human_review`。Docker 演练：镜像可构建，`docker compose run --rm backend bash scripts/prestart.sh` 之后登录与接口正常；本机若 5432、8080 被其他项目占用，用 `POSTGRES_PORT=5434`，adminer 可以不起。录制走本机后端加 `app_rec`，不走 Docker 库。
+
+## 11. 2026-11-02 之后新增（接手前读）
+
+- **迁移头**：`a1c5e9b3d7f2`（唯一 head；链：`d7f1b5c9e3a2` 推广对象 → `e8a2c6d0f4b3` 成绩记录 → `f9b3d7e1a5c4` 创作类型 → `a1c5e9b3d7f2` 插件密钥）。开新迁移前先 `alembic heads`。
+- **提示词 gen-v6**：在 gen-v5（多品、活动的目标描述）基础上，活动任务提示模型：结构建议里要求的活动时间、参与方式、规则，活动说明和福利没写的一律不编，只写“具体以活动页面公布的为准”。真实模型（冰希黎）多品与活动各跑一次：gen-v5 的活动稿编出了领取步骤，gen-v6 没有。样本只有各一篇，只能说明方向。
+- **推广对象**：`promo_type` 为 `product`（默认）、`multi_product`（`product_id` 主推加 `extra_product_ids`，搭配最多 4 个）、`activity`（`activity.name/detail/perks`，`product_id` 为空）。限制宣称与卖点取并集。旧任务不受影响。
+- **成绩记录**：确认版本时自动留一份“已确认文案”（每版本一份，迁移里对历史已确认版本做了幂等补建）；读数只增不改；网址只存不抓取，只接受 https 的 xiaohongshu.com、xhslink.com；发布满 3 天仍无读数算“待补”；“最热”要至少 3 篇有读数，否则返回“数据不足”。
+- **自定义创作类型**：`scene` 现在是字符串（内置 6 个键加 `c`+8 位十六进制的自定义键）；新建品牌模板时校验该键存在于内置或本品牌。
+- **浏览器插件**：见 `docs/EXTENSION.md` 与 ADR-014。选择器来自 B 的助手在真实页面上取的 DOM 结构，**只在副本上验证过，线上页面没有自动验证**；B 还要用真实 Chrome 实测。插件的解析测试（`node --test`）还没有进 CI，改 CI 需要先 @CHNERUI。
+- **前端还没有这四块的页面**：推广对象选择（`generate.tsx` 是 B 的文件）、创作类型管理、成绩记录页、插件密钥管理页，都在等 B 的设计稿；在那之前只能用接口。
+- **录视频前**：干净录制库 `app_rec` 要 `alembic upgrade head` 到 `a1c5e9b3d7f2` 才能确认版本；录制中不要用真实模型建测试任务（上次留下的 3 个已清理）。
+- **没验证的**：浏览器插件在线上页面；多品、活动的批量质量（各只跑过一篇）；成绩排序在真实数据量下的表现。

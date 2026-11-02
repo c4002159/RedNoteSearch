@@ -1073,3 +1073,88 @@ export const EVIDENCE_BATCH_REVIEW_TEXT = {
   rejectHint:
     "只处理系统尚未判定支持的断言。此操作会覆盖本版已有的人工判断；系统状态不变。请逐项核对下列清单，提交后可再单条修改。",
 } as const
+
+// 结果页按建议改写与标签重写。
+export const RESULT_REWRITE_TEXT = {
+  risk: "按建议改写",
+  allRisks: "一键处理全部风险",
+  tags: "换一批标签",
+  emptyTags: "暂无推荐标签",
+  pending: "正在改写，完成后将打开新版本；原版本保留。",
+  hint: "改写会生成新版本并重新检查。建议超过 500 字时会截断，请在新版本核对剩余风险。",
+  noSuggestion: "部分待处理风险没有改写建议，请先人工处理；不会替你编造建议。",
+  instruction: (matched: string, suggestion: string) =>
+    `把‘${matched}’改为：${suggestion}`,
+} as const
+
+export const RISK_REWRITE_REVIEW_TEXT = {
+  hint: "按命中字段分组顺序改写；每次最多 500 字，超长建议分步处理，不丢弃后续条目。每步生成新版本，请最后核对。",
+  manual: "请手动编辑",
+  manualHint:
+    "部分风险缺少建议、字段不支持改写或命中文字过长，请先手动编辑；不会跳过这些风险。",
+  progress: (n: number, total: number) => `第 ${n} / ${total} 步`,
+  stopped: (fields: string, count: number, total: number) =>
+    `改写已停止：已完成 ${count} / ${total} 步（${fields}），后续步骤未执行。请打开已生成版本核对，勿从旧版重复提交。`,
+  openLast: "打开已完成的最新版本",
+  targets: {
+    titles: "标题",
+    body: "正文",
+    cover: "封面",
+    hashtags: "标签",
+    opening: "开头",
+  },
+} as const
+
+export const VIRAL_DELETE_TEXT = {
+  sampleHint:
+    "添加后不能编辑原文；品牌管理员可以删除样本及其分析结构。请仅粘贴已获授权的文本，最多 5000 个 Unicode 码点。",
+  single: "删除",
+  bulk: "批量删除",
+  clear: "清除选择",
+  selectColumn: "选择样本",
+  select: (excerpt: string) => `选择样本：${excerpt}`,
+  selected: (count: number) => `已选 ${count} 个，最多 50 个（可跨页选择）`,
+  actions: "操作",
+  confirmTitle: "确认删除样本",
+  confirm: (count: number) => `将删除 ${count} 个样本，无法撤销。`,
+  consequence:
+    "样本及其分析结构会一起删除；已转换的场景模板会保留，来源名称也会保留。",
+  cancel: "取消",
+  confirmAction: "确认删除",
+} as const
+
+export const VIRAL_TEMPLATE_EDIT_TEXT = {
+  structure: "模板结构",
+  required: "请填写模板结构",
+  tooLong: "模板结构不能超过 2000 字",
+  hint: "可修改结构后再转换；保存的是本次填写的文字，不改动原结构。",
+  conflict:
+    "此品牌已有同创作类型、同名模板。请选择存为新版本，或换个名字后再提交。",
+  rename: "换个名字",
+  newVersion: "存为新版本",
+} as const
+
+// 场景模板详情与筛选。
+export const SCENARIO_DETAIL_TEXT = {
+  detail: "模板详情",
+  view: "查看模板详情",
+  actions: "操作",
+  clear: "清除筛选",
+  filteredEmpty: "没有符合筛选条件的模板",
+  noSource: "未记录来源爆款",
+  sourceUnavailable: "来源结构已不可用，仅保留标题",
+  builtinCopy:
+    "内置模板会另存为当前品牌模板；已有同名品牌模板时生成新版本，不修改全局模板。",
+  newVersionHint:
+    "以当前内容为底保存新版本，不修改原版本；同名模板的版本号由服务端递增。",
+  readonly: "当前角色只读，可查看完整结构与来源。",
+  close: "关闭",
+} as const
+
+// 场景模板与爆款分析的共用导航。
+export const TEMPLATE_ANALYSIS_TABS = {
+  group: "品牌与商品",
+  label: "模板与爆款分析",
+  templates: "场景模板",
+  viral: "爆款分析",
+} as const
