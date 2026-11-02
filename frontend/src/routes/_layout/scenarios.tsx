@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
-import { type ScenarioPublic, ScenariosService, type Scene } from "@/client"
+import { type ScenarioPublic, ScenariosService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { Pill } from "@/components/Common/StatusBadge"
@@ -224,7 +224,7 @@ function TemplateDialog({
       (
         await ScenariosService.createBrandTemplate({
           path: { brand_id: brandId },
-          body: { scene: scene as Scene, name, structure },
+          body: { scene, name, structure },
         })
       ).data,
     onSuccess: onSaved,

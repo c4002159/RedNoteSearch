@@ -214,6 +214,17 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - 多品任务：提示词里每个商品的卖点前面标出商品名，禁止宣称取各商品的并集；提示词版本为 `gen-v5`。
 约束检查（与发布页一致，ADR-004、ADR-005）：标题加权长度 `title_weight ≤ 20`（ASCII 可打印字符计 0.5，其余按 UTF-16 码元计 1，即汉字与全角标点 1、emoji 2，2026-11-01 发布页实测）；正文 `body_units ≤ 1000`（去掉换行后的 UTF-16 码元数，emoji 计 2）；标签 ≤10，且标签的可见字符计入正文预算。后端判定为准，前端镜像同一规则。
 
+### 创作类型（品牌自己的笔记类型）
+
+六个内置类型（`seeding` 种草、`review` 测评、`tutorial` 教程、`launch` 上新、`promotion` 促销、`story` 故事）不变。品牌可以再加自己的类型，用于场景模板分类和筛选；生成时仍只用模板的名称和结构，类型只是标签。
+
+- `GET /brands/{brand_id}/creative-types`：品牌成员；先六个内置，再按创建时间列出品牌自己的。每项 `{"key","name","builtin","template_count"}`，`template_count` 是使用该类型的模板版本数（内置类型含全局模板）。
+- `POST /brands/{brand_id}/creative-types` `{"name"(1-20,去首尾空白)}`：品牌 admin；201；返回 `{"key"(服务端生成,形如 c1a2b3c4d),"name","builtin":false,"template_count":0}`。名称不得与内置类型或已有自己的类型重复（不区分大小写，409），每个品牌最多 20 个自己的类型（409）。
+- `PATCH /brands/{brand_id}/creative-types/{key}` `{"name"}`：品牌 admin；只改名称，`key` 不变，模板自动跟随。内置类型 409，不存在 404。
+- `DELETE /brands/{brand_id}/creative-types/{key}`：品牌 admin；204。**只有没有任何模板版本（含已停用的）和没有已确认文案使用时才能删**，否则 409，`details` 给出 `templates`、`confirmed_copies` 的数量；内置类型 409。
+- **`scene` 的含义变化（只放宽）**：`POST /brands/{brand_id}/scenario-templates` 与爆款转模板的 `scene` 由固定六选一改为字符串（1-20），取值须是内置类型或本品牌自己的类型的 `key`，否则 422。其它返回里的 `scene` 字段本来就是字符串，现在可能是自己类型的 `key`；显示名称请用本接口的 `name` 对照。
+- 审计：`creative_type.create`、`creative_type.rename`、`creative_type.delete`（只记 `key`）。
+
 ### 成绩记录（已确认文案、帖子网址、成绩读数）
 
 目的：运营确认文案后发到小红书，回来登记帖子网址和成绩，系统据此给出“最常用”“最热”。**系统不访问小红书**：网址只保存、不打开；成绩由人填写（或用户自己浏览器里的插件填写，见后续 PR）。已确认文案的正文留在版本上，这里不复制进知识库（避免把生成的文案当作资料反过来引用）。

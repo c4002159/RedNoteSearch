@@ -42,7 +42,7 @@ def create_brand_template(
     row = scenario_service.create_brand_template(
         session,
         brand_id=access.brand_id,
-        scene=body.scene.value,
+        scene=body.scene,
         name=body.name.strip(),
         structure=body.structure.strip(),
         actor_id=user.id,

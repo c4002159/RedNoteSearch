@@ -40,6 +40,12 @@ from app.models.compliance import (
     RulesPublic,
     RuleUpdate,
 )
+from app.models.creative_type import (
+    CreativeType,
+    CreativeTypeCreate,
+    CreativeTypePublic,
+    CreativeTypesPublic,
+)
 from app.models.evaluation import (
     AgreementPublic,
     CaseIn,
@@ -183,6 +189,10 @@ from app.models.viral import ViralPattern as ViralPattern
 from app.models.viral import ViralSample as ViralSample
 
 __all__ = [
+    "CreativeType",
+    "CreativeTypeCreate",
+    "CreativeTypePublic",
+    "CreativeTypesPublic",
     "ConfirmedCopiesPublic",
     "ConfirmedCopy",
     "ConfirmedCopyPublic",

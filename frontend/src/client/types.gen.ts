@@ -713,6 +713,48 @@ export type ConfirmedCopyUpdate = {
 };
 
 /**
+ * CreativeTypeCreate
+ */
+export type CreativeTypeCreate = {
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * CreativeTypePublic
+ */
+export type CreativeTypePublic = {
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Builtin
+     */
+    builtin: boolean;
+    /**
+     * Template Count
+     */
+    template_count: number;
+};
+
+/**
+ * CreativeTypesPublic
+ */
+export type CreativeTypesPublic = {
+    /**
+     * Items
+     */
+    items: Array<CreativeTypePublic>;
+};
+
+/**
  * DatasetCreate
  */
 export type DatasetCreate = {
@@ -2297,7 +2339,10 @@ export type RunsPublic = {
  * A new brand template, or the next version when the scene and name already exist.
  */
 export type ScenarioCreate = {
-    scene: Scene;
+    /**
+     * Scene
+     */
+    scene: string;
     /**
      * Name
      */
@@ -2369,11 +2414,6 @@ export type ScenariosPublic = {
      */
     items: Array<ScenarioPublic>;
 };
-
-/**
- * Scene
- */
-export type Scene = 'seeding' | 'review' | 'tutorial' | 'launch' | 'promotion' | 'story';
 
 /**
  * SellingPoint
@@ -3142,7 +3182,10 @@ export type ViralToTemplateRequest = {
      * Name
      */
     name: string;
-    scene: Scene;
+    /**
+     * Scene
+     */
+    scene: string;
     /**
      * Structure
      */
@@ -4453,6 +4496,134 @@ export type scenariosUpdateTemplateResponses = {
 };
 
 export type scenariosUpdateTemplateResponse = scenariosUpdateTemplateResponses[keyof scenariosUpdateTemplateResponses];
+
+export type creativeTypesReadCreativeTypesData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/creative-types';
+};
+
+export type creativeTypesReadCreativeTypesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type creativeTypesReadCreativeTypesError = creativeTypesReadCreativeTypesErrors[keyof creativeTypesReadCreativeTypesErrors];
+
+export type creativeTypesReadCreativeTypesResponses = {
+    /**
+     * Successful Response
+     */
+    200: CreativeTypesPublic;
+};
+
+export type creativeTypesReadCreativeTypesResponse = creativeTypesReadCreativeTypesResponses[keyof creativeTypesReadCreativeTypesResponses];
+
+export type creativeTypesCreateCreativeTypeData = {
+    body: CreativeTypeCreate;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/creative-types';
+};
+
+export type creativeTypesCreateCreativeTypeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type creativeTypesCreateCreativeTypeError = creativeTypesCreateCreativeTypeErrors[keyof creativeTypesCreateCreativeTypeErrors];
+
+export type creativeTypesCreateCreativeTypeResponses = {
+    /**
+     * Successful Response
+     */
+    201: CreativeTypePublic;
+};
+
+export type creativeTypesCreateCreativeTypeResponse = creativeTypesCreateCreativeTypeResponses[keyof creativeTypesCreateCreativeTypeResponses];
+
+export type creativeTypesDeleteCreativeTypeData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/creative-types/{key}';
+};
+
+export type creativeTypesDeleteCreativeTypeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type creativeTypesDeleteCreativeTypeError = creativeTypesDeleteCreativeTypeErrors[keyof creativeTypesDeleteCreativeTypeErrors];
+
+export type creativeTypesDeleteCreativeTypeResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type creativeTypesDeleteCreativeTypeResponse = creativeTypesDeleteCreativeTypeResponses[keyof creativeTypesDeleteCreativeTypeResponses];
+
+export type creativeTypesRenameCreativeTypeData = {
+    body: CreativeTypeCreate;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/creative-types/{key}';
+};
+
+export type creativeTypesRenameCreativeTypeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type creativeTypesRenameCreativeTypeError = creativeTypesRenameCreativeTypeErrors[keyof creativeTypesRenameCreativeTypeErrors];
+
+export type creativeTypesRenameCreativeTypeResponses = {
+    /**
+     * Successful Response
+     */
+    200: CreativeTypePublic;
+};
+
+export type creativeTypesRenameCreativeTypeResponse = creativeTypesRenameCreativeTypeResponses[keyof creativeTypesRenameCreativeTypeResponses];
 
 export type resultsReadConfirmedCopiesData = {
     body?: never;
