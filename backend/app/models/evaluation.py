@@ -2,9 +2,10 @@ import enum
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from pydantic import Field as PydanticField
 from sqlalchemy import (
     CheckConstraint,
     Column,
@@ -194,6 +195,21 @@ class DatasetCreate(BaseModel):
     cases: list[CaseIn] = Field(min_length=1, max_length=200)
     # Create the next version of an existing dataset instead of a new one.
     previous_version_id: uuid.UUID | None = None
+
+
+class DatasetCaseUpdate(CaseIn):
+    model_config = ConfigDict(extra="forbid")
+    case_index: int = PydanticField(ge=0, strict=True)
+
+
+class DatasetRevisionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    updates: list[DatasetCaseUpdate] = PydanticField(
+        default_factory=list, max_length=200
+    )
+    delete_case_indexes: list[Annotated[int, PydanticField(ge=0, strict=True)]] = (
+        PydanticField(default_factory=list, max_length=200)
+    )
 
 
 class DatasetPublic(SQLModel):

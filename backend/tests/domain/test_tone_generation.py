@@ -2,7 +2,12 @@ import json
 
 import pytest
 
-from app.domain.tone import InvalidToneOutput, NoValidTones, filter_generated_tones
+from app.domain.tone import (
+    InvalidToneOutput,
+    NoValidTones,
+    filter_generated_tones,
+    tone_key,
+)
 from app.domain.tone_prompt import TONE_PROMPT_VERSION, build_tone_prompt
 from app.fakes.demo_llm import DemoLlmClient
 from app.ports.llm import LlmMessage, LlmRequest
@@ -126,3 +131,51 @@ def test_demo_fixed_prompt_and_count(keywords: list[str]) -> None:
         assert all(any(k in item.tone for k in keywords) for item in items)
     else:
         assert "profile" not in context
+
+
+def test_width_case_spaces_and_punctuation_do_not_make_a_tone_new() -> None:
+    items = filter_generated_tones(
+        answer(
+            ("温柔，叙事", "描述"),
+            ("温柔 叙事", "描述"),
+            ("ＡＢ Calm", "描述"),
+            ("ab calm!", "描述"),
+            ("全新", "描述"),
+        ),
+        existing=["温柔叙事"],
+    )
+    assert [i.tone for i in items] == ["ＡＢ Calm", "全新"]
+
+
+@pytest.mark.parametrize(
+    "left,right",
+    [
+        (" ＡＢ，Calm! ", "ab calm"),
+        ("温柔、叙述", "温柔\u3000叙述"),
+        ("Straße", "STRASSE"),
+    ],
+)
+def test_tone_key_equivalence(left: str, right: str) -> None:
+    assert tone_key(left) == tone_key(right)
+
+
+def test_symbol_differences_remain_and_empty_keys_are_discarded() -> None:
+    assert tone_key("C+") != tone_key("C")
+    assert tone_key("🙂") != tone_key("🙃")
+    assert tone_key("！？\u3000") == ""
+    with pytest.raises(NoValidTones):
+        filter_generated_tones(answer(("！！！", "描述")))
+    with pytest.raises(NoValidTones):
+        filter_generated_tones(answer(("已有！", "描述")), existing=["已有"])
+
+
+def test_exclude_request_bounds_without_database() -> None:
+    from pydantic import ValidationError
+
+    from app.services.tone_generate import ToneGenerateRequest
+
+    assert ToneGenerateRequest().exclude == []
+    assert len(ToneGenerateRequest(exclude=["字" * 40] * 30).exclude) == 30
+    for value in ([""], ["字" * 41], ["字"] * 31, [1], None, "text"):
+        with pytest.raises(ValidationError):
+            ToneGenerateRequest.model_validate({"exclude": value})
