@@ -205,7 +205,17 @@ async function fixture(
       if (matched[2] === "reviews") {
         const body = request.postDataJSON()
         state.reviews.push(body)
-        if (body.action === "cancel") return route.fulfill({ json: row })
+        if (body.action === "cancel") {
+          if (
+            [
+              "similarity_token",
+              "similar_decision",
+              "related_document_ids",
+            ].some((field) => field in body)
+          )
+            return fail(422)
+          return route.fulfill({ json: row })
+        }
         if (options.mode === "503") return fail(503)
         if (
           options.mode &&
@@ -495,7 +505,9 @@ test.describe("R6 knowledge UI", () => {
   })
 
   for (const decision of ["coexist", "new_wins", "cancel"] as const)
-    test(`409 审核决定 ${decision}，理由必填且携带签名`, async ({ page }) => {
+    test(`409 审核决定 ${decision}，理由必填且请求体符合契约`, async ({
+      page,
+    }) => {
       const state = await fixture(page, { mode: "conflict" })
       await page.goto(`/knowledge/${id(3)}`)
       await beginReview(page)
@@ -544,20 +556,33 @@ test.describe("R6 knowledge UI", () => {
       await dialog.getByRole("button", { name: confirm, exact: true }).click()
       await expect(dialog).toHaveCount(0)
       const sent = state.reviews[state.reviews.length - 1]!
-      expect(sent.similarity_token).toBe("token-1")
       expect(sent.action).toBe(decision === "cancel" ? "cancel" : "approve")
       expect(sent.reason).toBe("审核人的处理理由")
       if (decision !== "cancel") {
+        expect(sent.similarity_token).toBe("token-1")
         expect(sent.similar_decision).toBe(decision)
         expect(sent.related_document_ids).toEqual(
           decision === "new_wins" ? [id(1)] : [],
         )
       } else {
+        expect(sent).toEqual({ action: "cancel", reason: "审核人的处理理由" })
+        for (const field of [
+          "similarity_token",
+          "similar_decision",
+          "related_document_ids",
+        ])
+          expect(sent).not.toHaveProperty(field)
         expect(state.documents.find((row) => row.id === id(3))?.status).toBe(
           "pending_review",
         )
         await expect(
           page.getByText("已记录取消，资料保持待审", { exact: true }),
+        ).toBeVisible()
+        await expect(
+          page.getByRole("button", { name: "审核通过", exact: true }),
+        ).toBeEnabled()
+        await expect(
+          page.getByText("待审核", { exact: true }).first(),
         ).toBeVisible()
       }
     })

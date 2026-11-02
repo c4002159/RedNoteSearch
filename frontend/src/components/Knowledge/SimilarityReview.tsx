@@ -200,7 +200,6 @@ export function SimilarityReview({
                   ? {
                       action: "cancel",
                       reason: reason.trim(),
-                      similarity_token: conflict.token,
                     }
                   : {
                       action: "approve",
