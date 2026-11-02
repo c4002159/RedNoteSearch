@@ -44,6 +44,10 @@
 
     <details id="settings">
       <summary>连接设置</summary>
+      <label for="config">连接配置（系统密钥页上的整串，粘贴后一步完成）</label>
+      <input id="config" type="password" autocomplete="off" />
+      <button id="useConfig" class="secondary">使用配置并授权</button>
+      <p class="note">没有配置串时，也可以手动填写下面两项。</p>
       <label for="server">系统地址（例如 http://localhost:8011）</label>
       <input id="server" type="text" autocomplete="off" />
       <label for="key">插件密钥（由品牌管理员在系统里生成）</label>
