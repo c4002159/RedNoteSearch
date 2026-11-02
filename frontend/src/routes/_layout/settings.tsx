@@ -48,12 +48,14 @@ function SettingsPage() {
             >
               {T.passwordTab}
             </TabsTrigger>
-            <TabsTrigger
-              className="flex-none rounded-none border-0 border-b-2 border-transparent px-0 py-3 text-base font-semibold data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-link data-[state=active]:shadow-none"
-              value="models"
-            >
-              模型与密钥
-            </TabsTrigger>
+            {user.data.is_superuser && (
+              <TabsTrigger
+                className="flex-none rounded-none border-0 border-b-2 border-transparent px-0 py-3 text-base font-semibold data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-link data-[state=active]:shadow-none"
+                value="models"
+              >
+                模型与密钥
+              </TabsTrigger>
+            )}
           </TabsList>
           <div className="grid items-start gap-6 xl:grid-cols-2">
             <TabsContent
@@ -70,9 +72,11 @@ function SettingsPage() {
             >
               <ChangePassword />
             </TabsContent>
-            <TabsContent className="m-0 xl:col-span-2" value="models">
-              <ModelConfig />
-            </TabsContent>
+            {user.data.is_superuser && (
+              <TabsContent className="m-0 xl:col-span-2" value="models">
+                <ModelConfig />
+              </TabsContent>
+            )}
           </div>
         </Tabs>
       )}

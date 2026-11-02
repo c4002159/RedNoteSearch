@@ -61,7 +61,8 @@ test("Brand and rule errors stay Chinese and preserve request ids", async ({
     .press("Enter")
 
   await page.goto("/compliance/rules")
-  await page.getByRole("button", { name: "导入规则", exact: true }).click()
+  await page.getByRole("button", { name: "更多操作", exact: true }).click()
+  await page.getByRole("menuitem", { name: "导入规则", exact: true }).click()
   await page.locator("#rules-file").setInputFiles({
     name: "invalid.json",
     mimeType: "application/json",

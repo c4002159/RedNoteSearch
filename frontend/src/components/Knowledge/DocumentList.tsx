@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
+import { FileText } from "lucide-react"
 import { useState } from "react"
 import {
   type DocumentStatus,
@@ -155,12 +156,14 @@ function BrandDocuments({
         />
       )}
       {documents.data && !documents.isError && (
-        <div className="min-w-0 overflow-hidden rounded-xl bg-card shadow-sm">
-          <Table className="w-full table-fixed">
+        <div className="min-w-0 overflow-x-auto rounded-xl bg-card shadow-sm">
+          <Table className="w-full min-w-[62rem] text-sm">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-1/4">{V.documentTitle}</TableHead>
-                <TableHead className="w-28 min-w-28 whitespace-nowrap">
+                <TableHead className="min-w-72 whitespace-nowrap">
+                  {V.documentTitle}
+                </TableHead>
+                <TableHead className="whitespace-nowrap">
                   <HeaderFilter
                     title={V.typeColumn}
                     value={type}
@@ -173,7 +176,7 @@ function BrandDocuments({
                     )}
                   />
                 </TableHead>
-                <TableHead className="w-28 whitespace-nowrap">
+                <TableHead className="min-w-32 whitespace-nowrap">
                   {review ? (
                     T.relation
                   ) : (
@@ -191,20 +194,12 @@ function BrandDocuments({
                   )}
                 </TableHead>
                 {!review && (
-                  <TableHead className="w-24 whitespace-nowrap">
-                    {T.index}
-                  </TableHead>
+                  <TableHead className="whitespace-nowrap">{T.index}</TableHead>
                 )}
-                <TableHead className="w-16 whitespace-nowrap">
-                  {T.version}
-                </TableHead>
-                <TableHead className="w-36 min-w-32 whitespace-nowrap">
-                  {T.author}
-                </TableHead>
-                <TableHead className="w-32 whitespace-nowrap">
-                  {V.updated}
-                </TableHead>
-                <TableHead className="w-24 whitespace-nowrap text-right">
+                <TableHead className="whitespace-nowrap">{T.version}</TableHead>
+                <TableHead className="whitespace-nowrap">{T.author}</TableHead>
+                <TableHead className="whitespace-nowrap">{V.updated}</TableHead>
+                <TableHead className="whitespace-nowrap text-right">
                   {V.actions}
                 </TableHead>
               </TableRow>
@@ -226,13 +221,18 @@ function BrandDocuments({
               )}
               {documents.data.items.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className="whitespace-normal [overflow-wrap:anywhere]">
+                  <TableCell className="min-w-72 whitespace-normal">
                     <Link
-                      className="font-medium text-link hover:underline"
+                      className="flex items-start gap-2.5 hover:text-link"
                       to="/knowledge/$id"
                       params={{ id: row.id }}
                     >
-                      {row.title}
+                      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-link">
+                        <FileText className="size-4" />
+                      </span>
+                      <span className="line-clamp-2 text-sm font-medium leading-6 text-foreground [overflow-wrap:anywhere]">
+                        {row.title}
+                      </span>
                     </Link>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">

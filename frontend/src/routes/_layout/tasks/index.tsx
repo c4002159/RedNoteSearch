@@ -1,14 +1,20 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { ChevronDown, ChevronUp } from "lucide-react"
-import { Fragment, useState } from "react"
+import { useState } from "react"
 
 import { type FlowStatus, TasksService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
-import { FilterSelect } from "@/components/Common/FilterSelect"
+import { HeaderFilter } from "@/components/Common/FilterSelect"
 import { FlowStatusBadge } from "@/components/Common/StatusBadge"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -40,8 +46,7 @@ function VersionHistory({ taskId }: { taskId: string }) {
   })
   const items = versions.data?.items ?? []
   return (
-    <div className="rounded-xl bg-card p-5 shadow-sm">
-      <h3 className="text-base font-semibold">版本历史</h3>
+    <div>
       {versions.isLoading && <Skeleton className="mt-3 h-16 w-full" />}
       {versions.isError && (
         <div className="mt-3">
@@ -213,36 +218,6 @@ function TasksPage() {
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <FilterSelect
-          title="状态"
-          value={status}
-          onChange={(v) => {
-            setStatus(v as FlowStatus | "")
-            setPage(1)
-          }}
-          options={[
-            { value: "", label: "全部" },
-            ...Object.entries(FLOW_STATUS_LABEL).map(([value, label]) => ({
-              value,
-              label,
-            })),
-          ]}
-        />
-        <FilterSelect
-          title="创建时间"
-          value={sort}
-          onChange={(v) => {
-            setSort(v)
-            setPage(1)
-          }}
-          options={[
-            { value: "-created_at", label: "最新在前" },
-            { value: "created_at", label: "最早在前" },
-          ]}
-        />
-      </div>
-
       {!current && (
         <EmptyState title="请先选择品牌" description="在顶栏选择一个品牌。" />
       )}
@@ -253,82 +228,91 @@ function TasksPage() {
           onRetry={() => tasks.refetch()}
         />
       )}
-      {tasks.data && tasks.data.items.length === 0 && (
-        <EmptyState
-          title={status ? "没有符合条件的任务" : "还没有任务"}
-          description={
-            status ? "换一个状态再看看。" : "到生成工作台创建第一个任务。"
-          }
-        />
-      )}
-      {tasks.data && tasks.data.items.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border bg-card">
+      {tasks.data && (
+        <div className="overflow-x-auto rounded-xl border border-border/40 bg-card shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>创建时间</TableHead>
+                <TableHead className="whitespace-nowrap">
+                  <HeaderFilter
+                    title="创建时间"
+                    showAll={false}
+                    value={sort === "-created_at" ? "" : sort}
+                    onChange={(v) => {
+                      setSort(v === "" ? "-created_at" : v)
+                      setPage(1)
+                    }}
+                    options={[
+                      { value: "", label: "最新在前" },
+                      { value: "created_at", label: "最早在前" },
+                    ]}
+                  />
+                </TableHead>
                 <TableHead>商品</TableHead>
                 <TableHead>场景</TableHead>
-                <TableHead>状态</TableHead>
+                <TableHead className="whitespace-nowrap">
+                  <HeaderFilter
+                    title="状态"
+                    value={status}
+                    onChange={(v) => {
+                      setStatus(v as FlowStatus | "")
+                      setPage(1)
+                    }}
+                    options={Object.entries(FLOW_STATUS_LABEL).map(
+                      ([value, label]) => ({ value, label }),
+                    )}
+                  />
+                </TableHead>
                 <TableHead>最新版本</TableHead>
                 <TableHead className="text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tasks.data.items.map((t) => {
-                const expanded = open === t.id
-                return (
-                  <Fragment key={t.id}>
-                    <TableRow>
-                      <TableCell className="text-muted-foreground">
-                        {formatTime(t.created_at)}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {t.product_name ?? "—"}
-                      </TableCell>
-                      <TableCell>{t.scenario_name ?? "—"}</TableCell>
-                      <TableCell>
-                        <FlowStatusBadge status={t.flow_status} />
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {t.latest_version_id ? "已有版本" : "版本 —"}
-                      </TableCell>
-                      <TableCell className="space-x-4 text-right text-[13px] font-medium">
-                        <Link
-                          className="text-link hover:underline"
-                          to="/tasks/$taskId"
-                          params={{ taskId: t.id }}
-                        >
-                          详情
-                        </Link>
-                        <button
-                          type="button"
-                          aria-expanded={expanded}
-                          className="inline-flex items-center gap-0.5 text-link hover:underline"
-                          onClick={() => setOpen(expanded ? null : t.id)}
-                        >
-                          查看
-                          {expanded ? (
-                            <ChevronUp className="size-4" />
-                          ) : (
-                            <ChevronDown className="size-4" />
-                          )}
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                    {expanded && (
-                      <TableRow className="bg-accent/60 hover:bg-accent/60">
-                        <TableCell
-                          colSpan={6}
-                          className="p-5 whitespace-normal"
-                        >
-                          <VersionHistory taskId={t.id} />
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </Fragment>
-                )
-              })}
+              {tasks.data.items.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="py-10 text-center text-sm text-muted-foreground"
+                  >
+                    {status
+                      ? "没有符合条件的任务。"
+                      : "还没有任务，到生成工作台创建第一个。"}
+                  </TableCell>
+                </TableRow>
+              )}
+              {tasks.data.items.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className="text-muted-foreground">
+                    {formatTime(t.created_at)}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {t.product_name ?? "—"}
+                  </TableCell>
+                  <TableCell>{t.scenario_name ?? "—"}</TableCell>
+                  <TableCell>
+                    <FlowStatusBadge status={t.flow_status} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {t.latest_version_id ? "已有版本" : "版本 —"}
+                  </TableCell>
+                  <TableCell className="space-x-4 text-right text-[13px] font-medium">
+                    <Link
+                      className="text-link hover:underline"
+                      to="/tasks/$taskId"
+                      params={{ taskId: t.id }}
+                    >
+                      详情
+                    </Link>
+                    <button
+                      type="button"
+                      className="text-link hover:underline"
+                      onClick={() => setOpen(t.id)}
+                    >
+                      查看
+                    </button>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>
@@ -344,6 +328,17 @@ function TasksPage() {
           )}
         </div>
       )}
+      <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>版本历史</DialogTitle>
+            <DialogDescription>
+              打开某个版本，或把它和上一版对比。
+            </DialogDescription>
+          </DialogHeader>
+          {open && <VersionHistory taskId={open} />}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
