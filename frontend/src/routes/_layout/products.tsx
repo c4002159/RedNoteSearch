@@ -273,8 +273,10 @@ function ProductsPage() {
               (previous) =>
                 new Set([...previous].filter((id) => !ids.includes(id))),
             )
-            if (ids.length) setPage(1)
-            refresh()
+            if (ids.length) {
+              setPage(1)
+              refresh()
+            }
           }}
         />
       )}
