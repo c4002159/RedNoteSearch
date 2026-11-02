@@ -209,5 +209,6 @@ def test_activity_prompt_tells_the_model_not_to_invent_steps() -> None:
 def test_prompt_does_not_invent_occasions_or_audiences() -> None:
     from app.domain.generation.prompt import SYSTEM_PROMPT
 
-    for phrase in ("适用场合", "适合人群", "通勤", "具体适合的场合以品牌资料为准"):
+    for phrase in ("适用场合", "适合人群", "通勤", "直接不写"):
         assert phrase in SYSTEM_PROMPT
+    assert "只写“具体适合的场合以品牌资料为准”" not in SYSTEM_PROMPT
