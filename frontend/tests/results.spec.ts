@@ -199,6 +199,122 @@ test("Results list, search, pending tab and member access", async ({
   )
 })
 
+for (const pending of [false, true])
+  test(`Results search empty state clears query and preserves pending=${pending}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await setup(page)
+    const queries: URL[] = []
+    await page.route("**/api/v1/brands/*/confirmed-copies?*", (route) => {
+      const url = new URL(route.request().url())
+      queries.push(url)
+      const items = url.searchParams.get("q") ? [] : [copy]
+      return route.fulfill({
+        json: { items, total: items.length, page: 1, page_size: 20 },
+      })
+    })
+    await page.goto("/results")
+    await expect(
+      page.getByRole("cell", { name: /周一通勤香气分享/ }),
+    ).toBeVisible()
+    if (pending) await page.getByRole("tab", { name: "待补成绩（1）" }).click()
+    await page
+      .getByRole("textbox", { name: "搜索文案标题" })
+      .fill("  不存在的标题  ")
+    await page.getByRole("button", { name: "搜索", exact: true }).click()
+    await expect(
+      page.getByText("没有找到匹配的文案", { exact: true }),
+    ).toBeVisible()
+    await expect(
+      page.getByText("换个关键词试试", { exact: true }),
+    ).toBeVisible()
+    await expect(page.getByText("暂无成绩记录", { exact: true })).toHaveCount(0)
+    await expect(
+      page.getByText("文案确认后会显示在这里，可逐篇登记发布信息和成绩。", {
+        exact: true,
+      }),
+    ).toHaveCount(0)
+    expect(queries[queries.length - 1]?.searchParams.get("q")).toBe(
+      "不存在的标题",
+    )
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true)
+    await page.screenshot({
+      path: test.info().outputPath(`search-empty-${pending}-1280.png`),
+      fullPage: true,
+      animations: "disabled",
+    })
+    const before = queries.length
+    await page.getByRole("button", { name: "清除搜索", exact: true }).click()
+    await expect(
+      page.getByRole("textbox", { name: "搜索文案标题" }),
+    ).toHaveValue("")
+    await expect.poll(() => queries.length).toBeGreaterThan(before)
+    expect(queries[queries.length - 1]?.searchParams.has("q")).toBe(false)
+    expect(queries[queries.length - 1]?.searchParams.get("page")).toBe("1")
+    expect(queries[queries.length - 1]?.searchParams.get("needs_metrics")).toBe(
+      pending ? "true" : null,
+    )
+    await expect(
+      page.getByRole("cell", { name: /周一通勤香气分享/ }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: "清除搜索", exact: true }),
+    ).toHaveCount(0)
+  })
+
+for (const forbidden of ["summary", "list", "both"])
+  test(`Results ${forbidden} 403 renders exactly one permission card without content or pager`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await setup(page)
+    if (forbidden !== "list")
+      await page.route("**/api/v1/brands/*/results/summary", (route) =>
+        route.fulfill(envelope(403)),
+      )
+    if (forbidden !== "summary")
+      await page.route("**/api/v1/brands/*/confirmed-copies?*", (route) =>
+        route.fulfill(envelope(403)),
+      )
+    await page.goto("/results")
+    const card = page.getByRole("heading", {
+      name: "没有权限查看这个页面",
+      exact: true,
+    })
+    await expect(card).toBeVisible()
+    await expect(card).toHaveCount(1)
+    await expect(
+      page.getByText("req-results-fixture", { exact: true }),
+    ).toHaveCount(1)
+    await expect(page.getByRole("region", { name: "成绩概览" })).toHaveCount(0)
+    await expect(
+      page.getByRole("heading", { name: "已确认文案", exact: true }),
+    ).toHaveCount(0)
+    await expect(page.getByRole("table")).toHaveCount(0)
+    await expect(page.getByRole("tablist", { name: "成绩范围" })).toHaveCount(0)
+    await expect(
+      page.getByRole("button", { name: "上一页", exact: true }),
+    ).toHaveCount(0)
+    await expect(
+      page.getByRole("button", { name: "下一页", exact: true }),
+    ).toHaveCount(0)
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true)
+    await page.screenshot({
+      path: test.info().outputPath(`forbidden-${forbidden}-1280.png`),
+      fullPage: true,
+      animations: "disabled",
+    })
+  })
+
 test("Results publication dialog validates, saves timezone and warns about short links", async ({
   page,
 }) => {

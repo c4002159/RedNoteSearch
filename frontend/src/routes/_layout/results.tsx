@@ -7,6 +7,7 @@ import {
   ResultsService,
 } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { Pill } from "@/components/Common/StatusBadge"
 import { Pager } from "@/components/Knowledge/Feedback"
 import { ResultsError, reading } from "@/components/Results/Feedback"
@@ -24,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useBrand } from "@/hooks/useBrand"
+import { parseApiError } from "@/lib/apiError"
 import { formatTime } from "@/lib/format"
 import { SCENE_LABEL, RESULTS_TEXT as T } from "@/lib/zh"
 
@@ -97,6 +99,11 @@ function BrandResults({ brandId }: { brandId: string }) {
     types.data?.items.find((type) => type.key === scene)?.name ??
     (SCENE_LABEL as Record<string, string>)[scene] ??
     T.otherType
+  const forbidden = [summary.error, list.error].find(
+    (error) => error && parseApiError(error).status === 403,
+  )
+  if (forbidden)
+    return <ForbiddenPage requestId={parseApiError(forbidden).requestId} />
   return (
     <div className="min-w-0 space-y-6 text-sm">
       <header>
@@ -154,7 +161,7 @@ function BrandResults({ brandId }: { brandId: string }) {
           </form>
         </div>
         <div className="overflow-x-auto">
-          <Table className="min-w-[1100px]">
+          <Table className="w-full table-fixed [&_th]:whitespace-normal">
             <TableHeader className="bg-surface-low">
               <TableRow>
                 {[
@@ -192,15 +199,33 @@ function BrandResults({ brandId }: { brandId: string }) {
                 <TableRow>
                   <TableCell colSpan={7}>
                     <EmptyState
-                      title={pending ? T.noPending : T.empty}
-                      description={pending ? T.pendingHint : T.emptyHint}
+                      title={
+                        q ? T.noSearchResults : pending ? T.noPending : T.empty
+                      }
+                      description={
+                        q ? T.searchHint : pending ? T.pendingHint : T.emptyHint
+                      }
                     />
+                    {q && (
+                      <div className="mt-4 text-center">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSearch("")
+                            setQ("")
+                            setPage(1)
+                          }}
+                        >
+                          {T.clearSearch}
+                        </Button>
+                      </div>
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (
                 list.data.items.map((copy: ConfirmedCopyPublic) => (
                   <TableRow key={copy.id}>
-                    <TableCell className="max-w-60 min-w-44 whitespace-normal">
+                    <TableCell className="max-w-60 whitespace-normal">
                       <p className="break-words font-medium">{copy.title}</p>
                       {copy.needs_metrics && (
                         <Pill tone="warn">{T.pending}</Pill>
@@ -215,7 +240,7 @@ function BrandResults({ brandId }: { brandId: string }) {
                     <TableCell className="max-w-36 whitespace-normal break-words">
                       {copy.promo_label}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-xs">
+                    <TableCell className="whitespace-normal text-xs">
                       {formatTime(copy.confirmed_at)}
                     </TableCell>
                     <TableCell className="max-w-52 whitespace-normal">
@@ -224,7 +249,7 @@ function BrandResults({ brandId }: { brandId: string }) {
                         {copy.post_url || T.noUrl}
                       </p>
                     </TableCell>
-                    <TableCell className="min-w-40 whitespace-normal">
+                    <TableCell className="whitespace-normal">
                       {copy.latest_metric ? (
                         <>
                           <p className="text-xs">

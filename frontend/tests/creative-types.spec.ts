@@ -192,3 +192,54 @@ test("Creative types preview matches desktop hierarchy without overflow or conso
   }
   expect(errors).toEqual([])
 })
+
+test("Creative types 500 removes loading badge after pending while preserving error and retry", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await setup(page)
+  let release: () => void = () => {}
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route("**/api/v1/brands/*/creative-types", async (route) => {
+    await gate
+    return route.fulfill({
+      status: 500,
+      json: {
+        error: {
+          code: "ERROR",
+          message: "请求失败",
+          details: {},
+          request_id: "creative-500",
+        },
+      },
+    })
+  })
+  await page.goto("/creative-types")
+  await expect(
+    page.getByText("正在加载创作类型…", { exact: true }).first(),
+  ).toBeVisible()
+  release()
+  await expect(page.getByText("creative-500", { exact: true })).toBeVisible({
+    timeout: 15000,
+  })
+  await expect(
+    page.getByText("正在加载创作类型…", { exact: true }),
+  ).toHaveCount(0)
+  await expect(page.getByRole("alert")).toContainText("请求失败")
+  await expect(
+    page.getByRole("button", { name: "重试", exact: true }),
+  ).toBeVisible()
+  await expect(page.getByRole("table")).toBeVisible()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true)
+  await page.screenshot({
+    path: test.info().outputPath("creative-500-1280.png"),
+    fullPage: true,
+    animations: "disabled",
+  })
+})
