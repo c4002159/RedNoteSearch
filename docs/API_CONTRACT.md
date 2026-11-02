@@ -873,3 +873,13 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 复用现有 OpenAI 兼容适配器、provider_keys 的数据库/环境密钥解析和模型配置。适配器内部重试关闭，由本服务统一控制：首次加最多 2 次重试（至多 3 次 complete/HTTP 请求），传输失败、空响应、JSON 错误及全部被过滤共用同一额度，不嵌套放大；超时沿用 LLM_TIMEOUT_SECONDS。最后一次的失败类型决定最终错误。
 
 `LLM_MODE=demo_fake` 使用固定假模型：有生效调性关键词时循环使用关键词与固定句式拼接最多 5 条；无关键词时返回“平实清楚的叙述”“简洁自然的表达”两条，count=1 时仅一条。假模型输出也必须经过同一过滤，可能被禁词、长度或已有语气规则全部丢弃。测试只用 fake 与 MockTransport，不访问真实模型。未用真实模型验证效果与成本。
+
+## R6 B1：编辑爆款样本与结构过期标记（含迁移）
+
+`PATCH /viral-samples/{sample_id}`：请求仅允许可选 text、source_url，至少提供一项。text 原始1–5000码点且不能全空白，显式null拒绝；source_url沿用创建样本的HttpUrl校验、最多2000字符，可用null清空。仅存储链接、不访问或抓取。不接收品牌、note、修订号覆盖。品牌admin可改；同品牌editor403，资源不存在或非成员404（平台管理员没有成员身份也404）；未登录401。成功200返回既有样本字段及structures_stale。
+
+没有可复用的分析文本哈希，因此迁移新增 viral_sample.revision（整数非空，默认0）、viral_pattern.sample_revision（可空，旧结构回填0）。仅文字与存储值实际不同时revision加1，只改链接或提交相同文字不增加。PATCH使用样本行锁防止并发修改丢失。
+
+样本列表、创建、读取及PATCH响应增加structures_stale：有结构且没有任何结构的sample_revision等于当前revision时为true；无结构为false。分析捕获开始时的文字和revision，新结构保存该revision；重新分析当前文字成功后自然变false，旧结构保留。并发编辑不会把旧文字分析误标成当前版本。迁移后原样本和旧结构均为0，不显示过期。
+
+成功写viral.sample_update审计，只含字段名、是否改文字、修订号和字数，不含正文或网址；与更新原子提交。PATCH不调用模型、不自动分析、不改提示词或已有模板。
