@@ -113,6 +113,7 @@ export function SimilarityReview({
               <label key={value} className="flex items-center gap-2">
                 <input
                   type="radio"
+                  className="accent-primary focus-visible:ring-2 focus-visible:ring-ring"
                   name="similar-decision"
                   value={value}
                   checked={decision === value}
