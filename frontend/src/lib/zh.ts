@@ -926,6 +926,8 @@ export const VOICE_TABLE_TEXT = {
   samples: "参考样例",
   version: "版本号",
   available: "可用",
+  pick: "选用此版本",
+  pickHint: "每个品牌同一时间只用一个版本：点空圆圈选用，原来的版本自动取消",
   actions: "操作",
   readonly: "只读",
   viewPersona: "查看品牌人设全文",

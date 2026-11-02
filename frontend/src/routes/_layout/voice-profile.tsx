@@ -131,7 +131,7 @@ function VoicePage() {
                         {field === "sample_refs" ? V.samples : T[field]}
                       </TableHead>
                     ))}
-                    <TableHead className="w-14 text-center">
+                    <TableHead className="w-14 text-center" title={V.pickHint}>
                       {V.available}
                     </TableHead>
                     <TableHead className="w-24 text-right">
@@ -208,10 +208,21 @@ function VoicePage() {
                       ))}
                       <TableCell className="align-top text-center">
                         {row.is_active ? (
-                          <span className="inline-flex rounded-full bg-tone-info-bg p-1 text-primary">
+                          <span className="inline-flex rounded-full bg-primary p-1 text-primary-foreground">
                             <Check aria-hidden="true" className="size-4" />
                             <span className="sr-only">{T.inUse}</span>
                           </span>
+                        ) : brand.isAdmin ? (
+                          <button
+                            type="button"
+                            title={V.pick}
+                            aria-label={`${V.pick} v${row.version}`}
+                            className="inline-flex size-6 rounded-full border-2 border-muted-foreground/40 hover:border-primary hover:bg-tone-info-bg focus-visible:outline-ring"
+                            onClick={() => {
+                              mutation.reset()
+                              setActivate(row)
+                            }}
+                          />
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
@@ -227,19 +238,6 @@ function VoicePage() {
                             >
                               {T.edit}
                             </Button>
-                            {!row.is_active && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-link"
-                                onClick={() => {
-                                  mutation.reset()
-                                  setActivate(row)
-                                }}
-                              >
-                                {T.activate}
-                              </Button>
-                            )}
                           </div>
                         ) : (
                           <span className="text-xs text-muted-foreground">
