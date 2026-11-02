@@ -873,3 +873,11 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 复用现有 OpenAI 兼容适配器、provider_keys 的数据库/环境密钥解析和模型配置。适配器内部重试关闭，由本服务统一控制：首次加最多 2 次重试（至多 3 次 complete/HTTP 请求），传输失败、空响应、JSON 错误及全部被过滤共用同一额度，不嵌套放大；超时沿用 LLM_TIMEOUT_SECONDS。最后一次的失败类型决定最终错误。
 
 `LLM_MODE=demo_fake` 使用固定假模型：有生效调性关键词时循环使用关键词与固定句式拼接最多 5 条；无关键词时返回“平实清楚的叙述”“简洁自然的表达”两条，count=1 时仅一条。假模型输出也必须经过同一过滤，可能被禁词、长度或已有语气规则全部丢弃。测试只用 fake 与 MockTransport，不访问真实模型。未用真实模型验证效果与成本。
+
+## R6 B6：下载浏览器插件安装包
+
+`GET /extension/package`：任何已登录的有效用户均可下载，不要求品牌成员或admin；未登录401。成功200，Content-Type为application/zip，Content-Disposition为attachment; filename="results-helper.zip"，Cache-Control:no-store。
+
+每次从部署随附的extensions/results-helper读取运行文件并在内存生成zip，包内只有results-helper/manifest.json、parse.js、popup.html、popup.js，不递归打包，不含test、配置、密钥或其他文件；拒绝符号链接。来源目录不接收请求参数。包缺失/不可读等返回503 EXTENSION_PACKAGE_UNAVAILABLE及通用中文提示和request_id，不泄露本机路径。
+
+运行镜像须COPY上述四个运行文件到/app/extensions/results-helper；该Docker改动在本PR作为明确基础设施配合项，由A审阅。不改变插件权限、业务数据、密钥或鉴权规则，无模型调用，无迁移。
