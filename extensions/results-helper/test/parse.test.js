@@ -81,6 +81,49 @@ test("missing elements fail visibly instead of guessing", () => {
   assert.equal(partial.likes, 10)
 })
 
+// A small element tree: node(selector, text, children). querySelectorAll walks the descendants.
+const node = (selector, text, children = []) => {
+  const el = { selector, textContent: text, parentElement: null, children }
+  children.forEach((c) => (c.parentElement = el))
+  const descendants = () => children.flatMap((c) => [c, ...c.descendants()])
+  el.descendants = descendants
+  el.querySelectorAll = (sel) => descendants().filter((d) => d.selector === sel)
+  el.querySelector = (sel) => el.querySelectorAll(sel)[0] ?? null
+  return el
+}
+const SEL = { l: ".like-wrapper .count", c: ".collect-wrapper .count", m: ".chat-wrapper .count" }
+const feedCard = (likes) => node("card", "", [node(SEL.l, likes)])
+const overlay = (likes, collects, comments) =>
+  node("overlay", "", [node(SEL.l, likes), node(SEL.c, collects), node(SEL.m, comments), node(".total", `共 ${comments} 条评论`)])
+
+test("a note opened over the feed: the like count is the overlay's, not the feed card before it", () => {
+  const root = node("root", "", [feedCard("803"), feedCard("12"), overlay("810", "16", "40")])
+  const r = parseNoteDocument(root)
+  assert.deepEqual([r.ok, r.likes, r.collects, r.comments], [true, 810, 16, 40])
+  assert.deepEqual(r.problems, [])
+})
+
+test("the feed card after the overlay in the page does not win either", () => {
+  const root = node("root", "", [overlay("512", "10", "40"), feedCard("803")])
+  const r = parseNoteDocument(root)
+  assert.deepEqual([r.ok, r.likes, r.collects, r.comments], [true, 512, 10, 40])
+})
+
+test("a plain note page still reads as before", () => {
+  const root = node("root", "", [overlay("889", "35", "45")])
+  const r = parseNoteDocument(root)
+  assert.deepEqual([r.ok, r.likes, r.collects, r.comments], [true, 889, 35, 45])
+})
+
+test("several notes with no way to tell which is open are not guessed", () => {
+  const root = node("root", "", [overlay("512", "10", "40"), overlay("700", "20", "50")])
+  const r = parseNoteDocument(root)
+  assert.equal(r.ok, false)
+  assert.deepEqual([r.likes, r.collects, r.comments], [null, null, null])
+  assert.equal(r.problems.length, 3)
+  assert.match(r.problems[0], /多处点赞数/)
+})
+
 test("zero shown as a word", () => {
   const r = parseNoteDocument(
     page({ ".like-wrapper .count": "赞", ".collect-wrapper .count": "收藏", ".chat-wrapper .count": "评论" }),
