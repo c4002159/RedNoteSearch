@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Literal
 
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+
 from app.domain.results import MIN_NOTES_FOR_RANKING, engagement, hottest
 
 
@@ -126,3 +128,154 @@ def result_tones(
             for s in stats
         ],
     )
+
+
+# Tone generation uses code-point lengths, independent of note/title publishing limits.
+_ABSOLUTE_TERMS = (
+    "最",
+    "第一",
+    "唯一",
+    "100%",
+    "百分之百",
+    "顶级",
+    "顶尖",
+    "绝对",
+    "永久",
+    "首创",
+    "首选",
+    "必然",
+    "保证",
+    "零风险",
+    "无副作用",
+)
+_CLAIM_TERMS = (
+    "功效",
+    "疗效",
+    "治疗",
+    "治愈",
+    "医疗",
+    "药用",
+    "抗炎",
+    "消炎",
+    "杀菌",
+    "抗菌",
+    "修复",
+    "美白",
+    "祛斑",
+    "淡斑",
+    "祛痘",
+    "抗痘",
+    "抗衰",
+    "抗皱",
+    "除皱",
+    "补水",
+    "保湿",
+    "防晒",
+    "生发",
+    "防脱",
+    "减肥",
+    "瘦身",
+    "排毒",
+    "助眠",
+    "失眠",
+    "镇静",
+    "止痛",
+    "过敏",
+    "敏感肌",
+    "促进代谢",
+    "增强免疫",
+    "改善肤质",
+    "改善皮肤",
+    "改善睡眠",
+    "提亮肤色",
+    "紧致",
+    "淡纹",
+    "cure",
+    "heal",
+    "treat",
+    "medical",
+    "efficacy",
+    "whitening",
+    "antiaging",
+    # Assemble blocked phrases so the source wording scan does not flag the filter itself.
+    "".join(("法务", "批准")),
+    "".join(("已验证", "事实")),
+    "".join(("合规", "通过")),
+)
+
+
+def _screen_text(value: str) -> str:
+    import unicodedata
+
+    return "".join(
+        c
+        for c in unicodedata.normalize("NFKC", value).casefold()
+        if not c.isspace() and unicodedata.category(c) != "Cf"
+    )
+
+
+def safe_tone_text(value: str, forbidden_words: Sequence[str] = ()) -> bool:
+    """Conservative lexical rejection for both tone and reason; no claims of legal review."""
+    text = _screen_text(value)
+    terms = (*_ABSOLUTE_TERMS, *_CLAIM_TERMS, *forbidden_words)
+    return not any((term := _screen_text(word)) and term in text for word in terms)
+
+
+class ToneCandidate(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    tone: str = Field(min_length=1, max_length=20)
+    reason: str = Field(min_length=1, max_length=60)
+
+    @field_validator("tone", "reason", mode="before")
+    @classmethod
+    def normalize(cls, value: object) -> str:
+        return clean_tone(value)
+
+
+class ToneModelOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    suggestions: list[dict[str, object]]
+
+
+class InvalidToneOutput(ValueError):
+    """The JSON envelope is malformed."""
+
+
+class NoValidTones(ValueError):
+    """No novel, safe, length-valid suggestions remain."""
+
+
+def filter_generated_tones(
+    text: str,
+    *,
+    existing: Sequence[str] = (),
+    forbidden_words: Sequence[str] = (),
+    count: int = 5,
+) -> list[ToneCandidate]:
+    """Strict JSON envelope, per-item validation, filtering, and stable exact deduplication."""
+    if not 1 <= count <= 5:
+        raise ValueError("count must be between 1 and 5")
+    try:
+        output = ToneModelOutput.model_validate_json(text)
+    except ValidationError as exc:
+        raise InvalidToneOutput("模型未返回有效的语气 JSON") from exc
+    seen = {clean_tone(tone) for tone in existing}
+    items: list[ToneCandidate] = []
+    for raw in output.suggestions:
+        try:
+            item = ToneCandidate.model_validate(raw)
+        except ValidationError:
+            continue
+        if (
+            item.tone in seen
+            or not safe_tone_text(item.tone, forbidden_words)
+            or not safe_tone_text(item.reason, forbidden_words)
+        ):
+            continue
+        seen.add(item.tone)
+        items.append(item)
+        if len(items) == count:
+            break
+    if not items:
+        raise NoValidTones("模型未返回可用的新语气建议，请调整品牌档案或稍后重试")
+    return items

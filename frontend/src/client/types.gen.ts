@@ -1274,6 +1274,24 @@ export type GeneratedNote = {
 };
 
 /**
+ * GeneratedTones
+ */
+export type GeneratedTones = {
+    /**
+     * Items
+     */
+    items: Array<ToneCandidate>;
+    /**
+     * Model
+     */
+    model: string;
+    /**
+     * Prompt Version
+     */
+    prompt_version?: string;
+};
+
+/**
  * GenerationVersionPublic
  */
 export type GenerationVersionPublic = {
@@ -2958,6 +2976,38 @@ export type Token = {
      * Token Type
      */
     token_type?: string;
+};
+
+/**
+ * ToneCandidate
+ */
+export type ToneCandidate = {
+    /**
+     * Tone
+     */
+    tone: string;
+    /**
+     * Reason
+     */
+    reason: string;
+};
+
+/**
+ * ToneGenerateRequest
+ */
+export type ToneGenerateRequest = {
+    /**
+     * Scene
+     */
+    scene?: string | null;
+    /**
+     * Product Id
+     */
+    product_id?: string | null;
+    /**
+     * Count
+     */
+    count?: number;
 };
 
 /**
@@ -5089,6 +5139,36 @@ export type toneReadToneSuggestionsResponses = {
 };
 
 export type toneReadToneSuggestionsResponse = toneReadToneSuggestionsResponses[keyof toneReadToneSuggestionsResponses];
+
+export type toneGenerateToneSuggestionsData = {
+    body: ToneGenerateRequest;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/tone-suggestions/generate';
+};
+
+export type toneGenerateToneSuggestionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type toneGenerateToneSuggestionsError = toneGenerateToneSuggestionsErrors[keyof toneGenerateToneSuggestionsErrors];
+
+export type toneGenerateToneSuggestionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: GeneratedTones;
+};
+
+export type toneGenerateToneSuggestionsResponse = toneGenerateToneSuggestionsResponses[keyof toneGenerateToneSuggestionsResponses];
 
 export type extensionReadExtensionKeysData = {
     body?: never;
