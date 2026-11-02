@@ -9,6 +9,7 @@ import {
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
 import { Pill } from "@/components/Common/StatusBadge"
+import { TypeBadge } from "@/components/Common/TypeBadge"
 import { Pager } from "@/components/Knowledge/Feedback"
 import { ResultsError, reading } from "@/components/Results/Feedback"
 import { RecordDialog } from "@/components/Results/RecordDialog"
@@ -234,7 +235,9 @@ function BrandResults({ brandId }: { brandId: string }) {
                     <TableCell className="max-w-48 whitespace-normal">
                       <p className="break-words">{copy.scenario_name}</p>
                       <span className="text-xs text-muted-foreground">
-                        {sceneName(copy.scene)}
+                        <TypeBadge typeKey={copy.scene}>
+                          {sceneName(copy.scene)}
+                        </TypeBadge>
                       </span>
                     </TableCell>
                     <TableCell className="max-w-36 whitespace-normal break-words">

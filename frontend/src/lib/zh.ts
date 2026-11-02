@@ -1411,3 +1411,24 @@ export const TABLE_TEXT = {
   status: "状态",
   actions: "操作",
 } as const
+
+export const R6_SAMPLE_TEXT = {
+  back: "返回上一级",
+  sample: "样本详情",
+  structures: "已分析结构",
+  metadata: "模型与版本信息 · 来源样本信息",
+  edit: "编辑",
+  save: "保存",
+  source: "来源链接",
+  text: "样本文字",
+  cancel: "取消",
+  stale: "结构基于修改前的文字",
+  reanalyze: "重新分析",
+  analyzedAt: "分析时间",
+  builtinSave: "存为本品牌新版本",
+  ownSave: "保存为新版本",
+  savedVersion: (n: number) => `已保存为新版本 v${n}`,
+  selectLimit: "每次最多选择 50 个",
+  selectAll: (n: number) => `选择全部 ${n} 条`,
+  selected: (n: number) => `已选择 ${n} 条`,
+} as const

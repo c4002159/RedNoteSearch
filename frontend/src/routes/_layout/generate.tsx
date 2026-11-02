@@ -13,7 +13,6 @@ import {
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
-
 import {
   type CreativeTypePublic,
   CreativeTypesService,
@@ -30,6 +29,7 @@ import { ForbiddenPage, MissingPage } from "@/components/Common/ForbiddenPage"
 import { type DockStep, ProgressDock } from "@/components/Common/ProgressDock"
 import { StageProgress } from "@/components/Common/StageProgress"
 import { FlowStatusBadge } from "@/components/Common/StatusBadge"
+import { TypeBadge, typeBadgeColor } from "@/components/Common/TypeBadge"
 import { ToneSuggestDialog } from "@/components/Generate/ToneSuggestDialog"
 import {
   emptyPromo,
@@ -108,19 +108,14 @@ function Field({
 const selectClass =
   "h-10 w-full rounded-lg border border-transparent bg-surface-low px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
 
-const SCENE_LOOK: Record<string, { icon: LucideIcon; bg: string; fg: string }> =
-  {
-    seeding: { icon: Leaf, bg: "bg-scene-sky", fg: "text-tone-info" },
-    review: {
-      icon: BadgeCheck,
-      bg: "bg-scene-blue",
-      fg: "text-tone-soft-blue",
-    },
-    tutorial: { icon: BookOpen, bg: "bg-scene-mint", fg: "text-tone-ok" },
-    launch: { icon: Sparkles, bg: "bg-scene-yellow", fg: "text-tone-note" },
-    promotion: { icon: Tag, bg: "bg-scene-orange", fg: "text-tone-warn" },
-    story: { icon: BookHeart, bg: "bg-scene-pink", fg: "text-tone-err" },
-  }
+const SCENE_ICON: Record<string, LucideIcon> = {
+  seeding: Leaf,
+  review: BadgeCheck,
+  tutorial: BookOpen,
+  launch: Sparkles,
+  promotion: Tag,
+  story: BookHeart,
+}
 
 function SceneCards({
   scenarios,
@@ -142,8 +137,7 @@ function SceneCards({
       {types.map((type) => {
         const candidates = scenarios.filter((s) => s.scene === type.key)
         const s = candidates.find((s) => s.id === value) ?? candidates[0]
-        const look = SCENE_LOOK[type.key] ?? SCENE_LOOK.seeding
-        const Icon = look.icon
+        const Icon = SCENE_ICON[type.key] ?? Leaf
         const on = candidates.some((s) => s.id === value)
         return (
           <label key={type.key} className={s ? "cursor-pointer" : "opacity-60"}>
@@ -166,15 +160,16 @@ function SceneCards({
               <span
                 className={cn(
                   "flex size-8 shrink-0 items-center justify-center rounded-lg",
-                  look.bg,
-                  look.fg,
+                  typeBadgeColor(type.key),
                 )}
               >
                 <Icon className="size-4" />
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-[13px] font-semibold">
-                  {type.name || PR.unknownType}
+                  <TypeBadge typeKey={type.key}>
+                    {type.name || PR.unknownType}
+                  </TypeBadge>
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
                   {s?.source_pattern_id && (

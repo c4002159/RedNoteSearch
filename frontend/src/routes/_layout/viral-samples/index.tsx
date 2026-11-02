@@ -108,6 +108,7 @@ function BrandSamples({ brandId }: { brandId: string }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         {brand.isAdmin ? (
           <TableBatchBar
+            showSelectAllPrompt
             {...selection}
             total={samples.data?.total ?? 0}
             loadAll={async () =>

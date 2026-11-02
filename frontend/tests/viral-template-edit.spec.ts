@@ -9,6 +9,22 @@ test.use({ storageState: { cookies: [], origins: [] } })
 
 async function openConvert(page: import("@playwright/test").Page) {
   await page.goto(`/viral-patterns/${ids.pattern}`)
+  await expect(
+    page.getByRole("region", { name: "样本详情", exact: true }),
+  ).toBeVisible()
+  const collapse = page.getByRole("button", { name: "已分析结构", exact: true })
+  await expect(collapse).toHaveAttribute("aria-expanded", "true")
+  await collapse.click()
+  await expect(
+    page.getByRole("button", { name: "查看", exact: true }),
+  ).not.toBeVisible()
+  await expect(
+    page.getByRole("region", {
+      name: "模型与版本信息 · 来源样本信息",
+      exact: true,
+    }),
+  ).toBeVisible()
+  await collapse.click()
   await page.getByRole("button", { name: "转为场景模板", exact: true }).click()
   return page.getByRole("dialog")
 }
@@ -218,4 +234,62 @@ test("Pending conversion prevents duplicate submits and dialog dismissal", async
   await expect(dialog.getByLabel("模板结构", { exact: true })).toHaveValue(
     visualPattern.abstract_template,
   )
+})
+
+test("Sample edits PATCH text and source, retain the unified layout and mark old structures", async ({
+  page,
+}) => {
+  await mockAnalysis(page)
+  let sample = {
+    id: ids.sample,
+    brand_id: ids.brand,
+    text: "原始样本文字",
+    source_url: null as string | null,
+    note: null,
+    created_at: "2026-11-02T00:00:00Z",
+    structures_stale: false,
+  }
+  const writes: Record<string, unknown>[] = []
+  await page.route(`**/api/v1/viral-samples/${ids.sample}`, async (route) => {
+    if (route.request().method() === "PATCH") {
+      const body = route.request().postDataJSON()
+      writes.push(body)
+      sample = { ...sample, ...body, structures_stale: true }
+    }
+    await route.fulfill({ json: sample })
+  })
+  await page.goto(`/viral-samples/${ids.sample}`)
+  await page.getByRole("button", { name: "编辑", exact: true }).click()
+  await page.getByLabel("样本文字", { exact: true }).fill("编辑后的样本 🌿")
+  await page
+    .getByLabel("来源链接", { exact: true })
+    .fill("https://example.invalid/source")
+  await page.getByRole("button", { name: "保存", exact: true }).click()
+  await expect(
+    page.getByRole("region", { name: "样本详情", exact: true }),
+  ).toContainText("编辑后的样本 🌿")
+  await expect(
+    page.getByText("结构基于修改前的文字", { exact: true }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole("button", { name: "重新分析", exact: true }),
+  ).toBeEnabled()
+  expect(writes).toEqual([
+    { text: "编辑后的样本 🌿", source_url: "https://example.invalid/source" },
+  ])
+  const order = await page
+    .getByRole("main")
+    .last()
+    .locator("section[aria-label]")
+    .evaluateAll((elements) =>
+      elements.map((e) => e.getAttribute("aria-label")),
+    )
+  expect(order).toEqual([
+    "样本详情",
+    "已分析结构",
+    "模型与版本信息 · 来源样本信息",
+  ])
+  await expect(
+    page.getByRole("link", { name: "返回上一级", exact: true }),
+  ).toHaveAttribute("href", "/viral-samples")
 })

@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { TABLE_TEXT as T } from "@/lib/zh"
+import { R6_SAMPLE_TEXT as R, TABLE_TEXT as T } from "@/lib/zh"
 
 export const TABLE_SELECTION_LIMIT = 50
 export type TableSelection = {
@@ -90,7 +90,9 @@ export function TableBatchBar({
   total,
   loadAll,
   actions = [],
+  showSelectAllPrompt = false,
 }: TableSelection & {
+  showSelectAllPrompt?: boolean
   total: number
   loadAll: () => Promise<string[]>
   actions?: TableBatchAction[]
@@ -105,9 +107,46 @@ export function TableBatchBar({
       alive.current = false
     }
   }, [])
+  const selectAll = async () => {
+    setPending(true)
+    try {
+      const ids = await loadAll()
+      if (!alive.current || !latest.current.size) return
+      const next = new Set(latest.current)
+      for (const id of ids) if (next.size < TABLE_SELECTION_LIMIT) next.add(id)
+      onChange(next)
+      if (total > TABLE_SELECTION_LIMIT || ids.some((id) => !next.has(id)))
+        toast.info(T.limit)
+    } catch {
+      if (alive.current) toast.error(T.selectFailed)
+    } finally {
+      if (alive.current) setPending(false)
+    }
+  }
   if (!selected.size) return null
   return (
-    <div className="ml-auto flex justify-end">
+    <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
+      {showSelectAllPrompt &&
+        pageIds.length > 0 &&
+        pageIds.every((id) => selected.has(id)) && (
+          <div
+            className="flex flex-wrap items-center gap-2 text-xs"
+            role="status"
+          >
+            <span>{R.selected(selected.size)}</span>
+            <Button
+              size="sm"
+              variant="link"
+              disabled={pending}
+              onClick={selectAll}
+            >
+              {R.selectAll(total)}
+            </Button>
+            {total > TABLE_SELECTION_LIMIT && (
+              <span className="text-muted-foreground">{R.selectLimit}</span>
+            )}
+          </div>
+        )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" disabled={pending}>
@@ -123,29 +162,7 @@ export function TableBatchBar({
           >
             {T.selectPage}
           </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={pending}
-            onSelect={async () => {
-              setPending(true)
-              try {
-                const ids = await loadAll()
-                if (!alive.current || !latest.current.size) return
-                const next = new Set(latest.current)
-                for (const id of ids)
-                  if (next.size < TABLE_SELECTION_LIMIT) next.add(id)
-                onChange(next)
-                if (
-                  total > TABLE_SELECTION_LIMIT ||
-                  ids.some((id) => !next.has(id))
-                )
-                  toast.info(T.limit)
-              } catch {
-                if (alive.current) toast.error(T.selectFailed)
-              } finally {
-                if (alive.current) setPending(false)
-              }
-            }}
-          >
+          <DropdownMenuItem disabled={pending} onSelect={selectAll}>
             {T.selectAll(total)}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => onChange(new Set())}>

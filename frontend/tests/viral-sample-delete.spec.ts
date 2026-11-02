@@ -41,9 +41,10 @@ async function fixture(page: Page, count = 2, editor = false) {
       return route.fulfill({ json: { deleted: body.ids.length } })
     }
     const pageNo = Number(url.searchParams.get("page") ?? 1)
+    const pageSize = Number(url.searchParams.get("page_size") ?? 20)
     return route.fulfill({
       json: {
-        items: state.rows.slice((pageNo - 1) * 20, pageNo * 20),
+        items: state.rows.slice((pageNo - 1) * pageSize, pageNo * pageSize),
         total: state.rows.length,
         page: pageNo,
         page_size: 20,
@@ -122,22 +123,18 @@ test("Cross-page selection stops at 50, deletion submits unique ids", async ({
   page,
 }) => {
   const state = await fixture(page, 51)
-  for (const checkbox of await page
-    .getByRole("checkbox", { name: /^选择 / })
-    .all())
-    await checkbox.check()
-  await page.getByRole("button", { name: "2", exact: true }).click()
-  await expect(page.getByRole("checkbox", { name: /^选择 / })).toHaveCount(20)
-  for (const checkbox of await page
-    .getByRole("checkbox", { name: /^选择 / })
-    .all())
-    await checkbox.check()
+  await page.getByRole("checkbox", { name: "全选本页", exact: true }).check()
+  await expect(
+    page.getByRole("checkbox", { name: /^选择 /, checked: true }),
+  ).toHaveCount(20)
+  await expect(
+    page.getByText("每次最多选择 50 个", { exact: true }),
+  ).toBeVisible()
+  await page
+    .getByRole("button", { name: "选择全部 51 条", exact: true })
+    .click()
   await page.getByRole("button", { name: "3", exact: true }).click()
   await expect(page.getByRole("checkbox", { name: /^选择 / })).toHaveCount(11)
-  for (const checkbox of (
-    await page.getByRole("checkbox", { name: /^选择 / }).all()
-  ).slice(0, 10))
-    await checkbox.check()
   await expect(page.getByRole("checkbox").last()).toBeDisabled()
   await expect(
     page.getByRole("button", { name: "已选 50 项", exact: true }),

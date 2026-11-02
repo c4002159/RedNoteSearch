@@ -123,25 +123,31 @@ test("A row opens full template details and admin can save the old version as a 
       path: info.outputPath(`template-detail-${width}.png`),
     })
   }
-  await drawer.getByRole("button", { name: "存为新版本", exact: true }).click()
-  await expect(drawer).toHaveCount(0)
-  const dialog = page.getByRole("dialog", { name: "存为新版本", exact: true })
+  const dialog = drawer
+  await expect(dialog.getByLabel("模板名称", { exact: true })).toBeEditable()
   await expect(dialog.getByLabel("结构指引", { exact: true })).toHaveValue(
     structure,
   )
-  await expect(dialog.getByLabel("模板名称", { exact: true })).toHaveValue(
-    "品牌种草模板（演示）",
-  )
   await dialog.getByLabel("结构指引", { exact: true }).fill("字".repeat(2001))
   await expect(
-    dialog.getByRole("button", { name: "保存", exact: true }),
+    dialog.getByRole("button", { name: "保存为新版本", exact: true }),
   ).toBeDisabled()
   const text = `${"字".repeat(1999)}🌿`
   await dialog.getByLabel("结构指引", { exact: true }).fill(text)
   await expect(dialog.getByLabel("结构指引", { exact: true })).toHaveValue(text)
   await expect(dialog).toContainText("2000 / 2000")
-  await dialog.getByRole("button", { name: "保存", exact: true }).click()
-  await expect(dialog).toHaveCount(0)
+  await dialog
+    .getByRole("button", { name: "保存为新版本", exact: true })
+    .click()
+  await expect(page.getByRole("dialog")).toContainText("v3")
+  await expect(
+    page.getByText("已保存为新版本 v3", { exact: true }),
+  ).toBeVisible()
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "关闭", exact: true })
+    .first()
+    .click()
   await expect(page.getByRole("table")).toContainText("v3")
   expect(writes).toHaveLength(1)
   expect(writes[0].path).toBe(
@@ -184,7 +190,7 @@ test("Editor can inspect a template using the keyboard but has no maintenance co
   await expect(page.getByRole("dialog")).toContainText(structure)
   await expect(page.getByRole("dialog")).toContainText("当前角色只读")
   await expect(
-    page.getByRole("button", { name: "存为新版本", exact: true }),
+    page.getByRole("button", { name: "保存为新版本", exact: true }),
   ).toHaveCount(0)
   await expect(
     page.getByRole("button", { name: "新建模板", exact: true }),
@@ -192,43 +198,45 @@ test("Editor can inspect a template using the keyboard but has no maintenance co
   expect(writes).toEqual([])
 })
 
-test("Saving an internal template explicitly creates a brand copy and shows API errors with request id", async ({
-  page,
-}) => {
-  await setup(page)
-  await page.goto("/scenarios")
-  await page
-    .getByRole("button", {
-      name: "查看模板详情：内置种草模板（演示） v1",
-      exact: true,
-    })
-    .click()
-  await expect(page.getByRole("dialog")).toContainText("不修改全局模板")
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: "存为新版本", exact: true })
-    .click()
-  const dialog = page.getByRole("dialog", { name: "存为新版本", exact: true })
-  await page.route("**/api/v1/brands/*/scenario-templates", (route) =>
-    route.request().method() === "POST"
-      ? route.fulfill({
-          status: 403,
-          json: {
-            error: {
-              code: "FORBIDDEN",
-              message: "当前角色没有操作权限",
-              request_id: "template-save-fixture",
+for (const status of [403, 422])
+  test(`Internal template save preserves input and shows backend ${status}`, async ({
+    page,
+  }) => {
+    await setup(page)
+    await page.goto("/scenarios")
+    await page
+      .getByRole("button", {
+        name: "查看模板详情：内置种草模板（演示） v1",
+        exact: true,
+      })
+      .click()
+    await expect(page.getByRole("dialog")).toContainText("不修改全局模板")
+    const dialog = page.getByRole("dialog")
+    await page.route("**/api/v1/brands/*/scenario-templates", (route) =>
+      route.request().method() === "POST"
+        ? route.fulfill({
+            status,
+            json: {
+              error: {
+                code: status === 403 ? "FORBIDDEN" : "VALIDATION_ERROR",
+                message:
+                  status === 403
+                    ? "当前角色没有操作权限"
+                    : "模板内容不符合要求",
+                request_id: "template-save-fixture",
+              },
             },
-          },
-        })
-      : route.fallback(),
-  )
-  await dialog.getByRole("button", { name: "保存", exact: true }).click()
-  await expect(dialog).toContainText("template-save-fixture")
-  await expect(dialog.getByLabel("结构指引", { exact: true })).toHaveValue(
-    structure,
-  )
-})
+          })
+        : route.fallback(),
+    )
+    await dialog
+      .getByRole("button", { name: "存为本品牌新版本", exact: true })
+      .click()
+    await expect(dialog).toContainText("template-save-fixture")
+    await expect(dialog.getByLabel("结构指引", { exact: true })).toHaveValue(
+      structure,
+    )
+  })
 
 test("Empty, error and loading states keep the table visible", async ({
   page,
@@ -296,15 +304,9 @@ test("Unknown creative type strings retain labels and the original value when co
     .click()
   const drawer = page.getByRole("dialog")
   await expect(drawer).toContainText(custom.scene)
-  await drawer.getByRole("button", { name: "存为新版本", exact: true }).click()
-  const dialog = page.getByRole("dialog", { name: "存为新版本", exact: true })
-  await expect(dialog.getByLabel("创作类型", { exact: true })).toHaveValue(
-    custom.scene,
-  )
-  await expect(
-    dialog.getByLabel("创作类型", { exact: true }).locator("option:checked"),
-  ).toHaveText(custom.scene)
-  await dialog.getByRole("button", { name: "保存", exact: true }).click()
+  await drawer
+    .getByRole("button", { name: "保存为新版本", exact: true })
+    .click()
   await expect.poll(() => writes.length).toBe(1)
   expect(writes[0].body.scene).toBe(custom.scene)
 })
