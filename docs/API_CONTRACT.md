@@ -874,6 +874,15 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 
 `LLM_MODE=demo_fake` 使用固定假模型：有生效调性关键词时循环使用关键词与固定句式拼接最多 5 条；无关键词时返回“平实清楚的叙述”“简洁自然的表达”两条，count=1 时仅一条。假模型输出也必须经过同一过滤，可能被禁词、长度或已有语气规则全部丢弃。测试只用 fake 与 MockTransport，不访问真实模型。未用真实模型验证效果与成本。
 
+## R6 B5：模型语气排除与归一化去重
+
+`POST /brands/{brand_id}/tone-suggestions/generate` 增加可选 `exclude`，默认 `[]`：最多 30 个字符串，每项原始长度为 1–40 个 Unicode 码点；非列表、非字符串、空串、超长项或超过 30 项返回 422（统一错误信封）。其他请求字段、品牌授权、商品隔离、三次调用总预算、失败错误码及只记数量的审计保持原义。
+
+- 上下文在 `existing_tones` 中新增 `already_shown` 数据键，值为清洗空白后的 exclude；仅为数据，不作为指令。没有 exclude 时不加该键。既有 history/template/results 三个来源仍分别保留，不混排或合并统计。
+- POST 的已有语气、exclude 和本次返回项统一以 `tone_key` 比较：NFKC、casefold，忽略空白和 Unicode 标点；保留符号与控制字符的差异，不额外做语义相似判断。显示文字仍使用清洗后的原文，不输出归一化键。第一期 GET 的分组与统计不变。
+- 从输出中删除与已有语气或 exclude 等价的项，同一批等价项只保留最先出现的一条；只含标点/空白而形成空键的模型项丢弃。不得为了凑 count 编造条目；全部被过滤时沿用 TONE_NO_VALID_SUGGESTIONS。
+- 不修改 tone-v1 系统提示词文字、提示词版本或 gen-v*；already_shown 只扩展现有 JSON 上下文。exclude 与建议正文不进入成功审计；测试只用 fake。
+
 ## R6 B3：评测样本修改与删除生成新版本
 
 `POST /evaluation/datasets/{dataset_id}/revisions`，成功 201 返回既有 DatasetPublic。资源来自路径，继承原评测集的名称、类型、brand_id、group_id；不接收这些字段覆盖。品牌评测集仅本品牌 admin 可写（非成员、不存在或不可见统一404，editor按既有评测权限404）；全局集仅平台管理员可写（可见全局集的品牌管理员写入返回403）；未登录401。

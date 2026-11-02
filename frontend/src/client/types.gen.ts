@@ -3048,6 +3048,10 @@ export type ToneGenerateRequest = {
      * Count
      */
     count?: number;
+    /**
+     * Exclude
+     */
+    exclude?: Array<string>;
 };
 
 /**

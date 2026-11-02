@@ -204,6 +204,17 @@ _CLAIM_TERMS = (
 )
 
 
+def tone_key(value: str) -> str:
+    """Duplicate key: width, case, spaces and punctuation do not make a tone new."""
+    import unicodedata
+
+    return "".join(
+        c
+        for c in unicodedata.normalize("NFKC", value).casefold()
+        if not c.isspace() and not unicodedata.category(c).startswith("P")
+    )
+
+
 def _screen_text(value: str) -> str:
     import unicodedata
 
@@ -252,27 +263,29 @@ def filter_generated_tones(
     forbidden_words: Sequence[str] = (),
     count: int = 5,
 ) -> list[ToneCandidate]:
-    """Strict JSON envelope, per-item validation, filtering, and stable exact deduplication."""
+    """Strict JSON envelope, validation, filtering and stable normalized deduplication."""
     if not 1 <= count <= 5:
         raise ValueError("count must be between 1 and 5")
     try:
         output = ToneModelOutput.model_validate_json(text)
     except ValidationError as exc:
         raise InvalidToneOutput("模型未返回有效的语气 JSON") from exc
-    seen = {clean_tone(tone) for tone in existing}
+    seen = {tone_key(tone) for tone in existing}
     items: list[ToneCandidate] = []
     for raw in output.suggestions:
         try:
             item = ToneCandidate.model_validate(raw)
         except ValidationError:
             continue
+        key = tone_key(item.tone)
         if (
-            item.tone in seen
+            not key
+            or key in seen
             or not safe_tone_text(item.tone, forbidden_words)
             or not safe_tone_text(item.reason, forbidden_words)
         ):
             continue
-        seen.add(item.tone)
+        seen.add(key)
         items.append(item)
         if len(items) == count:
             break

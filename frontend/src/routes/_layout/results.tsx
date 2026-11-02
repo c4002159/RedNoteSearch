@@ -93,10 +93,10 @@ function BrandResults({ brandId }: { brandId: string }) {
           path: { brand_id: brandId },
           signal,
         })
-      ).data,
+      ).data.items,
   })
   const sceneName = (scene: string) =>
-    types.data?.items.find((type) => type.key === scene)?.name ??
+    types.data?.find((type) => type.key === scene)?.name ??
     (SCENE_LABEL as Record<string, string>)[scene] ??
     T.otherType
   const forbidden = [summary.error, list.error].find(

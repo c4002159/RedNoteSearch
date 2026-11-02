@@ -97,14 +97,14 @@ function RunPage() {
           </div>
           {[
             [T.version, `v${run.versions.dataset_version}`],
-            [T.prompt, run.versions.prompt_version ?? "—"],
-            [T.checker, run.versions.checker_version ?? "—"],
-            [T.rubric, run.versions.rubric_version ?? "—"],
-            [T.models, run.versions.models.join("、") || "—"],
+            [T.prompt, run.versions.prompt_version ?? ""],
+            [T.checker, run.versions.checker_version ?? ""],
+            [T.rubric, run.versions.rubric_version ?? ""],
+            [T.models, run.versions.models.join("、") || ""],
             [
               T.baselines,
               run.versions.baselines.map(evaluationSystemLabel).join("、") ||
-                "—",
+                "",
             ],
             [T.finished, formatTime(run.finished_at)],
           ].map(([k, v]) => (

@@ -5,6 +5,11 @@ import { type DatasetPublic, type EvalKind, EvaluationService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { HeaderFilter } from "@/components/Common/FilterSelect"
 import { Pill } from "@/components/Common/StatusBadge"
+import {
+  TableBatchBar,
+  TableSelectAll,
+  TableSelectRow,
+} from "@/components/Common/TableBatchBar"
 import { CreateDataset } from "@/components/Evaluation/CreateDataset"
 import { CreateRun } from "@/components/Evaluation/CreateRun"
 import {
@@ -53,6 +58,7 @@ function DatasetsPage() {
   const brand = useBrand(),
     cache = useQueryClient(),
     navigate = useNavigate()
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [scope, setScope] = useState("")
   const [page, setPage] = useState(1)
   const [kind, setKind] = useState<EvalKind | "">(""),
@@ -73,6 +79,11 @@ function DatasetsPage() {
       !scope ||
       (scope === "global" ? row.brand_id === null : row.brand_id === scope),
   )
+  const selection = {
+    selected,
+    onChange: setSelected,
+    pageIds: items.slice((page - 1) * 20, page * 20).map((row) => row.id),
+  }
   return (
     <div className="min-w-0 space-y-6 [&_[data-slot=table-container]]:border-0">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -102,10 +113,20 @@ function DatasetsPage() {
         </Button>
       </div>
       <div className="overflow-hidden rounded-xl bg-card shadow-sm">
+        <div className="p-3">
+          <TableBatchBar
+            {...selection}
+            total={items.length}
+            loadAll={async () => items.slice(0, 50).map((row) => row.id)}
+          />
+        </div>
         <div className="overflow-x-auto">
           <Table className={EVAL_TABLE}>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <TableSelectAll {...selection} />
+                </TableHead>
                 <TableHead className="w-[28%]">{EVAL_LIST_TEXT.name}</TableHead>
                 <TableHead aria-label={T.kind}>
                   <HeaderFilter
@@ -147,14 +168,14 @@ function DatasetsPage() {
               {datasets.isLoading ? (
                 Array.from({ length: 3 }, (_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={8}>
                       <Skeleton className="h-12 w-full" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : datasets.isError ? (
                 <TableRow>
-                  <TableCell colSpan={7}>
+                  <TableCell colSpan={8}>
                     <EvaluationError
                       error={datasets.error}
                       retry={() => datasets.refetch()}
@@ -163,13 +184,20 @@ function DatasetsPage() {
                 </TableRow>
               ) : items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7}>
+                  <TableCell colSpan={8}>
                     <EmptyState title={T.emptyDatasets} />
                   </TableCell>
                 </TableRow>
               ) : (
                 items.slice((page - 1) * 20, page * 20).map((row) => (
                   <TableRow key={row.id}>
+                    <TableCell>
+                      <TableSelectRow
+                        {...selection}
+                        id={row.id}
+                        label={row.name}
+                      />
+                    </TableCell>
                     <TableCell className="whitespace-normal font-medium">
                       <Link
                         className="text-link hover:underline"
@@ -191,23 +219,23 @@ function DatasetsPage() {
                         {label(EVAL_KIND_LABEL, row.kind)}
                       </Pill>
                     </TableCell>
-                    <TableCell>v{row.version}</TableCell>
-                    <TableCell>{row.case_count}</TableCell>
+                    <TableCell variant="secondary">v{row.version}</TableCell>
+                    <TableCell variant="secondary">{row.case_count}</TableCell>
                     <TableCell className="whitespace-normal">
                       {row.brand_id === null
                         ? T.global
                         : (brand.brands.find((b) => b.id === row.brand_id)
                             ?.name ?? EVAL_DESIGN_TEXT.otherBrand)}
                     </TableCell>
-                    <TableCell className="whitespace-normal text-xs text-muted-foreground">
-                      {formatTime(row.created_at)}
+                    <TableCell className="whitespace-normal text-xs text-muted-foreground tabular-nums">
+                      {row.created_at ? formatTime(row.created_at) : ""}
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-link"
+                          className="text-link hover:underline"
                           asChild
                         >
                           <Link
@@ -220,7 +248,7 @@ function DatasetsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-link"
+                          className="text-link hover:underline"
                           onClick={() => setRun(row)}
                         >
                           {T.newRun}
