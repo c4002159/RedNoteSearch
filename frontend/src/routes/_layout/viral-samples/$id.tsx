@@ -4,6 +4,7 @@ import { useState } from "react"
 import { ViralService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ForbiddenPage } from "@/components/Common/ForbiddenPage"
+import { TemplateAnalysisTabs } from "@/components/Common/TemplateAnalysisTabs"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -75,6 +76,7 @@ function SamplePage() {
   const row = sample.data
   return (
     <div className="min-w-0 space-y-6 [&_[data-slot=table-container]]:border-0">
+      <TemplateAnalysisTabs />
       <ViralBreadcrumb current={T.detail} />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>

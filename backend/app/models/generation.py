@@ -44,7 +44,6 @@ class ScenarioTemplate(SQLModel, table=True):
 
     __tablename__ = "scenario_template"  # type: ignore[assignment]
     __table_args__ = (
-        CheckConstraint(_in_list("scene", Scene), name="ck_scenario_template_scene"),
         Index("ix_scenario_template_brand_id", "brand_id"),
         UniqueConstraint(
             "brand_id", "scene", "name", "template_version", name="uq_scenario_template"
@@ -274,7 +273,7 @@ class ScenarioCreate(BaseModel):
     """A new brand template, or the next version when the scene and name already exist."""
 
     model_config = ConfigDict(extra="forbid")
-    scene: Scene
+    scene: str = PydanticField(min_length=1, max_length=20)
     name: str = PydanticField(min_length=1, max_length=100)
     structure: str = PydanticField(min_length=1, max_length=2000)
 

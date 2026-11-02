@@ -211,8 +211,45 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - `activity`：带 `activity: {"name"(1-100),"detail"(≤1000,可空),"perks"(≤10 条,每条 ≤200)}`，不带任何商品。活动文字是运营自己填的，不经知识库核对：福利里的说法会单独列在提示词里，模型写出的优惠、福利类断言若没有资料依据，按 ADR-011 进入人工逐条确认。
 - 组合不合法（活动带商品、单品带活动、多品缺少 extra、重复商品、未知类型、活动名为空）一律 422。
 - 任务返回新增 `promo_type`、`extra_product_ids`、`activity`；`product_id` 在活动任务里为 `null`；`product_name` 对多品是用“、”连起来的商品名，对活动是活动名。`GET /tasks?q=` 也搜活动名。
-- 多品任务：提示词里每个商品的卖点前面标出商品名，禁止宣称取各商品的并集；提示词版本为 `gen-v5`。
+- 多品任务：提示词里每个商品的卖点前面标出商品名，禁止宣称取各商品的并集；提示词版本为 `gen-v5`（活动任务自 `gen-v6` 起提示模型：活动说明里没写的时间、参与方式、规则不要编，只写“以活动页面为准”）。
 约束检查（与发布页一致，ADR-004、ADR-005）：标题加权长度 `title_weight ≤ 20`（ASCII 可打印字符计 0.5，其余按 UTF-16 码元计 1，即汉字与全角标点 1、emoji 2，2026-11-01 发布页实测）；正文 `body_units ≤ 1000`（去掉换行后的 UTF-16 码元数，emoji 计 2）；标签 ≤10，且标签的可见字符计入正文预算。后端判定为准，前端镜像同一规则。
+
+### 创作类型（品牌自己的笔记类型）
+
+六个内置类型（`seeding` 种草、`review` 测评、`tutorial` 教程、`launch` 上新、`promotion` 促销、`story` 故事）不变。品牌可以再加自己的类型，用于场景模板分类和筛选；生成时仍只用模板的名称和结构，类型只是标签。
+
+- `GET /brands/{brand_id}/creative-types`：品牌成员；先六个内置，再按创建时间列出品牌自己的。每项 `{"key","name","builtin","template_count"}`，`template_count` 是使用该类型的模板版本数（内置类型含全局模板）。
+- `POST /brands/{brand_id}/creative-types` `{"name"(1-20,去首尾空白)}`：品牌 admin；201；返回 `{"key"(服务端生成,形如 c1a2b3c4d),"name","builtin":false,"template_count":0}`。名称不得与内置类型或已有自己的类型重复（不区分大小写，409），每个品牌最多 20 个自己的类型（409）。
+- `PATCH /brands/{brand_id}/creative-types/{key}` `{"name"}`：品牌 admin；只改名称，`key` 不变，模板自动跟随。内置类型 409，不存在 404。
+- `DELETE /brands/{brand_id}/creative-types/{key}`：品牌 admin；204。**只有没有任何模板版本（含已停用的）和没有已确认文案使用时才能删**，否则 409，`details` 给出 `templates`、`confirmed_copies` 的数量；内置类型 409。
+- **`scene` 的含义变化（只放宽）**：`POST /brands/{brand_id}/scenario-templates` 与爆款转模板的 `scene` 由固定六选一改为字符串（1-20），取值须是内置类型或本品牌自己的类型的 `key`，否则 422。其它返回里的 `scene` 字段本来就是字符串，现在可能是自己类型的 `key`；显示名称请用本接口的 `name` 对照。
+- 审计：`creative_type.create`、`creative_type.rename`、`creative_type.delete`（只记 `key`）。
+
+### 成绩记录（已确认文案、帖子网址、成绩读数）
+
+目的：运营确认文案后发到小红书，回来登记帖子网址和成绩，系统据此给出“最常用”“最热”。**系统不访问小红书**：网址只保存、不打开；成绩由人填写（或用户自己浏览器里的插件填写，见后续 PR）。已确认文案的正文留在版本上，这里不复制进知识库（避免把生成的文案当作资料反过来引用）。
+
+- 确认版本（`POST /generation-versions/{id}/confirm`）时，同一事务里自动加入“已确认文案”（每个版本一条）。已确认的旧版本由迁移补入。
+- `GET /brands/{brand_id}/confirmed-copies?needs_metrics=&q=&page=&page_size=`：品牌成员；默认按确认时间倒序；`needs_metrics=true` 只列“待补成绩”，按发布时间正序。
+- `GET /confirmed-copies/{id}`：成员；非成员与不存在都是 404。
+- `PATCH /confirmed-copies/{id}`：成员；只改发来的字段 `title`（1-200）、`post_url`（只接受 `https://` 的 `xiaohongshu.com`、`xhslink.com` 及其子域，不含账号密码和空白；传 `null` 清除）、`published_at`（须带时区、不得晚于现在 10 分钟；传 `null` 清除）。其余字段 422。
+- `POST /confirmed-copies/{id}/metrics`：成员；`{"likes","collects","comments"(各 0 到 10 亿的整数),"approximate"(默认 false，读数是“1.8万”这类近似值时为 true),"source"("manual"|"extension"|"screenshot",默认 manual),"captured_at"(可选，须带时区,不得晚于现在 10 分钟，默认现在)}`，201。读数只增不改，最新的一条为当前成绩。`GET /confirmed-copies/{id}/metrics` 按时间倒序列出全部读数。
+- 每条文案返回：`id, brand_id, task_id, version_id, title, scenario_name, scene, promo_type, promo_label, post_url, published_at, confirmed_at, metrics_due_at, needs_metrics, latest_metric`。`scenario_name/scene/promo_label` 是确认时的快照。
+- **待补成绩**：已填发布时间、距发布满 3 天、且没有“采集时间不早于发布后 3 天”的读数。发布第 1 天的读数不会消除提醒。
+- `GET /brands/{brand_id}/results/summary`：`{"total_copies","pending_count","most_used":[{"scenario_name","scene","count"}](前 5),"hottest":{"enough_data","min_notes":3,"notes_with_metrics","items":[{"scenario_name","scene","note_count","average_engagement","approximate"}]}}`。“最常用”按场景模板名（含场景）统计已确认文案的篇数。“最热”按每篇最新读数的 点赞+收藏+评论 取模板平均；**有读数的文案少于 3 篇时 `enough_data=false`、`items` 为空，前端显示“数据不足”，不排名**；含近似读数的组 `approximate=true`。样本很少，只能说明方向，不能说明哪个模板更好。
+- 审计：`results.update`、`results.metric`（只记字段名与来源，不记网址和数字）。
+
+#### 浏览器插件（`extensions/results-helper`）
+
+插件由我们自己写，装在用户自己的 Chrome 里，只读用户已经打开的笔记页上显示的数字，**不抓取、不后台运行、不访问小红书的接口**，用户点“发送”才发。使用说明见 `docs/EXTENSION.md`。
+
+- `POST /brands/{brand_id}/extension-keys` `{"label"(1-60)}`：品牌 admin；201；响应除 `id, label, prefix, created_at, last_used_at, revoked_at` 外有 `key`（以 `rnk_` 开头）——**只在这一次返回，之后无法再读**，库里只存哈希。每个品牌最多 10 个有效密钥（422）。
+- **连接配置串**（给前端的密钥页用，后端不返回、不保存）：`"rnk1." + base64url(JSON.stringify({"s": <接口所在的地址，例如 https://app.example.com>, "k": <刚生成的密钥>}))`。插件的“连接设置”粘贴它即可一步填好地址和密钥。它含密钥，和密钥一样只在生成那一刻显示，页面关闭后无法再取。
+- `GET /brands/{brand_id}/extension-keys`：品牌 admin；列出（无 `key`）。`DELETE /brands/{brand_id}/extension-keys/{key_id}`：品牌 admin；204；作废（重复作废无害）。
+- `POST /extension/metrics`（请求头 `X-Extension-Key`，**不带用户令牌**）：`{"note_url","likes","collects","comments","approximate"(默认 false),"captured_at"(可选,须带时区)}`，201 `{"recorded":true,"approximate":bool}`。服务端只取 `note_url` 的路径里的 24 位笔记 id（`/explore/<id>`、`/discovery/item/<id>`、`/search_result/<id>`、`/user/profile/<用户>/<id>`），丢弃查询串和片段（可能含令牌），并且不存网址；用它在**该密钥所属品牌**里找已保存同一笔记 id 的“已确认文案”，加一条来源为 `extension` 的读数。
+- 失败：密钥缺失、错误或已作废一律 401（不区分原因）；网址不是笔记页 422；该品牌没有保存这个笔记 id 的文案 404（提示先在系统里填帖子网址）；同一篇笔记一小时内来自插件的读数超过 12 条 429。该密钥不能读取任何东西，用户令牌也不能调用此接口。
+- `PATCH /confirmed-copies/{id}` 保存 `post_url` 时同时记下其中的笔记 id（`post_note_id`，短链接 `xhslink.com` 取不到则为空，插件对这类笔记无法自动对上，需手填）。
+- 审计：`extension_key.create`、`extension_key.revoke`、`results.metric`（来源 extension；不记密钥、网址和数字）。
 
 ### F12：任务文件输入（已定稿，已实现）
 
@@ -306,7 +343,7 @@ editor 调用返回 403。解析失败返回 `PARSE_FAILED`，保持不可检索
 - 一次生成最多 3 轮：第 1 轮正常生成，约束检查未通过则把问题告诉模型再生成，最多再 2 轮；每轮格式不符最多再问 1 次，因此一次生成最多 6 次模型调用。仍未通过时保存该版本并标 `constraint_failed`，检查结果里写明哪个标题、哪个字段、哪个词。
 - 约束检查对**每一个标题候选**单独判定，对正文加标签判定字数、标签数量、必含词和禁用词；禁用词包括品牌档案的禁用词和商品的“禁止宣称”。
 - 约束通过的版本状态为 `checking`，任务进度为 `evidence`：证据与合规检查是后续步骤，完成前版本不会变成 `checks_completed`，更不会是 `ready_to_copy`。
-- 版本记录 `template_version`、`prompt_version`（`gen-v5`）、`voice_version`、`checker_version`（`constraints-v1`）、`model`，以及当次检索到的资料快照 `retrieved_sources`（含来源级别、文档与版本、分块 id、哈希和 200 字摘录）。
+- 版本记录 `template_version`、`prompt_version`（`gen-v6`）、`voice_version`、`checker_version`（`constraints-v1`）、`model`，以及当次检索到的资料快照 `retrieved_sources`（含来源级别、文档与版本、分块 id、哈希和 200 字摘录）。
 - 提示词只把**有来源**的卖点当作事实；无来源的卖点标为“未核实，只可参考”；任务资料标为“未审核”。
 - 每次模型调用（含失败）写入 `llm_call_log`，用独立事务，调用失败回滚时也留痕。
 

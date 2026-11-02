@@ -1077,3 +1077,57 @@ export const RISK_REWRITE_REVIEW_TEXT = {
     opening: "开头",
   },
 } as const
+
+export const VIRAL_DELETE_TEXT = {
+  sampleHint:
+    "添加后不能编辑原文；品牌管理员可以删除样本及其分析结构。请仅粘贴已获授权的文本，最多 5000 个 Unicode 码点。",
+  single: "删除",
+  bulk: "批量删除",
+  clear: "清除选择",
+  selectColumn: "选择样本",
+  select: (excerpt: string) => `选择样本：${excerpt}`,
+  selected: (count: number) => `已选 ${count} 个，最多 50 个（可跨页选择）`,
+  actions: "操作",
+  confirmTitle: "确认删除样本",
+  confirm: (count: number) => `将删除 ${count} 个样本，无法撤销。`,
+  consequence:
+    "样本及其分析结构会一起删除；已转换的场景模板会保留，来源名称也会保留。",
+  cancel: "取消",
+  confirmAction: "确认删除",
+} as const
+
+export const VIRAL_TEMPLATE_EDIT_TEXT = {
+  structure: "模板结构",
+  required: "请填写模板结构",
+  tooLong: "模板结构不能超过 2000 字",
+  hint: "可修改结构后再转换；保存的是本次填写的文字，不改动原结构。",
+  conflict:
+    "此品牌已有同创作类型、同名模板。请选择存为新版本，或换个名字后再提交。",
+  rename: "换个名字",
+  newVersion: "存为新版本",
+} as const
+
+// 场景模板详情与筛选。
+export const SCENARIO_DETAIL_TEXT = {
+  detail: "模板详情",
+  view: "查看模板详情",
+  actions: "操作",
+  clear: "清除筛选",
+  filteredEmpty: "没有符合筛选条件的模板",
+  noSource: "未记录来源爆款",
+  sourceUnavailable: "来源结构已不可用，仅保留标题",
+  builtinCopy:
+    "内置模板会另存为当前品牌模板；已有同名品牌模板时生成新版本，不修改全局模板。",
+  newVersionHint:
+    "以当前内容为底保存新版本，不修改原版本；同名模板的版本号由服务端递增。",
+  readonly: "当前角色只读，可查看完整结构与来源。",
+  close: "关闭",
+} as const
+
+// 场景模板与爆款分析的共用导航。
+export const TEMPLATE_ANALYSIS_TABS = {
+  group: "品牌与商品",
+  label: "模板与爆款分析",
+  templates: "场景模板",
+  viral: "爆款分析",
+} as const

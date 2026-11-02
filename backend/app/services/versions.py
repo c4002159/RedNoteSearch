@@ -17,6 +17,7 @@ from app.models import ComplianceCheck, GenerationVersion, Task, VersionOrigin
 from app.models.common import get_datetime_utc
 from app.services import compliance as compliance_service
 from app.services import evidence as evidence_service
+from app.services import results as results_service
 from app.services.audit import record_audit
 from app.services.errors import (
     InvalidInputError,
@@ -237,6 +238,9 @@ def confirm_version(
     version.confirmed_at = get_datetime_utc()
     session.add(version)
     _mirror(session, task, version, "done")
+    results_service.add_for_confirmed_version(
+        session, task=task, version=version, user_id=user_id
+    )
     record_audit(
         session,
         action="version.confirm",

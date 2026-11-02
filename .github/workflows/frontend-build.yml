@@ -25,3 +25,5 @@ jobs:
         run: bun ci
       - name: Type-check and build
         run: bun run --filter frontend build
+      - name: Browser extension tests
+        run: node --test extensions/results-helper/test/parse.test.js

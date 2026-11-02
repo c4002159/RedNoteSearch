@@ -608,6 +608,153 @@ export type ConfirmVersion = {
 };
 
 /**
+ * ConfirmedCopiesPublic
+ */
+export type ConfirmedCopiesPublic = {
+    /**
+     * Items
+     */
+    items: Array<ConfirmedCopyPublic>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+};
+
+/**
+ * ConfirmedCopyPublic
+ */
+export type ConfirmedCopyPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Brand Id
+     */
+    brand_id: string;
+    /**
+     * Task Id
+     */
+    task_id: string | null;
+    /**
+     * Version Id
+     */
+    version_id: string;
+    /**
+     * Title
+     */
+    title: string;
+    /**
+     * Scenario Name
+     */
+    scenario_name: string;
+    /**
+     * Scene
+     */
+    scene: string;
+    /**
+     * Promo Type
+     */
+    promo_type: string;
+    /**
+     * Promo Label
+     */
+    promo_label: string;
+    /**
+     * Post Url
+     */
+    post_url: string | null;
+    /**
+     * Published At
+     */
+    published_at: string | null;
+    /**
+     * Confirmed At
+     */
+    confirmed_at: string | null;
+    /**
+     * Metrics Due At
+     */
+    metrics_due_at: string | null;
+    /**
+     * Needs Metrics
+     */
+    needs_metrics: boolean;
+    latest_metric: MetricPublic | null;
+};
+
+/**
+ * ConfirmedCopyUpdate
+ *
+ * Only the fields sent are changed; ``post_url`` or ``published_at`` as null clear them.
+ */
+export type ConfirmedCopyUpdate = {
+    /**
+     * Title
+     */
+    title?: string | null;
+    /**
+     * Post Url
+     */
+    post_url?: string | null;
+    /**
+     * Published At
+     */
+    published_at?: string | null;
+};
+
+/**
+ * CreativeTypeCreate
+ */
+export type CreativeTypeCreate = {
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * CreativeTypePublic
+ */
+export type CreativeTypePublic = {
+    /**
+     * Key
+     */
+    key: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Builtin
+     */
+    builtin: boolean;
+    /**
+     * Template Count
+     */
+    template_count: number;
+};
+
+/**
+ * CreativeTypesPublic
+ */
+export type CreativeTypesPublic = {
+    /**
+     * Items
+     */
+    items: Array<CreativeTypePublic>;
+};
+
+/**
  * DatasetCreate
  */
 export type DatasetCreate = {
@@ -968,6 +1115,136 @@ export type ExportVerification = {
 };
 
 /**
+ * ExtensionKeyCreate
+ */
+export type ExtensionKeyCreate = {
+    /**
+     * Label
+     */
+    label: string;
+};
+
+/**
+ * ExtensionKeyCreated
+ */
+export type ExtensionKeyCreated = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Prefix
+     */
+    prefix: string;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+    /**
+     * Last Used At
+     */
+    last_used_at: string | null;
+    /**
+     * Revoked At
+     */
+    revoked_at: string | null;
+    /**
+     * Key
+     */
+    key: string;
+};
+
+/**
+ * ExtensionKeyPublic
+ */
+export type ExtensionKeyPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Label
+     */
+    label: string;
+    /**
+     * Prefix
+     */
+    prefix: string;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+    /**
+     * Last Used At
+     */
+    last_used_at: string | null;
+    /**
+     * Revoked At
+     */
+    revoked_at: string | null;
+};
+
+/**
+ * ExtensionKeysPublic
+ */
+export type ExtensionKeysPublic = {
+    /**
+     * Items
+     */
+    items: Array<ExtensionKeyPublic>;
+};
+
+/**
+ * ExtensionMetric
+ *
+ * What the extension read from the page the person had open.
+ */
+export type ExtensionMetric = {
+    /**
+     * Note Url
+     */
+    note_url: string;
+    /**
+     * Likes
+     */
+    likes: number;
+    /**
+     * Collects
+     */
+    collects: number;
+    /**
+     * Comments
+     */
+    comments: number;
+    /**
+     * Approximate
+     */
+    approximate?: boolean;
+    /**
+     * Captured At
+     */
+    captured_at?: string | null;
+};
+
+/**
+ * ExtensionRecorded
+ */
+export type ExtensionRecorded = {
+    /**
+     * Recorded
+     */
+    recorded: boolean;
+    /**
+     * Approximate
+     */
+    approximate: boolean;
+};
+
+/**
  * FlowStatus
  *
  * Process state of a task or version. It never means "compliant" (contract section 5).
@@ -1116,6 +1393,54 @@ export type HTTPValidationError = {
 };
 
 /**
+ * HotStat
+ */
+export type HotStat = {
+    /**
+     * Scenario Name
+     */
+    scenario_name: string;
+    /**
+     * Scene
+     */
+    scene: string;
+    /**
+     * Note Count
+     */
+    note_count: number;
+    /**
+     * Average Engagement
+     */
+    average_engagement: number;
+    /**
+     * Approximate
+     */
+    approximate: boolean;
+};
+
+/**
+ * HottestPublic
+ */
+export type HottestPublic = {
+    /**
+     * Enough Data
+     */
+    enough_data: boolean;
+    /**
+     * Min Notes
+     */
+    min_notes: number;
+    /**
+     * Notes With Metrics
+     */
+    notes_with_metrics: number;
+    /**
+     * Items
+     */
+    items: Array<HotStat>;
+};
+
+/**
  * Layer
  */
 export type Layer = 'lexicon' | 'context' | 'efficacy_basis';
@@ -1203,6 +1528,88 @@ export type Message = {
      * Message
      */
     message: string;
+};
+
+/**
+ * MetricCreate
+ */
+export type MetricCreate = {
+    /**
+     * Likes
+     */
+    likes: number;
+    /**
+     * Collects
+     */
+    collects: number;
+    /**
+     * Comments
+     */
+    comments: number;
+    /**
+     * Approximate
+     */
+    approximate?: boolean;
+    /**
+     * Source
+     */
+    source?: 'manual' | 'extension' | 'screenshot';
+    /**
+     * Captured At
+     */
+    captured_at?: string | null;
+};
+
+/**
+ * MetricPublic
+ */
+export type MetricPublic = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Copy Id
+     */
+    copy_id: string;
+    /**
+     * Captured At
+     */
+    captured_at: string;
+    /**
+     * Likes
+     */
+    likes: number;
+    /**
+     * Collects
+     */
+    collects: number;
+    /**
+     * Comments
+     */
+    comments: number;
+    /**
+     * Approximate
+     */
+    approximate: boolean;
+    /**
+     * Source
+     */
+    source: string;
+    /**
+     * Created At
+     */
+    created_at: string | null;
+};
+
+/**
+ * MetricsPublic
+ */
+export type MetricsPublic = {
+    /**
+     * Items
+     */
+    items: Array<MetricPublic>;
 };
 
 /**
@@ -1617,6 +2024,25 @@ export type ResultsPublic = {
      * Page Size
      */
     page_size: number;
+};
+
+/**
+ * ResultsSummary
+ */
+export type ResultsSummary = {
+    /**
+     * Total Copies
+     */
+    total_copies: number;
+    /**
+     * Pending Count
+     */
+    pending_count: number;
+    /**
+     * Most Used
+     */
+    most_used: Array<UsageStat>;
+    hottest: HottestPublic;
 };
 
 /**
@@ -2043,7 +2469,10 @@ export type RunsPublic = {
  * A new brand template, or the next version when the scene and name already exist.
  */
 export type ScenarioCreate = {
-    scene: Scene;
+    /**
+     * Scene
+     */
+    scene: string;
     /**
      * Name
      */
@@ -2115,11 +2544,6 @@ export type ScenariosPublic = {
      */
     items: Array<ScenarioPublic>;
 };
-
-/**
- * Scene
- */
-export type Scene = 'seeding' | 'review' | 'tutorial' | 'launch' | 'promotion' | 'story';
 
 /**
  * SellingPoint
@@ -2486,6 +2910,24 @@ export type UpdatePassword = {
      * New Password
      */
     new_password: string;
+};
+
+/**
+ * UsageStat
+ */
+export type UsageStat = {
+    /**
+     * Scenario Name
+     */
+    scenario_name: string;
+    /**
+     * Scene
+     */
+    scene: string;
+    /**
+     * Count
+     */
+    count: number;
 };
 
 /**
@@ -2870,7 +3312,10 @@ export type ViralToTemplateRequest = {
      * Name
      */
     name: string;
-    scene: Scene;
+    /**
+     * Scene
+     */
+    scene: string;
     /**
      * Structure
      */
@@ -4181,6 +4626,456 @@ export type scenariosUpdateTemplateResponses = {
 };
 
 export type scenariosUpdateTemplateResponse = scenariosUpdateTemplateResponses[keyof scenariosUpdateTemplateResponses];
+
+export type creativeTypesReadCreativeTypesData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/creative-types';
+};
+
+export type creativeTypesReadCreativeTypesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type creativeTypesReadCreativeTypesError = creativeTypesReadCreativeTypesErrors[keyof creativeTypesReadCreativeTypesErrors];
+
+export type creativeTypesReadCreativeTypesResponses = {
+    /**
+     * Successful Response
+     */
+    200: CreativeTypesPublic;
+};
+
+export type creativeTypesReadCreativeTypesResponse = creativeTypesReadCreativeTypesResponses[keyof creativeTypesReadCreativeTypesResponses];
+
+export type creativeTypesCreateCreativeTypeData = {
+    body: CreativeTypeCreate;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/creative-types';
+};
+
+export type creativeTypesCreateCreativeTypeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type creativeTypesCreateCreativeTypeError = creativeTypesCreateCreativeTypeErrors[keyof creativeTypesCreateCreativeTypeErrors];
+
+export type creativeTypesCreateCreativeTypeResponses = {
+    /**
+     * Successful Response
+     */
+    201: CreativeTypePublic;
+};
+
+export type creativeTypesCreateCreativeTypeResponse = creativeTypesCreateCreativeTypeResponses[keyof creativeTypesCreateCreativeTypeResponses];
+
+export type creativeTypesDeleteCreativeTypeData = {
+    body?: never;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/creative-types/{key}';
+};
+
+export type creativeTypesDeleteCreativeTypeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type creativeTypesDeleteCreativeTypeError = creativeTypesDeleteCreativeTypeErrors[keyof creativeTypesDeleteCreativeTypeErrors];
+
+export type creativeTypesDeleteCreativeTypeResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type creativeTypesDeleteCreativeTypeResponse = creativeTypesDeleteCreativeTypeResponses[keyof creativeTypesDeleteCreativeTypeResponses];
+
+export type creativeTypesRenameCreativeTypeData = {
+    body: CreativeTypeCreate;
+    path: {
+        /**
+         * Key
+         */
+        key: string;
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/creative-types/{key}';
+};
+
+export type creativeTypesRenameCreativeTypeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type creativeTypesRenameCreativeTypeError = creativeTypesRenameCreativeTypeErrors[keyof creativeTypesRenameCreativeTypeErrors];
+
+export type creativeTypesRenameCreativeTypeResponses = {
+    /**
+     * Successful Response
+     */
+    200: CreativeTypePublic;
+};
+
+export type creativeTypesRenameCreativeTypeResponse = creativeTypesRenameCreativeTypeResponses[keyof creativeTypesRenameCreativeTypeResponses];
+
+export type resultsReadConfirmedCopiesData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: {
+        /**
+         * Needs Metrics
+         */
+        needs_metrics?: boolean;
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/brands/{brand_id}/confirmed-copies';
+};
+
+export type resultsReadConfirmedCopiesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type resultsReadConfirmedCopiesError = resultsReadConfirmedCopiesErrors[keyof resultsReadConfirmedCopiesErrors];
+
+export type resultsReadConfirmedCopiesResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConfirmedCopiesPublic;
+};
+
+export type resultsReadConfirmedCopiesResponse = resultsReadConfirmedCopiesResponses[keyof resultsReadConfirmedCopiesResponses];
+
+export type resultsReadResultsSummaryData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/results/summary';
+};
+
+export type resultsReadResultsSummaryErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type resultsReadResultsSummaryError = resultsReadResultsSummaryErrors[keyof resultsReadResultsSummaryErrors];
+
+export type resultsReadResultsSummaryResponses = {
+    /**
+     * Successful Response
+     */
+    200: ResultsSummary;
+};
+
+export type resultsReadResultsSummaryResponse = resultsReadResultsSummaryResponses[keyof resultsReadResultsSummaryResponses];
+
+export type resultsReadConfirmedCopyData = {
+    body?: never;
+    path: {
+        /**
+         * Copy Id
+         */
+        copy_id: string;
+    };
+    query?: never;
+    url: '/api/v1/confirmed-copies/{copy_id}';
+};
+
+export type resultsReadConfirmedCopyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type resultsReadConfirmedCopyError = resultsReadConfirmedCopyErrors[keyof resultsReadConfirmedCopyErrors];
+
+export type resultsReadConfirmedCopyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConfirmedCopyPublic;
+};
+
+export type resultsReadConfirmedCopyResponse = resultsReadConfirmedCopyResponses[keyof resultsReadConfirmedCopyResponses];
+
+export type resultsUpdateConfirmedCopyData = {
+    body: ConfirmedCopyUpdate;
+    path: {
+        /**
+         * Copy Id
+         */
+        copy_id: string;
+    };
+    query?: never;
+    url: '/api/v1/confirmed-copies/{copy_id}';
+};
+
+export type resultsUpdateConfirmedCopyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type resultsUpdateConfirmedCopyError = resultsUpdateConfirmedCopyErrors[keyof resultsUpdateConfirmedCopyErrors];
+
+export type resultsUpdateConfirmedCopyResponses = {
+    /**
+     * Successful Response
+     */
+    200: ConfirmedCopyPublic;
+};
+
+export type resultsUpdateConfirmedCopyResponse = resultsUpdateConfirmedCopyResponses[keyof resultsUpdateConfirmedCopyResponses];
+
+export type resultsReadMetricsData = {
+    body?: never;
+    path: {
+        /**
+         * Copy Id
+         */
+        copy_id: string;
+    };
+    query?: never;
+    url: '/api/v1/confirmed-copies/{copy_id}/metrics';
+};
+
+export type resultsReadMetricsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type resultsReadMetricsError = resultsReadMetricsErrors[keyof resultsReadMetricsErrors];
+
+export type resultsReadMetricsResponses = {
+    /**
+     * Successful Response
+     */
+    200: MetricsPublic;
+};
+
+export type resultsReadMetricsResponse = resultsReadMetricsResponses[keyof resultsReadMetricsResponses];
+
+export type resultsAddMetricData = {
+    body: MetricCreate;
+    path: {
+        /**
+         * Copy Id
+         */
+        copy_id: string;
+    };
+    query?: never;
+    url: '/api/v1/confirmed-copies/{copy_id}/metrics';
+};
+
+export type resultsAddMetricErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type resultsAddMetricError = resultsAddMetricErrors[keyof resultsAddMetricErrors];
+
+export type resultsAddMetricResponses = {
+    /**
+     * Successful Response
+     */
+    201: MetricPublic;
+};
+
+export type resultsAddMetricResponse = resultsAddMetricResponses[keyof resultsAddMetricResponses];
+
+export type extensionReadExtensionKeysData = {
+    body?: never;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/extension-keys';
+};
+
+export type extensionReadExtensionKeysErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type extensionReadExtensionKeysError = extensionReadExtensionKeysErrors[keyof extensionReadExtensionKeysErrors];
+
+export type extensionReadExtensionKeysResponses = {
+    /**
+     * Successful Response
+     */
+    200: ExtensionKeysPublic;
+};
+
+export type extensionReadExtensionKeysResponse = extensionReadExtensionKeysResponses[keyof extensionReadExtensionKeysResponses];
+
+export type extensionCreateExtensionKeyData = {
+    body: ExtensionKeyCreate;
+    path: {
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/extension-keys';
+};
+
+export type extensionCreateExtensionKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type extensionCreateExtensionKeyError = extensionCreateExtensionKeyErrors[keyof extensionCreateExtensionKeyErrors];
+
+export type extensionCreateExtensionKeyResponses = {
+    /**
+     * Successful Response
+     */
+    201: ExtensionKeyCreated;
+};
+
+export type extensionCreateExtensionKeyResponse = extensionCreateExtensionKeyResponses[keyof extensionCreateExtensionKeyResponses];
+
+export type extensionRevokeExtensionKeyData = {
+    body?: never;
+    path: {
+        /**
+         * Key Id
+         */
+        key_id: string;
+        /**
+         * Brand Id
+         */
+        brand_id: string;
+    };
+    query?: never;
+    url: '/api/v1/brands/{brand_id}/extension-keys/{key_id}';
+};
+
+export type extensionRevokeExtensionKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type extensionRevokeExtensionKeyError = extensionRevokeExtensionKeyErrors[keyof extensionRevokeExtensionKeyErrors];
+
+export type extensionRevokeExtensionKeyResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type extensionRevokeExtensionKeyResponse = extensionRevokeExtensionKeyResponses[keyof extensionRevokeExtensionKeyResponses];
+
+export type extensionRecordExtensionMetricData = {
+    body: ExtensionMetric;
+    headers?: {
+        /**
+         * X-Extension-Key
+         */
+        'x-extension-key'?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/extension/metrics';
+};
+
+export type extensionRecordExtensionMetricErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type extensionRecordExtensionMetricError = extensionRecordExtensionMetricErrors[keyof extensionRecordExtensionMetricErrors];
+
+export type extensionRecordExtensionMetricResponses = {
+    /**
+     * Successful Response
+     */
+    201: ExtensionRecorded;
+};
+
+export type extensionRecordExtensionMetricResponse = extensionRecordExtensionMetricResponses[keyof extensionRecordExtensionMetricResponses];
 
 export type evidenceReadVersionEvidenceData = {
     body?: never;
