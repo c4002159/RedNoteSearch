@@ -1059,3 +1059,21 @@ export const RESULT_REWRITE_TEXT = {
   instruction: (matched: string, suggestion: string) =>
     `把‘${matched}’改为：${suggestion}`,
 } as const
+
+export const RISK_REWRITE_REVIEW_TEXT = {
+  hint: "按命中字段分组顺序改写；每次最多 500 字，超长建议分步处理，不丢弃后续条目。每步生成新版本，请最后核对。",
+  manual: "请手动编辑",
+  manualHint:
+    "部分风险缺少建议、字段不支持改写或命中文字过长，请先手动编辑；不会跳过这些风险。",
+  progress: (n: number, total: number) => `第 ${n} / ${total} 步`,
+  stopped: (fields: string, count: number, total: number) =>
+    `改写已停止：已完成 ${count} / ${total} 步（${fields}），后续步骤未执行。请打开已生成版本核对，勿从旧版重复提交。`,
+  openLast: "打开已完成的最新版本",
+  targets: {
+    titles: "标题",
+    body: "正文",
+    cover: "封面",
+    hashtags: "标签",
+    opening: "开头",
+  },
+} as const

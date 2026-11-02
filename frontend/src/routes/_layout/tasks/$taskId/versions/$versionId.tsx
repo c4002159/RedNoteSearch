@@ -45,7 +45,7 @@ import {
   titleWeight,
 } from "@/lib/count"
 import { formatTime } from "@/lib/format"
-import { riskRewriteInstruction } from "@/lib/riskRewrite"
+import { canRewriteRisk, riskRewriteSteps } from "@/lib/riskRewrite"
 import { cn } from "@/lib/utils"
 import {
   COUNT_LABEL,
@@ -53,6 +53,7 @@ import {
   label,
   ORIGIN_LABEL,
   PAGE_ERROR_TEXT,
+  RISK_REWRITE_REVIEW_TEXT as RR,
   RESULT_REWRITE_TEXT as RW,
   SCENARIO_TEXT,
 } from "@/lib/zh"
@@ -413,6 +414,7 @@ function RiskPanel({
 }) {
   const pendingRisks = items.filter((item) => !item.resolved)
   const missingSuggestion = pendingRisks.some((item) => !item.suggestion.trim())
+  const needsManual = pendingRisks.some((item) => !canRewriteRisk(item))
   return (
     <section
       className={cn("space-y-3", !bare && "rounded-xl border bg-card p-4")}
@@ -428,14 +430,15 @@ function RiskPanel({
           <Button
             variant="outline"
             size="sm"
-            disabled={
-              rewriting || pendingRisks.length === 0 || missingSuggestion
-            }
+            disabled={rewriting || pendingRisks.length === 0 || needsManual}
             onClick={() => onRewrite(pendingRisks)}
           >
             {RW.allRisks}
           </Button>
-          <p className="text-xs leading-6 text-muted-foreground">{RW.hint}</p>
+          <p className="text-xs leading-6 text-muted-foreground">{RR.hint}</p>
+          {needsManual && (
+            <p className="text-xs text-tone-warn">{RR.manualHint}</p>
+          )}
           {missingSuggestion && (
             <p className="text-xs text-tone-warn">{RW.noSuggestion}</p>
           )}
@@ -479,7 +482,7 @@ function RiskPanel({
                   标记为已处理
                 </Button>
               )}
-              {editable && !busyText && (
+              {editable && !busyText && canRewriteRisk(c) && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -488,6 +491,9 @@ function RiskPanel({
                 >
                   {RW.risk}
                 </Button>
+              )}
+              {editable && !busyText && !canRewriteRisk(c) && (
+                <span className="text-xs text-tone-warn">{RR.manual}</span>
               )}
             </div>
           </li>
@@ -698,17 +704,40 @@ function ResultPage() {
     })
   }
 
+  const [rewriteProgress, setRewriteProgress] = useState<{
+    total: number
+    completed: RewriteRequest["target"][]
+    last: Version | null
+  }>({ total: 0, completed: [], last: null })
   const rewrite = useMutation({
-    mutationFn: async (body: RewriteRequest) =>
-      (
-        await VersionsService.rewritePart({
-          path: { version_id: versionId },
-          body,
-          timeout: 180_000,
+    mutationFn: async (input: RewriteRequest | RewriteRequest[]) => {
+      const steps = Array.isArray(input) ? input : [input]
+      let currentId = versionId
+      let last: Version | undefined
+      const completed: RewriteRequest["target"][] = []
+      setRewriteProgress({ total: steps.length, completed: [], last: null })
+      for (const body of steps) {
+        last = (
+          await VersionsService.rewritePart({
+            path: { version_id: currentId },
+            body,
+            timeout: 180_000,
+          })
+        ).data
+        currentId = last.id
+        completed.push(body.target)
+        setRewriteProgress({
+          total: steps.length,
+          completed: [...completed],
+          last,
         })
-      ).data,
+      }
+      return last!
+    },
     onSuccess: goTo,
   })
+  const partialRewrite = rewrite.isError && rewriteProgress.completed.length > 0
+  const rewriteBusy = rewrite.isPending || partialRewrite
 
   const recheck = useMutation({
     mutationFn: async () =>
@@ -834,7 +863,47 @@ function ResultPage() {
       {rewrite.isPending && (
         <p role="status" className="rounded-lg bg-surface-low p-3 text-sm">
           {RW.pending}
+          {rewriteProgress.total > 1 && (
+            <span className="ml-2">
+              {RR.progress(
+                Math.min(
+                  rewriteProgress.completed.length + 1,
+                  rewriteProgress.total,
+                ),
+                rewriteProgress.total,
+              )}
+            </span>
+          )}
         </p>
+      )}
+      {partialRewrite && (
+        <div
+          role="status"
+          className="space-y-2 rounded-lg bg-surface-low p-3 text-sm"
+        >
+          <p>
+            {RR.stopped(
+              rewriteProgress.completed
+                .map((target) => RR.targets[target])
+                .join("、"),
+              rewriteProgress.completed.length,
+              rewriteProgress.total,
+            )}
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (rewriteProgress.last) {
+                const last = rewriteProgress.last
+                rewrite.reset()
+                setRewriteProgress({ total: 0, completed: [], last: null })
+                void goTo(last)
+              }
+            }}
+          >
+            {RR.openLast}
+          </Button>
+        </div>
       )}
       {rewriteError && (
         <ErrorBanner
@@ -933,7 +1002,7 @@ function ResultPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={rewrite.isPending}
+                      disabled={rewriteBusy}
                       onClick={() => rewrite.mutate({ target: "hashtags" })}
                     >
                       {RW.tags}
@@ -1002,7 +1071,7 @@ function ResultPage() {
 
           {editable && !editing && !inProgress && (
             <RewriteBar
-              pending={rewrite.isPending}
+              pending={rewriteBusy}
               onRewrite={(body) => rewrite.mutate(body)}
             />
           )}
@@ -1152,11 +1221,10 @@ function ResultPage() {
                     editable={editable}
                     busyText={busyText}
                     onResolve={(item) => setDialog({ kind: "risk", item })}
-                    rewriting={rewrite.isPending}
+                    rewriting={rewriteBusy}
                     onRewrite={(risks) => {
-                      const instruction = riskRewriteInstruction(risks)
-                      if (instruction)
-                        rewrite.mutate({ target: "body", instruction })
+                      const steps = riskRewriteSteps(risks)
+                      if (steps.length) rewrite.mutate(steps)
                     }}
                   />
                 )}
