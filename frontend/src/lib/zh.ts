@@ -1046,3 +1046,20 @@ export const SCENARIO_TEXT = {
   adopted: "采用结构：",
   manage: "管理场景模板",
 } as const
+
+// 场景模板详情与筛选。
+export const SCENARIO_DETAIL_TEXT = {
+  detail: "模板详情",
+  view: "查看模板详情",
+  actions: "操作",
+  clear: "清除筛选",
+  filteredEmpty: "没有符合筛选条件的模板",
+  noSource: "未记录来源爆款",
+  sourceUnavailable: "来源结构已不可用，仅保留标题",
+  builtinCopy:
+    "内置模板会另存为当前品牌模板；已有同名品牌模板时生成新版本，不修改全局模板。",
+  newVersionHint:
+    "以当前内容为底保存新版本，不修改原版本；同名模板的版本号由服务端递增。",
+  readonly: "当前角色只读，可查看完整结构与来源。",
+  close: "关闭",
+} as const
