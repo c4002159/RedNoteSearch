@@ -18,18 +18,18 @@ def suggestions(
             ScenarioTemplate.scene == scene
         )
     tasks = session.exec(
-        tasks_query.order_by(col(Task.created_at).desc(), Task.id)
+        tasks_query.order_by(col(Task.created_at).desc(), col(Task.id))
     ).all()
     # Presets and extracted structures have no scene: always brand-wide.
     presets = session.exec(
         select(StylePreset)
         .where(StylePreset.brand_id == brand_id)
-        .order_by(col(StylePreset.created_at).desc(), StylePreset.id)
+        .order_by(col(StylePreset.created_at).desc(), col(StylePreset.id))
     ).all()
     patterns = session.exec(
         select(ViralPattern)
         .where(ViralPattern.brand_id == brand_id)
-        .order_by(ViralPattern.created_at, ViralPattern.id)
+        .order_by(col(ViralPattern.created_at), col(ViralPattern.id))
     ).all()
 
     copies_query = (
@@ -40,7 +40,9 @@ def suggestions(
     if scene is not None:
         copies_query = copies_query.where(ConfirmedCopy.scene == scene)
     copies = session.exec(
-        copies_query.order_by(col(ConfirmedCopy.confirmed_at).desc(), ConfirmedCopy.id)
+        copies_query.order_by(
+            col(ConfirmedCopy.confirmed_at).desc(), col(ConfirmedCopy.id)
+        )
     ).all()
     # Scope both sides of the join; only each copy's latest captured reading counts.
     latest: dict[uuid.UUID, PostMetric] = {}
@@ -54,20 +56,20 @@ def suggestions(
             .order_by(
                 col(PostMetric.captured_at).desc(),
                 col(PostMetric.created_at).desc(),
-                PostMetric.id,
+                col(PostMetric.id),
             )
         ).all():
             latest.setdefault(metric.copy_id, metric)
     readings = [
         (
             task.style.get("tone"),
-            metric.likes,
-            metric.collects,
-            metric.comments,
-            metric.approximate,
+            reading.likes,
+            reading.collects,
+            reading.comments,
+            reading.approximate,
         )
         for copy, task in copies
-        if (metric := latest.get(copy.id)) is not None
+        if (reading := latest.get(copy.id)) is not None
     ]
     return rules.ToneSuggestions(
         history=rules.history_tones(

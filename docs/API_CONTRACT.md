@@ -824,3 +824,24 @@ id,layer,rule_type,severity,pattern,is_regex,suggestion,source_name,source_url,s
 
 - v1.1：补齐第 2、3、4（版本、分块、重建索引）、5（场景、风格、任务列表、局部重写、断言确认、选定标题、导出格式）、6、7（创建、评分、一致性）、8；明确 403 与 404 策略、分页、幂等、文件限制；关闭自助注册。
 - v1.0：初版（见原 API_CONTRACT.md）。
+
+## 语气推荐：第一期（并列来源，不调用模型）
+
+`GET /brands/{brand_id}/tone-suggestions?scene=&limit=`：品牌成员（含 editor），品牌只取路径授权上下文；未登录 401，非成员 403，平台管理员无成员身份也不能读取。只读、不写审计、不调用模型、不新增表。
+
+- `limit` 默认 10，范围 1–20，每个顶层来源组最多 limit 条（history 的 task 与 preset 合计）；越界或非整数 422。`scene` 可选，提供时为 1–20 字的类型 key。未知 key 不报存在性错误，只使有场景的数据无匹配。
+- `scene` **仅过滤任务历史与成绩中的已确认文案**：任务通过采用的场景模板的 scene 匹配；成绩通过已确认文案的 scene 快照匹配。**预设与爆款结构始终是品牌通用数据，不随 scene 过滤**，界面应标“品牌通用”，不通过模板引用推断归属。
+- 所有语气先去首尾空白、把连续 Unicode 空白合并为一个空格，再按完全相同的文字合并；不做大小写或语义合并；空串、不合法非字符串丢弃。
+
+响应三组并列，不混排、不加权、不计算综合分：
+
+```json
+{"history":[{"tone":"温柔克制","source":"task","count":2,"last_used_at":"2026-11-02T00:00:00Z"},{"tone":"温柔克制","source":"preset","count":null,"last_used_at":null}],"template":[{"tone":"轻松自然","count":3,"sample_count":2}],"results":{"enough_data":false,"notes_with_metrics":0,"min_notes":3,"items":[]}}
+```
+
+- `history.source=task`：同一清洗语气每个本品牌任务计一次，最近使用时间取任务创建时间；count 降序、同数按最近创建时间降序。不限任务状态，不把同一任务的生成版本重复计数。
+- `history.source=preset`：每个清洗后不同的预设语气一条，**count 和 last_used_at 固定为 null，不计次数和时间，不表示被用过**；按预设保存时间倒序，仅用来排序，不返回该时间。task 排在 preset 前；同名 task/preset 分别保留，不合并。相同次数/时间时使用稳定顺序。
+- `template`：本品牌 viral_pattern.tone；count 为清洗后同语气的结构条数，sample_count 为对应样本 id 去重数，同一个样本分析多次只算一个样本。只按 count 降序，同数保持稳定顺序。界面使用 sample_count 显示“来自 N 个爆款样本”，count 仅用于本组排序；不是成绩加权。
+- `results`：仅可关联本品牌原任务、语气非空的已确认文案参与语气归因；每篇只取最新读数，按 captured_at、created_at 倒序，完全相同时按 id 稳定选择，不把同篇的多条读数当多篇。scene 过滤后、能归因语气且有读数的文案数为 notes_with_metrics。少于 3 篇 enough_data=false 且 items=[]；min_notes 固定 3。复用 domain/results.py 的最热规则，items 每项 tone、note_count、average_engagement（最新点赞+收藏+评论按组平均，保留一位小数）、approximate（本组任一最新读数近似即 true）。平均互动降序、同值按篇数降序。没有综合分，不声称哪个语气更好。
+- 空品牌返回 history=[]、template=[]、results={enough_data:false,notes_with_metrics:0,min_notes:3,items:[]}。非空组不因其他组为空而消失。
+- 实现约定：查询任务、预设、结构、文案与读数均约束本品牌；已确认文案无可关联任务时不猜测语气；不读取文案正文作为语气。时间按通用约定为 UTC。
