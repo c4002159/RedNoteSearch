@@ -654,9 +654,11 @@ export const PRODUCT_STATUS_LABEL = {
 // Fourth batch: user settings and login.
 export const SETTINGS_TEXT = {
   title: "用户设置",
-  description: "管理你的个人资料与登录密码。",
+  description: "管理个人资料、登录密码与可用的连接设置。",
   profile: "我的资料",
   passwordTab: "修改密码",
+  modelsTab: "模型与密钥",
+  pluginTab: "浏览器插件",
   name: "姓名",
   email: "邮箱",
   emailHint: "邮箱由管理员录入，不可直接修改",
@@ -1190,11 +1192,42 @@ export const EXTENSION_KEYS_TEXT = {
   copied: "已复制",
   copyFailed: "复制失败，请选中文本手动复制",
   instructions: "使用说明",
-  steps: [
-    "在 Chrome 打开 chrome://extensions，开启开发者模式，点击“加载已解压的扩展程序”，选择仓库中的 extensions/results-helper 文件夹。",
-    "创建密钥后复制连接配置串，打开插件的“连接设置”，粘贴到第一栏，点击“使用配置并授权”。连接配置含密钥，请妥善保管。",
-    "在系统中为已确认文案保存帖子网址，再在 Chrome 打开对应的具体笔记页。点开插件并点击“读取当前页面”，核对点赞、收藏、评论数后点击“发送到系统”。插件只在你操作时读取已打开页面，不会自动打开页面；短链接需手动登记成绩。",
+  installSteps: [
+    {
+      title: "下载并解压插件包",
+      description:
+        "下载插件包，解压到一个固定位置，记住这个文件夹。安装完成后也不要移动或删除它。",
+    },
+    {
+      title: "打开扩展程序与开发者模式",
+      description:
+        "在 Chrome 地址栏输入 chrome://extensions，打开右上角的“开发者模式”。网页不能直接打开这个地址，请复制后粘贴到地址栏。",
+    },
+    {
+      title: "加载已解压的扩展程序",
+      description:
+        "点击“加载已解压的扩展程序”，在文件夹选择窗口里选择刚解压出来的 results-helper 文件夹。要选到里面直接有 manifest.json 的那一层。",
+    },
+    {
+      title: "创建密钥并连接系统",
+      description:
+        "创建密钥 → 复制连接配置串 → 点浏览器右上角的插件图标，打开“连接设置”，粘贴并点“使用配置并授权”。连接配置含密钥，只显示这一次，请妥善保管。",
+    },
   ],
+  download: "下载插件包",
+  downloading: "正在下载…",
+  copyAddress: "复制扩展程序地址",
+  extensionAddress: "chrome://extensions",
+  updateHint:
+    "更新插件：将新版文件解压并替换到原文件夹，再到扩展程序页点击“重新加载”。",
+  useHint:
+    "在系统中为已确认文案保存帖子网址，再在 Chrome 打开对应的具体笔记页。点开插件并点击“读取当前页面”，核对点赞、收藏、评论数后点击“发送到系统”。插件只在你操作时读取已打开页面，不会自动打开页面；短链接需手动登记成绩。",
+  diagram: "步骤示意图",
+  folder: "固定文件夹",
+  developerMode: "开发者模式",
+  loadUnpacked: "加载已解压的扩展程序",
+  connectionSettings: "连接设置",
+  authorize: "使用配置并授权",
 } as const
 
 // 成绩记录：看板、列表与登记弹窗。
