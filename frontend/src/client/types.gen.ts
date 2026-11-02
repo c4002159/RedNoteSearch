@@ -5170,6 +5170,29 @@ export type toneGenerateToneSuggestionsResponses = {
 
 export type toneGenerateToneSuggestionsResponse = toneGenerateToneSuggestionsResponses[keyof toneGenerateToneSuggestionsResponses];
 
+export type extensionDownloadExtensionPackageData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/extension/package';
+};
+
+export type extensionDownloadExtensionPackageErrors = {
+    /**
+     * 插件安装包暂不可用
+     */
+    503: unknown;
+};
+
+export type extensionDownloadExtensionPackageResponses = {
+    /**
+     * 插件运行文件安装包
+     */
+    200: Blob | File;
+};
+
+export type extensionDownloadExtensionPackageResponse = extensionDownloadExtensionPackageResponses[keyof extensionDownloadExtensionPackageResponses];
+
 export type extensionReadExtensionKeysData = {
     body?: never;
     path: {

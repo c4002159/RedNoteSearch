@@ -1,10 +1,11 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Header, Response
+from fastapi import APIRouter, Header, Request, Response
 
 from app.api.brand_deps import BrandAdminDep
-from app.api.deps import SessionDep
+from app.api.deps import CurrentUser, SessionDep
+from app.core.errors import error_response
 from app.models import (
     ExtensionKeyCreate,
     ExtensionKeyCreated,
@@ -14,8 +15,42 @@ from app.models import (
     ExtensionRecorded,
 )
 from app.services import extension as service
+from app.services.extension_package import extension_package
 
 router = APIRouter(tags=["extension"])
+
+
+@router.get(
+    "/extension/package",
+    response_class=Response,
+    responses={
+        200: {
+            "content": {
+                "application/zip": {"schema": {"type": "string", "format": "binary"}}
+            },
+            "description": "插件运行文件安装包",
+        },
+        503: {"description": "插件安装包暂不可用"},
+    },
+)
+def download_extension_package(request: Request, _: CurrentUser) -> Response:
+    try:
+        content = extension_package()
+    except OSError:
+        return error_response(
+            request,
+            status_code=503,
+            code="EXTENSION_PACKAGE_UNAVAILABLE",
+            message="插件安装包暂不可用，请稍后重试",
+        )
+    return Response(
+        content=content,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": 'attachment; filename="results-helper.zip"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 @router.post(
