@@ -463,19 +463,21 @@ function NewTaskForm() {
             />
           )}
           {setupInfo && (
-            <ErrorBanner
-              error={{
-                ...setupInfo,
-                message: /[\u3400-\u9fff]/u.test(setupInfo.message)
-                  ? setupInfo.message
-                  : PR.loadFailed,
-              }}
-              onRetry={() => {
-                void products.refetch()
-                void scenarios.refetch()
-                void creativeTypes.refetch()
-              }}
-            />
+            <div className="lg:mr-72">
+              <ErrorBanner
+                error={{
+                  ...setupInfo,
+                  message: /[\u3400-\u9fff]/u.test(setupInfo.message)
+                    ? setupInfo.message
+                    : PR.loadFailed,
+                }}
+                onRetry={() => {
+                  void products.refetch()
+                  void scenarios.refetch()
+                  void creativeTypes.refetch()
+                }}
+              />
+            </div>
           )}
           {noRetrievableDocs && (
             <p
@@ -486,7 +488,7 @@ function NewTaskForm() {
             </p>
           )}
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 lg:mr-72">
             <span className="block text-base font-semibold">创作场景</span>
             {scenarios.isLoading || creativeTypes.isLoading ? (
               <Skeleton aria-label={PR.loadingTypes} className="h-20 w-full" />

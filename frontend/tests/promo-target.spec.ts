@@ -148,8 +148,13 @@ async function select(page: Page, name: string, option: string) {
 async function scene(page: Page, name = "种草") {
   await page
     .getByRole("radiogroup", { name: "场景", exact: true })
-    .getByRole("radio", { name: new RegExp(name) })
-    .check()
+    .getByText(name, { exact: true })
+    .click()
+  await expect(
+    page
+      .getByRole("radiogroup", { name: "场景", exact: true })
+      .getByRole("radio", { name: new RegExp(name) }),
+  ).toBeChecked()
 }
 const create = (page: Page) =>
   page.getByRole("button", { name: "仅创建，稍后添加资料", exact: true })
@@ -242,7 +247,7 @@ test("Promo activity adds and removes perks and does not send product fields", a
     await perks.press("Enter")
   }
   await page
-    .getByRole("button", { name: "移除 活动福利 2", exact: true })
+    .getByRole("button", { name: "删除 活动福利 2", exact: true })
     .click()
   await expect(page.getByText("领取试香", { exact: true })).toHaveCount(0)
   await create(page).click()
@@ -279,7 +284,7 @@ test("Promo activity limits name detail perk length and ten perks", async ({
   await perks.press("Enter")
   await expect(create(page)).toBeDisabled()
   await page
-    .getByRole("button", { name: "移除 活动福利 1", exact: true })
+    .getByRole("button", { name: "删除 活动福利 1", exact: true })
     .click()
   for (let index = 0; index < 10; index++) {
     await perks.fill(`福利${index}`)
@@ -358,6 +363,36 @@ test("Promo failed creative type request shows Chinese request id and recovers o
   fixture.recover()
   await page.getByRole("button", { name: "重试", exact: true }).click()
   await expect(page.getByRole("radio", { name: /品牌随笔/ })).toBeVisible()
+})
+
+test("Promo rejected task preserves promotion selection and displays request id", async ({
+  page,
+}) => {
+  await setup(page)
+  await page.route("**/api/v1/tasks", (route) =>
+    route.fulfill({
+      status: 422,
+      json: {
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "推广对象已变化，请重新选择",
+          request_id: "req-promo-create",
+          details: {},
+        },
+      },
+    }),
+  )
+  await page.goto("/generate")
+  await select(page, "选择商品", "香氛商品1")
+  await scene(page)
+  await create(page).click()
+  await expect(page.getByText("推广对象已变化，请重新选择")).toBeVisible()
+  await expect(page.getByText("req-promo-create")).toBeVisible()
+  await expect(
+    page.getByRole("combobox", { name: "选择商品", exact: true }),
+  ).toContainText("香氛商品1")
+  await expect(page.getByRole("radio", { name: /种草/ })).toBeChecked()
+  await expect(page.getByText("VALIDATION_ERROR")).toHaveCount(0)
 })
 
 test("Promo forbidden creative type request does not log out", async ({

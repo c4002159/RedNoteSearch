@@ -81,7 +81,7 @@ export function PromoTarget({
 }) {
   const selected = products.find((p) => p.id === value.productId)
   return (
-    <section className="space-y-4">
+    <section className="space-y-4 lg:mr-72">
       <h2 className="text-base font-semibold">{T.title}</h2>
       <div
         role="radiogroup"
