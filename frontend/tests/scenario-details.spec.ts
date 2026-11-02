@@ -106,6 +106,16 @@ test("A row opens full template details and admin can save the old version as a 
     await page.setViewportSize({ width, height: 900 })
     await expect
       .poll(() =>
+        drawer.evaluate(
+          (element) =>
+            Math.abs(
+              element.getBoundingClientRect().right - window.innerWidth,
+            ) < 1,
+        ),
+      )
+      .toBe(true)
+    await expect
+      .poll(() =>
         page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       )
       .toBe(true)
