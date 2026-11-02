@@ -1158,3 +1158,27 @@ export const TEMPLATE_ANALYSIS_TABS = {
   templates: "场景模板",
   viral: "爆款分析",
 } as const
+
+export const CREATIVE_TYPES_TEXT = {
+  title: "创作类型管理",
+  description: "管理品牌自己的笔记类型，用于场景模板分类和筛选。",
+  breadcrumb: "面包屑",
+  group: "品牌与商品",
+  selectBrand: "请先在顶栏选择品牌",
+  readonly: "当前权限：编辑者（只读视图）",
+  workspace: "当前品牌作用域：",
+  name: "类型名称",
+  identifier: "类型标识",
+  source: "类型来源",
+  count: "使用模板版本数",
+  actions: "操作",
+  builtin: "内置类型",
+  custom: "品牌自定义",
+  loading: "正在加载创作类型…",
+  empty: "还没有可显示的创作类型",
+  total: (total: number, builtin: number) =>
+    `共 ${total} 项类型（${builtin} 项内置，${total - builtin} 项品牌自定义）`,
+  builtinHint: "内置类型由系统提供，不可修改。",
+  deleteHint: "自定义类型如被模板版本或已确认文案使用，将无法删除。",
+  readonlyHint: "自定义类型维护需联系品牌管理员进行创建、重命名或删除。",
+} as const

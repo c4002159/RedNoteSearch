@@ -59,6 +59,12 @@ export const NAV_GROUPS: NavGroup[] = [
         access: "member",
       },
       {
+        title: "创作类型管理",
+        path: "/creative-types",
+        icon: LayoutTemplate,
+        access: "member",
+      },
+      {
         title: "爆款结构分析",
         path: "/viral-samples",
         icon: TrendingUp,
