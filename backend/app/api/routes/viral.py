@@ -24,6 +24,7 @@ from app.models.viral import (
     ViralSamplesDelete,
     ViralSamplesDeleted,
     ViralSamplesPublic,
+    ViralSampleUpdate,
     ViralToTemplateRequest,
 )
 from app.ports.llm import LlmClient
@@ -73,6 +74,12 @@ SampleDep = Annotated[ViralSample, Depends(get_sample)]
 PatternDep = Annotated[ViralPattern, Depends(get_pattern)]
 
 
+def sample_public(session: Session, sample: ViralSample) -> ViralSamplePublic:
+    return ViralSamplePublic.model_validate(sample, from_attributes=True).model_copy(
+        update={"structures_stale": viral.sample_structures_stale(session, sample)}
+    )
+
+
 @router.post(
     "/brands/{brand_id}/viral-samples",
     response_model=ViralSamplePublic,
@@ -82,9 +89,8 @@ def create_sample(
     access: BrandAccessDep, session: SessionDep, body: ViralSampleCreate
 ) -> ViralSamplePublic:
     """Save a manually supplied text sample within one brand."""
-    return ViralSamplePublic.model_validate(
-        viral.create_sample(session, access.brand_id, access.user_id, body),
-        from_attributes=True,
+    return sample_public(
+        session, viral.create_sample(session, access.brand_id, access.user_id, body)
     )
 
 
@@ -114,6 +120,7 @@ def read_samples(
     rows, total = viral.list_samples(
         session, access.brand_id, page, page_size, sort == "-created_at"
     )
+    stale = viral.samples_staleness(session, rows)
     return ViralSamplesPublic(
         items=[
             ViralSampleListItem(
@@ -124,6 +131,7 @@ def read_samples(
                 created_at=r.created_at,
                 char_count=len(r.text),
                 excerpt=r.text[:200],
+                structures_stale=stale[r.id],
             )
             for r in rows
         ],
@@ -134,9 +142,21 @@ def read_samples(
 
 
 @router.get("/viral-samples/{sample_id}", response_model=ViralSamplePublic)
-def read_sample(sample: SampleDep) -> ViralSamplePublic:
+def read_sample(sample: SampleDep, session: SessionDep) -> ViralSamplePublic:
     """Read the original sample text after refreshing the page."""
-    return ViralSamplePublic.model_validate(sample, from_attributes=True)
+    return sample_public(session, sample)
+
+
+@router.patch("/viral-samples/{sample_id}", response_model=ViralSamplePublic)
+def update_sample(
+    sample: SampleDep, session: SessionDep, user: CurrentUser, body: ViralSampleUpdate
+) -> ViralSamplePublic:
+    member = session.get(BrandMember, (sample.brand_id, user.id))
+    if member is None:
+        raise NotFoundError("Sample not found")
+    if member.role != MemberRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Brand admin role required")
+    return sample_public(session, viral.update_sample(session, sample, user.id, body))
 
 
 @router.get("/viral-samples/{sample_id}/patterns", response_model=ViralPatternsPublic)
