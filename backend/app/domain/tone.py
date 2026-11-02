@@ -204,6 +204,17 @@ _CLAIM_TERMS = (
 )
 
 
+def tone_key(value: str) -> str:
+    """Duplicate key: width, case, spaces and punctuation do not make a tone new."""
+    import unicodedata
+
+    return "".join(
+        c
+        for c in unicodedata.normalize("NFKC", value).casefold()
+        if not c.isspace() and unicodedata.category(c)[0] not in ("P", "S", "C")
+    )
+
+
 def _screen_text(value: str) -> str:
     import unicodedata
 
@@ -259,7 +270,7 @@ def filter_generated_tones(
         output = ToneModelOutput.model_validate_json(text)
     except ValidationError as exc:
         raise InvalidToneOutput("模型未返回有效的语气 JSON") from exc
-    seen = {clean_tone(tone) for tone in existing}
+    seen = {tone_key(tone) for tone in existing}
     items: list[ToneCandidate] = []
     for raw in output.suggestions:
         try:
@@ -267,12 +278,12 @@ def filter_generated_tones(
         except ValidationError:
             continue
         if (
-            item.tone in seen
+            tone_key(item.tone) in seen
             or not safe_tone_text(item.tone, forbidden_words)
             or not safe_tone_text(item.reason, forbidden_words)
         ):
             continue
-        seen.add(item.tone)
+        seen.add(tone_key(item.tone))
         items.append(item)
         if len(items) == count:
             break

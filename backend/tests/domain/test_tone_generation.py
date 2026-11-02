@@ -126,3 +126,17 @@ def test_demo_fixed_prompt_and_count(keywords: list[str]) -> None:
         assert all(any(k in item.tone for k in keywords) for item in items)
     else:
         assert "profile" not in context
+
+
+def test_width_case_spaces_and_punctuation_do_not_make_a_tone_new() -> None:
+    items = filter_generated_tones(
+        answer(
+            ("温柔，叙事", "描述"),
+            ("温柔 叙事", "描述"),
+            ("ＡＢ Calm", "描述"),
+            ("ab calm!", "描述"),
+            ("全新", "描述"),
+        ),
+        existing=["温柔叙事"],
+    )
+    assert [i.tone for i in items] == ["ＡＢ Calm", "全新"]
