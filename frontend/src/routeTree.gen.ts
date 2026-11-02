@@ -18,6 +18,7 @@ import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as LayoutBrandsRouteImport } from './routes/_layout/brands'
 import { Route as LayoutCreativeTypesRouteImport } from './routes/_layout/creative-types'
+import { Route as LayoutExtensionKeysRouteImport } from './routes/_layout/extension-keys'
 import { Route as LayoutGenerateRouteImport } from './routes/_layout/generate'
 import { Route as LayoutProductsRouteImport } from './routes/_layout/products'
 import { Route as LayoutResultsRouteImport } from './routes/_layout/results'
@@ -82,6 +83,11 @@ const LayoutBrandsRoute = LayoutBrandsRouteImport.update({
 const LayoutCreativeTypesRoute = LayoutCreativeTypesRouteImport.update({
   id: '/creative-types',
   path: '/creative-types',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutExtensionKeysRoute = LayoutExtensionKeysRouteImport.update({
+  id: '/extension-keys',
+  path: '/extension-keys',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutGenerateRoute = LayoutGenerateRouteImport.update({
@@ -204,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof LayoutAdminRoute
   '/brands': typeof LayoutBrandsRoute
   '/creative-types': typeof LayoutCreativeTypesRoute
+  '/extension-keys': typeof LayoutExtensionKeysRoute
   '/generate': typeof LayoutGenerateRoute
   '/products': typeof LayoutProductsRoute
   '/results': typeof LayoutResultsRoute
@@ -234,6 +241,7 @@ export interface FileRoutesByTo {
   '/admin': typeof LayoutAdminRoute
   '/brands': typeof LayoutBrandsRoute
   '/creative-types': typeof LayoutCreativeTypesRoute
+  '/extension-keys': typeof LayoutExtensionKeysRoute
   '/generate': typeof LayoutGenerateRoute
   '/products': typeof LayoutProductsRoute
   '/results': typeof LayoutResultsRoute
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/_layout/admin': typeof LayoutAdminRoute
   '/_layout/brands': typeof LayoutBrandsRoute
   '/_layout/creative-types': typeof LayoutCreativeTypesRoute
+  '/_layout/extension-keys': typeof LayoutExtensionKeysRoute
   '/_layout/generate': typeof LayoutGenerateRoute
   '/_layout/products': typeof LayoutProductsRoute
   '/_layout/results': typeof LayoutResultsRoute
@@ -301,6 +310,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/brands'
     | '/creative-types'
+    | '/extension-keys'
     | '/generate'
     | '/products'
     | '/results'
@@ -331,6 +341,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/brands'
     | '/creative-types'
+    | '/extension-keys'
     | '/generate'
     | '/products'
     | '/results'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/_layout/admin'
     | '/_layout/brands'
     | '/_layout/creative-types'
+    | '/_layout/extension-keys'
     | '/_layout/generate'
     | '/_layout/products'
     | '/_layout/results'
@@ -458,6 +470,13 @@ declare module '@tanstack/react-router' {
       path: '/creative-types'
       fullPath: '/creative-types'
       preLoaderRoute: typeof LayoutCreativeTypesRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/extension-keys': {
+      id: '/_layout/extension-keys'
+      path: '/extension-keys'
+      fullPath: '/extension-keys'
+      preLoaderRoute: typeof LayoutExtensionKeysRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/generate': {
@@ -614,6 +633,7 @@ interface LayoutRouteChildren {
   LayoutAdminRoute: typeof LayoutAdminRoute
   LayoutBrandsRoute: typeof LayoutBrandsRoute
   LayoutCreativeTypesRoute: typeof LayoutCreativeTypesRoute
+  LayoutExtensionKeysRoute: typeof LayoutExtensionKeysRoute
   LayoutGenerateRoute: typeof LayoutGenerateRoute
   LayoutProductsRoute: typeof LayoutProductsRoute
   LayoutResultsRoute: typeof LayoutResultsRoute
@@ -642,6 +662,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutAdminRoute: LayoutAdminRoute,
   LayoutBrandsRoute: LayoutBrandsRoute,
   LayoutCreativeTypesRoute: LayoutCreativeTypesRoute,
+  LayoutExtensionKeysRoute: LayoutExtensionKeysRoute,
   LayoutGenerateRoute: LayoutGenerateRoute,
   LayoutProductsRoute: LayoutProductsRoute,
   LayoutResultsRoute: LayoutResultsRoute,

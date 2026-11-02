@@ -1155,6 +1155,46 @@ export const TEMPLATE_ANALYSIS_TABS = {
   templates: "场景模板",
   viral: "爆款分析",
 } as const
+export const EXTENSION_KEYS_TEXT = {
+  title: "插件密钥管理",
+  description: "为笔记成绩助手创建和管理连接密钥。每品牌最多 10 个有效密钥。",
+  create: "创建密钥",
+  first: "创建首枚密钥",
+  empty: "当前品牌还没有插件密钥",
+  label: "名称",
+  prefix: "前缀",
+  created: "创建时间",
+  used: "最后使用时间",
+  status: "状态",
+  actions: "操作",
+  active: "有效",
+  revoked: "已作废",
+  never: "尚未使用",
+  revoke: "作废",
+  cancel: "取消",
+  close: "关闭",
+  confirm: "确认作废",
+  revokeTitle: "作废这枚密钥？",
+  revokeHint:
+    "作废后，使用这枚密钥的插件将无法继续提交成绩读数。此操作不可撤销。",
+  nameHint: "名称为 1–60 个字符，首尾空白会自动去除。",
+  nameError: "请输入 1–60 个字符的名称",
+  limit: "有效密钥已达 10 个上限，请先作废不用的",
+  success: "密钥创建成功",
+  once: "含密钥，只显示这一次，关闭后无法再取",
+  key: "完整密钥",
+  config: "连接配置串",
+  copyKey: "复制密钥",
+  copyConfig: "复制连接配置串",
+  copied: "已复制",
+  copyFailed: "复制失败，请选中文本手动复制",
+  instructions: "使用说明",
+  steps: [
+    "在 Chrome 打开 chrome://extensions，开启开发者模式，点击“加载已解压的扩展程序”，选择仓库中的 extensions/results-helper 文件夹。",
+    "创建密钥后复制连接配置串，打开插件的“连接设置”，粘贴到第一栏，点击“使用配置并授权”。连接配置含密钥，请妥善保管。",
+    "在系统中为已确认文案保存帖子网址，再在 Chrome 打开对应的具体笔记页。点开插件并点击“读取当前页面”，核对点赞、收藏、评论数后点击“发送到系统”。插件只在你操作时读取已打开页面，不会自动打开页面；短链接需手动登记成绩。",
+  ],
+} as const
 
 // 成绩记录：看板、列表与登记弹窗。
 export const RESULTS_TEXT = {
