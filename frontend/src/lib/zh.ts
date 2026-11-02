@@ -1196,7 +1196,6 @@ export const EXTENSION_KEYS_TEXT = {
   ],
 } as const
 
-
 // 成绩记录：看板、列表与登记弹窗。
 export const RESULTS_TEXT = {
   title: "成绩记录",
