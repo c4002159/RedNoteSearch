@@ -68,7 +68,7 @@ function VoicePage() {
     },
   })
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex flex-wrap justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{T.voice}</h1>
@@ -99,12 +99,12 @@ function VoicePage() {
         (versions.data.length === 0 ? (
           <EmptyState title={T.noVoice} />
         ) : (
-          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
             <ul className="space-y-3">
               {versions.data.map((p) => (
                 <li
                   key={p.version}
-                  className="space-y-2 rounded-xl border bg-card p-4"
+                  className="space-y-2 rounded-xl bg-card p-6 shadow-sm"
                 >
                   <Button
                     variant={
@@ -136,12 +136,12 @@ function VoicePage() {
               ))}
             </ul>
             {selected && (
-              <section className="min-w-0 space-y-4 rounded-xl border bg-card p-4">
+              <section className="min-w-0 space-y-4 rounded-xl bg-card p-6 shadow-sm">
                 <h2 className="font-semibold">
                   {T.version} v{selected.version}
                 </h2>
                 <h3 className="text-sm font-medium">{T.persona}</h3>
-                <p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">
+                <p className="whitespace-pre-wrap rounded-lg bg-surface-low p-5 text-sm leading-7 [overflow-wrap:anywhere]">
                   {selected.persona}
                 </p>
                 {(
@@ -157,11 +157,13 @@ function VoicePage() {
                     {selected[k].length === 0 ? (
                       <p className="text-sm text-muted-foreground">{T.none}</p>
                     ) : (
-                      <ul className="space-y-1 text-sm">
+                      <ul
+                        className={`flex flex-wrap gap-2 text-sm ${k === "sample_refs" ? "flex-col" : ""}`}
+                      >
                         {selected[k].map((s, i) => (
                           <li
                             key={i}
-                            className="whitespace-pre-wrap [overflow-wrap:anywhere]"
+                            className={`whitespace-pre-wrap rounded-lg px-3 py-2 [overflow-wrap:anywhere] ${k === "forbidden_words" ? "bg-tone-err-bg text-tone-err" : k === "preferred_words" ? "bg-tone-ok-bg text-tone-ok" : "bg-surface-low"}`}
                           >
                             {s}
                           </li>

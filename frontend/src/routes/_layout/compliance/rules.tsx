@@ -23,7 +23,6 @@ import {
   downloadError,
   RULE_TYPE_LABEL,
   saveDownload,
-  selectClass,
   sourceText,
 } from "@/components/Compliance/rules"
 import { Button } from "@/components/ui/button"
@@ -282,7 +281,7 @@ function ScopedRules({
     </DropdownMenu>
   )
   return (
-    <div className="min-w-0 space-y-5">
+    <div className="min-w-0 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <h1 className="text-2xl font-bold tracking-tight">风险提示规则</h1>
@@ -313,7 +312,10 @@ function ScopedRules({
           )}
         </div>
       </div>
-      <fieldset className="flex gap-2 border-b pb-2" aria-label="规则范围">
+      <fieldset
+        className="flex gap-2 border-b border-surface pb-2"
+        aria-label="规则范围"
+      >
         {(
           ["global", ...(brandId ? ["brand"] : [])] as ("global" | "brand")[]
         ).map((value) => (
@@ -338,7 +340,7 @@ function ScopedRules({
           : "全局规则；只有平台管理员可以维护。"}
         {!canEdit && " 当前范围只读。"}列表包含已停用规则。
       </p>
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-3">
+      <div className="flex flex-wrap items-end gap-3 rounded-xl bg-card p-6 shadow-sm">
         {(
           [
             [
@@ -373,7 +375,7 @@ function ScopedRules({
             </label>
             <select
               id={`filter-${key}`}
-              className={selectClass}
+              className="h-10 w-full rounded-lg border-0 bg-surface-low px-3 text-sm focus-visible:outline-ring"
               value={value}
               onChange={(e) => {
                 setValue(e.target.value)
@@ -429,7 +431,7 @@ function ScopedRules({
         />
       )}
       {!rules.isError && shown.length > 0 && (
-        <div className="min-w-0 rounded-xl border bg-card">
+        <div className="min-w-0 overflow-hidden rounded-xl bg-card shadow-sm">
           <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow>
@@ -482,6 +484,7 @@ function ScopedRules({
                             variant="ghost"
                             size="sm"
                             onClick={() => setEditing(row)}
+                            className="text-link"
                           >
                             编辑
                           </Button>
@@ -492,6 +495,9 @@ function ScopedRules({
                               toggle.reset()
                               setReasonTarget(row)
                             }}
+                            className={
+                              row.enabled ? "text-tone-err" : "text-link"
+                            }
                           >
                             {row.enabled ? "停用" : "启用"}
                           </Button>
@@ -510,7 +516,7 @@ function ScopedRules({
         </div>
       )}
       {rules.data && !rules.isError && (
-        <div className="flex flex-wrap items-center justify-end gap-3 text-sm">
+        <div className="flex flex-wrap items-center justify-end gap-3 rounded-xl bg-card p-6 text-sm shadow-sm">
           <span className="text-muted-foreground">
             第 {activePage} / {pages} 页，共 {rules.data.total} 条，每页{" "}
             {PAGE_SIZE} 条{rules.isFetching ? " · 正在刷新…" : ""}

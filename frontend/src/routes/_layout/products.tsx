@@ -71,7 +71,7 @@ function ProductsPage() {
     },
   })
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex flex-wrap justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{T.products}</h1>
@@ -81,7 +81,7 @@ function ProductsPage() {
           <Button onClick={() => setEditing("new")}>{T.newProduct}</Button>
         )}
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 rounded-xl bg-card p-6 shadow-sm">
         {(["active", "archived"] as const).map((s) => (
           <Button
             key={s}
@@ -108,7 +108,7 @@ function ProductsPage() {
             {query.data.items.map((p) => (
               <li
                 key={p.id}
-                className="space-y-3 rounded-xl border bg-card p-4"
+                className="space-y-3 rounded-xl bg-card p-6 shadow-sm"
               >
                 <div className="flex flex-wrap justify-between gap-3">
                   <div className="min-w-0">
@@ -131,7 +131,8 @@ function ProductsPage() {
                   <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="ghost"
+                      className="text-link"
                       onClick={() => setViewing(p)}
                     >
                       {T.view}
@@ -140,7 +141,8 @@ function ProductsPage() {
                       <>
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="ghost"
+                          className="text-link"
                           onClick={() => setEditing(p)}
                         >
                           {T.edit}

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
-
-import { TasksService } from "@/client"
+import { ArrowLeft, ChevronRight } from "lucide-react"
+import { type GenerationVersionPublic, TasksService } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { MissingPage } from "@/components/Common/ForbiddenPage"
@@ -9,8 +9,8 @@ import { FlowStatusBadge } from "@/components/Common/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { parseApiError } from "@/lib/apiError"
-import { type DiffRow, diffLines } from "@/lib/diff"
-import { label, ORIGIN_LABEL } from "@/lib/zh"
+import { diffLines } from "@/lib/diff"
+import { T5_VISUAL_TEXT as T } from "@/lib/zh"
 
 export const Route = createFileRoute("/_layout/tasks/$taskId/compare")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -20,48 +20,132 @@ export const Route = createFileRoute("/_layout/tasks/$taskId/compare")({
   component: ComparePage,
   head: () => ({ meta: [{ title: "版本对比 - RedNoteSearch" }] }),
 })
+// The supported browsers implement Segmenter; the project's TS lib predates its declaration.
+const Segmenter = Reflect.get(Intl, "Segmenter") as new (
+  locale: string,
+  options: { granularity: "word" },
+) => { segment: (text: string) => Iterable<{ segment: string }> }
+const segmenter = new Segmenter("zh", { granularity: "word" })
+const words = (text: string) =>
+  Array.from(segmenter.segment(text), (part) => part.segment)
 
-function Rows({ title, rows }: { title: string; rows: DiffRow[] }) {
-  return (
-    <section className="space-y-2 rounded-xl border bg-card p-4">
-      <h2 className="text-base font-semibold">{title}</h2>
-      {rows.length === 0 && (
-        <p className="text-sm text-muted-foreground">两个版本都为空。</p>
-      )}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-        {rows.map((r, i) => (
-          <div key={`${i}-${r.left}-${r.right}`} className="contents">
-            <p
-              className={`whitespace-pre-wrap break-words rounded px-2 py-1 ${
-                r.left === null
-                  ? ""
-                  : r.same
-                    ? ""
-                    : "bg-error-container text-on-error-container"
-              }`}
-            >
-              {r.left ?? ""}
-            </p>
-            <p
-              className={`whitespace-pre-wrap break-words rounded px-2 py-1 ${
-                r.right === null
-                  ? ""
-                  : r.same
-                    ? ""
-                    : "bg-tone-soft-blue-bg text-tone-soft-blue"
-              }`}
-            >
-              {r.right ?? ""}
-            </p>
-          </div>
-        ))}
-      </div>
-    </section>
+function ComparedText({
+  left,
+  right,
+  side,
+}: {
+  left: string
+  right: string
+  side: "left" | "right"
+}) {
+  return diffLines(words(left), words(right)).map((row, index) =>
+    row[side] === null ? null : (
+      <span
+        key={index}
+        className={
+          row.same
+            ? undefined
+            : side === "left"
+              ? "rounded bg-tone-err-bg text-tone-err line-through decoration-current"
+              : "rounded bg-tone-ok-bg text-tone-ok"
+        }
+      >
+        {row[side]}
+      </span>
+    ),
   )
 }
 
-const lines = (text: string) => (text ? text.split("\n") : [])
-
+function VersionCard({
+  version,
+  other,
+  versions,
+  side,
+}: {
+  version: GenerationVersionPublic
+  other: GenerationVersionPublic
+  versions: GenerationVersionPublic[]
+  side: "left" | "right"
+}) {
+  const navigate = Route.useNavigate()
+  const text = (value: string, otherValue: string) => (
+    <ComparedText
+      left={side === "left" ? value : otherValue}
+      right={side === "left" ? otherValue : value}
+      side={side}
+    />
+  )
+  return (
+    <section className="min-w-0 space-y-6 rounded-xl bg-card p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface pb-5">
+        <select
+          aria-label={side === "left" ? T.leftVersion : T.rightVersion}
+          className="h-10 rounded-lg border-0 bg-surface-low px-3 text-sm font-medium focus-visible:outline-ring"
+          value={version.id}
+          onChange={(event) =>
+            void navigate({
+              search: (previous) => ({
+                ...previous,
+                ...(event.target.value === other.id
+                  ? { [side === "left" ? "right" : "left"]: version.id }
+                  : {}),
+                [side]: event.target.value,
+              }),
+            })
+          }
+        >
+          {versions.map((item) => (
+            <option key={item.id} value={item.id}>
+              {T.version} {item.version_no}
+            </option>
+          ))}
+        </select>
+        <FlowStatusBadge status={version.flow_status} />
+      </div>
+      {(
+        ["title_candidates", "body", "hashtags", "cover_candidates"] as const
+      ).map((field) => (
+        <div key={field} className="space-y-3">
+          <h2 className="text-base font-semibold">{T[field]}</h2>
+          {field === "body" ? (
+            <p className="min-h-24 whitespace-pre-wrap rounded-lg bg-surface-low p-5 text-sm leading-7 [overflow-wrap:anywhere]">
+              {text(version.body, other.body)}
+            </p>
+          ) : version[field].length === 0 ? (
+            <p className="text-sm text-muted-foreground">{T.emptyContent}</p>
+          ) : field === "hashtags" ? (
+            <ul className="flex flex-wrap gap-2 text-sm">
+              {version.hashtags.map((tag, index) => (
+                <li
+                  key={index}
+                  className="max-w-full break-words rounded-full bg-surface-low px-3 py-1.5"
+                >
+                  {text(
+                    `#${tag.replace(/^#+/, "")}`,
+                    other.hashtags.includes(tag)
+                      ? `#${tag.replace(/^#+/, "")}`
+                      : "",
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ol className="space-y-3">
+              {version[field].map((value, index) => (
+                <li
+                  key={index}
+                  className="rounded-lg border border-surface px-4 py-3 text-sm leading-6 [overflow-wrap:anywhere]"
+                >
+                  {index + 1}. {text(value, other[field][index] ?? "")}
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      ))}
+    </section>
+  )
+}
 function ComparePage() {
   const { taskId } = Route.useParams()
   const { left, right } = Route.useSearch()
@@ -71,18 +155,36 @@ function ComparePage() {
       (await TasksService.readTaskVersions({ path: { task_id: taskId } })).data
         .items,
   })
-
   const a = versions.data?.find((v) => v.id === left)
   const b = versions.data?.find((v) => v.id === right)
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">版本对比</h1>
-        <Button asChild variant="outline" size="sm" className="ml-auto">
-          <Link to="/tasks/$taskId" params={{ taskId }}>
-            返回任务
-          </Link>
+      <nav
+        aria-label={T.breadcrumb}
+        className="flex items-center gap-2 text-sm text-muted-foreground"
+      >
+        <Link to="/tasks" className="hover:text-link">
+          {T.tasks}
+        </Link>
+        <ChevronRight aria-hidden="true" className="size-4" />
+        <span className="font-medium text-foreground">{T.compare}</span>
+      </nav>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-surface pb-5">
+        <h1 className="text-2xl font-bold tracking-tight">{T.compare}</h1>
+        <Button asChild variant="outline" size="sm">
+          {b ? (
+            <Link
+              to="/tasks/$taskId/versions/$versionId"
+              params={{ taskId, versionId: b.id }}
+            >
+              <ArrowLeft className="size-4" />
+              {T.backResult}
+            </Link>
+          ) : (
+            <Link to="/tasks/$taskId" params={{ taskId }}>
+              {T.backTask}
+            </Link>
+          )}
         </Button>
       </div>
       {versions.isLoading && <Skeleton className="h-48 w-full" />}
@@ -96,43 +198,34 @@ function ComparePage() {
           />
         ))}
       {versions.isSuccess && (!a || !b || a.id === b.id) && (
-        <EmptyState
-          title="请选择两个不同的版本"
-          description="回到任务页，在“版本”区域选好左右两个版本再点“对比”。"
-        />
+        <EmptyState title={T.chooseVersions} description={T.chooseHint} />
       )}
-      {a && b && a.id !== b.id && (
+      {a && b && a.id !== b.id && versions.data && (
         <>
-          <div className="grid grid-cols-2 gap-4">
-            {[a, b].map((v) => (
-              <div key={v.id} className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">
-                  第 {v.version_no} 版 ·{" "}
-                  {label(ORIGIN_LABEL, v.origin, "origin")}
-                </span>
-                <FlowStatusBadge status={v.flow_status} />
-              </div>
-            ))}
+          <div className="flex flex-wrap gap-5 text-xs text-muted-foreground">
+            <span className="flex items-center gap-2">
+              <span className="size-3 rounded bg-tone-err-bg ring-1 ring-tone-err/30" />
+              {T.leftOnly}
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="size-3 rounded bg-tone-ok-bg ring-1 ring-tone-ok/30" />
+              {T.rightOnly}
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            红色为只在左侧出现的内容，绿色为只在右侧出现的内容。
-          </p>
-          <Rows
-            title="候选标题"
-            rows={diffLines(a.title_candidates, b.title_candidates)}
-          />
-          <Rows title="正文" rows={diffLines(lines(a.body), lines(b.body))} />
-          <Rows
-            title="话题"
-            rows={diffLines(
-              a.hashtags.map((t) => `#${t.replace(/^#+/, "")}`),
-              b.hashtags.map((t) => `#${t.replace(/^#+/, "")}`),
-            )}
-          />
-          <Rows
-            title="封面文字候选"
-            rows={diffLines(a.cover_candidates, b.cover_candidates)}
-          />
+          <div className="grid items-start gap-6 md:grid-cols-2">
+            <VersionCard
+              version={a}
+              other={b}
+              versions={versions.data}
+              side="left"
+            />
+            <VersionCard
+              version={b}
+              other={a}
+              versions={versions.data}
+              side="right"
+            />
+          </div>
         </>
       )}
     </div>
