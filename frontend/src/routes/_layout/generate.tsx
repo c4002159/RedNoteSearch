@@ -30,6 +30,7 @@ import { ForbiddenPage, MissingPage } from "@/components/Common/ForbiddenPage"
 import { type DockStep, ProgressDock } from "@/components/Common/ProgressDock"
 import { StageProgress } from "@/components/Common/StageProgress"
 import { FlowStatusBadge } from "@/components/Common/StatusBadge"
+import { ToneSuggestDialog } from "@/components/Generate/ToneSuggestDialog"
 import {
   emptyPromo,
   PromoTarget,
@@ -53,6 +54,7 @@ import {
   PROMO_TARGET_TEXT as PT,
   SCENARIO_TEXT,
   TASK_ERROR_LABEL,
+  TONE_DIALOG_TEXT,
 } from "@/lib/zh"
 
 export const Route = createFileRoute("/_layout/generate")({
@@ -335,6 +337,7 @@ function NewTaskForm() {
   })
 
   const [promo, setPromo] = useState(emptyPromo)
+  const [toneOpen, setToneOpen] = useState(false)
   const preselected = Route.useSearch().scenario
   const [scenarioId, setScenarioId] = useState(preselected ?? "")
   const [brief, setBrief] = useState("")
@@ -552,15 +555,33 @@ function NewTaskForm() {
               )}
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field title="语气">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <label
+                    htmlFor="generation-tone"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    语气
+                  </label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-link"
+                    onClick={() => setToneOpen(true)}
+                  >
+                    {TONE_DIALOG_TEXT.title}
+                  </Button>
+                </div>
                 <Input
+                  id="generation-tone"
                   value={style.tone ?? ""}
                   onChange={(e) =>
                     setStyle({ ...style, tone: e.target.value || null })
                   }
                   placeholder="如：亲切、克制"
                 />
-              </Field>
+              </div>
               <Field title="篇幅">
                 <select
                   className={selectClass}
@@ -766,6 +787,21 @@ function NewTaskForm() {
         </div>
       </div>
 
+      {toneOpen && (
+        <ToneSuggestDialog
+          key={`${brandId}:${scenarioId}:${promo.type}:${promo.productId}`}
+          brandId={brandId}
+          scene={brandScenarios.find((s) => s.id === scenarioId)?.scene}
+          productId={
+            promo.type === "activity" ? undefined : promo.productId || undefined
+          }
+          onClose={() => setToneOpen(false)}
+          onUse={(tone) => {
+            setStyle((old) => ({ ...old, tone }))
+            setToneOpen(false)
+          }}
+        />
+      )}
       <ProgressDock
         steps={PROGRESS_PREVIEW.map((text) => ({
           text,
