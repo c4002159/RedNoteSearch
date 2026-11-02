@@ -201,7 +201,7 @@ test("Activate requires confirmation and keeps only one available version", asyn
   await page
     .getByRole("row")
     .filter({ hasText: "v2" })
-    .getByRole("button", { name: "设为生效", exact: true })
+    .getByRole("button", { name: "选用此版本 v2", exact: true })
     .click()
   expect(state.writes).toHaveLength(0)
   await page
@@ -226,8 +226,9 @@ test("Editor can inspect content without maintenance controls", async ({
   const state = await fixture(page, "editor")
   await page.goto("/voice-profile")
   await expect(page.getByRole("table")).toBeVisible()
-  for (const name of ["编辑", "设为生效", "新建版本"])
+  for (const name of ["编辑", "新建版本"])
     await expect(page.getByRole("button", { name, exact: true })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: /选用此版本/ })).toHaveCount(0)
   await page.getByRole("button", { name: "v1 · 查看品牌人设全文" }).click()
   await expect(page.getByRole("dialog")).toContainText(persona)
   expect(state.writes).toHaveLength(0)
