@@ -15,6 +15,7 @@ from sqlmodel import Session, col, func, or_, select
 
 from app.domain.evaluation.agreement import DimensionAgreement, dimension_agreement
 from app.domain.evaluation.metrics import VERDICT_TO_STATUS, normalize_brand_term
+from app.domain.evaluation.revisions import revise_cases
 from app.domain.evaluation.rubric import DIMENSIONS, RUBRIC_VERSION, validate_scores
 from app.domain.evidence.judge import PROMPT_VERSION as EVIDENCE_PROMPT_VERSION
 from app.domain.generation.evaluate import CHECKER_VERSION
@@ -34,6 +35,7 @@ from app.models import (
     RunCreate,
     User,
 )
+from app.models.evaluation import DatasetRevisionRequest
 from app.services.audit import record_audit
 from app.services.errors import InvalidInputError, NotFoundError
 
@@ -198,6 +200,14 @@ def create_dataset(*, session: Session, data: DatasetCreate, user: User) -> Eval
         )
         if previous.kind != data.kind.value or previous.brand_id != data.brand_id:
             raise InvalidInputError("新版本的类型和所属品牌必须与上一版本相同")
+        # Every path that appends a version locks the same immutable group root.
+        session.exec(
+            select(EvalDataset)
+            .where(EvalDataset.group_id == previous.group_id)
+            .order_by(col(EvalDataset.version))
+            .limit(1)
+            .with_for_update()
+        ).one()
         latest = session.exec(
             select(func.max(EvalDataset.version)).where(
                 EvalDataset.group_id == previous.group_id
@@ -239,6 +249,50 @@ def create_dataset(*, session: Session, data: DatasetCreate, user: User) -> Eval
     session.commit()
     session.refresh(dataset)
     return dataset
+
+
+def revise_dataset(
+    *, session: Session, dataset_id: uuid.UUID, user: User, data: DatasetRevisionRequest
+) -> EvalDataset:
+    source = get_visible_dataset(session=session, dataset_id=dataset_id, user=user)
+    if not can_create_for(session, user, source.brand_id):
+        raise PermissionError("Platform administrator required")
+    rows = session.exec(
+        select(EvalCase)
+        .where(EvalCase.dataset_id == source.id)
+        .order_by(col(EvalCase.case_index))
+    ).all()
+    original = [
+        CaseIn(
+            input=row.input, expected=row.expected, annotators=row.annotators
+        ).model_dump()
+        for row in rows
+    ]
+    try:
+        cases = revise_cases(
+            original,
+            [
+                (item.case_index, item.model_dump(exclude={"case_index"}))
+                for item in data.updates
+            ],
+            data.delete_case_indexes,
+        )
+    except ValueError as exc:
+        raise InvalidInputError(
+            str(exc),
+            {"errors": [{"loc": ["body"], "msg": str(exc), "type": "value_error"}]},
+        ) from exc
+    return create_dataset(
+        session=session,
+        user=user,
+        data=DatasetCreate(
+            name=source.name,
+            kind=EvalKind(source.kind),
+            brand_id=source.brand_id,
+            previous_version_id=source.id,
+            cases=[CaseIn.model_validate(case) for case in cases],
+        ),
+    )
 
 
 def list_datasets(

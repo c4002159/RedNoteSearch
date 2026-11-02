@@ -755,6 +755,32 @@ export type CreativeTypesPublic = {
 };
 
 /**
+ * DatasetCaseUpdate
+ */
+export type DatasetCaseUpdate = {
+    /**
+     * Input
+     */
+    input: {
+        [key: string]: unknown;
+    };
+    /**
+     * Expected
+     */
+    expected?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Annotators
+     */
+    annotators?: Array<string>;
+    /**
+     * Case Index
+     */
+    case_index: number;
+};
+
+/**
  * DatasetCreate
  */
 export type DatasetCreate = {
@@ -817,6 +843,20 @@ export type DatasetPublic = {
      * Created At
      */
     created_at: string | null;
+};
+
+/**
+ * DatasetRevisionRequest
+ */
+export type DatasetRevisionRequest = {
+    /**
+     * Updates
+     */
+    updates?: Array<DatasetCaseUpdate>;
+    /**
+     * Delete Case Indexes
+     */
+    delete_case_indexes?: Array<number>;
 };
 
 /**
@@ -5882,6 +5922,36 @@ export type evaluationCreateDatasetResponses = {
 };
 
 export type evaluationCreateDatasetResponse = evaluationCreateDatasetResponses[keyof evaluationCreateDatasetResponses];
+
+export type evaluationReviseDatasetData = {
+    body: DatasetRevisionRequest;
+    path: {
+        /**
+         * Dataset Id
+         */
+        dataset_id: string;
+    };
+    query?: never;
+    url: '/api/v1/evaluation/datasets/{dataset_id}/revisions';
+};
+
+export type evaluationReviseDatasetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type evaluationReviseDatasetError = evaluationReviseDatasetErrors[keyof evaluationReviseDatasetErrors];
+
+export type evaluationReviseDatasetResponses = {
+    /**
+     * Successful Response
+     */
+    201: DatasetPublic;
+};
+
+export type evaluationReviseDatasetResponse = evaluationReviseDatasetResponses[keyof evaluationReviseDatasetResponses];
 
 export type evaluationReadCasesData = {
     body?: never;
