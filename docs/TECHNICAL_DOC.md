@@ -473,7 +473,7 @@ RedNoteSearch/
 |---|---|---|
 | pre-commit（lint） | prek 配置：Biome、Python 风格与类型检查等 | 模板已有 |
 | test-backend | 起 pgvector 数据库，迁移，运行 pytest；领域层覆盖率 ≥90% 且整体不低于基线（ADR-002） | 模板已有，需改：镜像、去掉 Items 测试、覆盖率规则 |
-| frontend-build | tsc 类型检查与 vite build | 新增（模板 build 脚本） |
+| frontend-build | tsc 类型检查与 vite build；同一个 job 里再跑浏览器插件的单元测试（`node --test extensions/results-helper/test/parse.test.js`） | 新增（模板 build 脚本） |
 | playwright | 端到端用例 | 模板已有，用例替换为本项目 |
 | test-docker-compose | 干净环境 compose 启动冒烟 | 模板已有 |
 | migrations | Alembic 单 head、空库可升级到 head、扩展存在 | 新增 |
