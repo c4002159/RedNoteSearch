@@ -40,6 +40,7 @@ export function ReviewCard({
   queued,
   kind,
   decision,
+  lead,
   children,
 }: {
   id: string
@@ -48,11 +49,22 @@ export function ReviewCard({
   queued: boolean
   kind: "evidence" | "risk"
   decision?: boolean | null
+  lead?: ReactNode
   children: ReactNode
 }) {
   const state = queued ? "queued" : pending ? "pending" : "done"
   const header = (
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+      {lead && (
+        // biome-ignore lint/a11y/noStaticElementInteractions: only stops the summary from toggling
+        <span
+          role="presentation"
+          className="flex shrink-0 items-center"
+          onClick={(event) => event.preventDefault()}
+        >
+          {lead}
+        </span>
+      )}
       <span className="min-w-0 flex-1 truncate text-sm font-medium">
         {title}
       </span>
