@@ -107,7 +107,8 @@ def generate_tones(
     request = LlmRequest(
         messages=(LlmMessage("system", system), LlmMessage("user", context)),
         json_mode=True,
-        max_tokens=1000,
+        # deepseek-flash spends tokens on reasoning first; 1000 left no room for the JSON.
+        max_tokens=6000,
         purpose="tone_suggestions",
     )
     # The production adapter has max_retries=0, so these are at most three wire calls in total.
