@@ -307,10 +307,23 @@ test("History is read only, the confirmation appears only for an empty unblocked
     page.getByRole("button", { name: "确认可复制", exact: true }),
   ).toBeVisible()
   await request(page, "标题", "历史草稿不能执行")
+  await page.getByRole("button", { name: "编辑", exact: true }).click()
+  await page
+    .getByLabel("正文", { exact: true })
+    .fill("这份本地草稿不属于历史版本正文")
+  await page
+    .getByRole("button", { name: "保存编辑到清单", exact: true })
+    .click()
   state.latest = resultIds.next
   await page.reload()
   await expect(page.getByText("历史版本", { exact: true })).toBeVisible()
   await expect(queue(page)).toHaveCount(0)
+  await expect(
+    page.getByText(state.version.body, { exact: true }),
+  ).toBeVisible()
+  await expect(
+    page.getByText("这份本地草稿不属于历史版本正文", { exact: true }),
+  ).toHaveCount(0)
   await expect(
     page.getByRole("button", { name: "按以上全部改写", exact: true }),
   ).toHaveCount(0)

@@ -996,7 +996,7 @@ function ResultPage() {
     ? { ...list.state.failure, code: "REWRITE_FAILED", details: {} }
     : null
   const original = asDraft(v)
-  const content = { ...v, ...list.state.draft }
+  const content = editable ? { ...v, ...list.state.draft } : v
   const manual = manualTargets(original, list.state.draft)
   const hasChanges = !!(
     list.state.items.length ||
@@ -1114,7 +1114,7 @@ function ResultPage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="space-y-6">
-          {editing ? (
+          {editing && editable && !inProgress ? (
             <section className={CARD}>
               <EditForm
                 version={content}
@@ -1504,23 +1504,26 @@ function ResultPage() {
         </div>
       </div>
 
-      {dialog?.kind === "evidence" && (
-        <ReasonDialog
-          key={dialog.item.id + String(dialog.ok)}
-          open
-          variant="default"
-          fieldLabel="判断依据（必填）"
-          title={dialog.ok ? "这条断言成立" : "这条断言不成立"}
-          description={`断言：${dialog.item.claim_text}。你的判断会被记录为“人工确认（非系统验证）”。`}
-          confirmLabel={dialog.ok ? "确认成立" : "确认不成立"}
-          pending={decide.isPending}
-          onCancel={() => setDialog(null)}
-          onConfirm={(note) =>
-            decide.mutate({ id: dialog.item.id, ok: dialog.ok, note })
-          }
-        />
-      )}
-      {dialog?.kind === "risk" && (
+      {dialog?.kind === "evidence" &&
+        editable &&
+        !rewriteBusy &&
+        !inProgress && (
+          <ReasonDialog
+            key={dialog.item.id + String(dialog.ok)}
+            open
+            variant="default"
+            fieldLabel="判断依据（必填）"
+            title={dialog.ok ? "这条断言成立" : "这条断言不成立"}
+            description={`断言：${dialog.item.claim_text}。你的判断会被记录为“人工确认（非系统验证）”。`}
+            confirmLabel={dialog.ok ? "确认成立" : "确认不成立"}
+            pending={decide.isPending}
+            onCancel={() => setDialog(null)}
+            onConfirm={(note) =>
+              decide.mutate({ id: dialog.item.id, ok: dialog.ok, note })
+            }
+          />
+        )}
+      {dialog?.kind === "risk" && editable && !rewriteBusy && !inProgress && (
         <ReasonDialog
           key={dialog.item.id}
           open
