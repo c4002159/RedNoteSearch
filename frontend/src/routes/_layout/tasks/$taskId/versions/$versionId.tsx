@@ -393,11 +393,9 @@ function EvidencePanel({
               pending={isPending(e)}
               queued={queuedIds.has(e.id)}
               decision={e.human_confirmed}
-            >
-              <div className="flex items-start gap-3">
-                {editable && !busyText && (
+              lead={
+                editable && !busyText ? (
                   <Checkbox
-                    className="mt-1"
                     aria-label={EB.select(e.claim_text)}
                     checked={selected.has(e.id)}
                     disabled={!selected.has(e.id) && selectedIds.length >= 100}
@@ -414,8 +412,9 @@ function EvidencePanel({
                       })
                     }
                   />
-                )}
-              </div>
+                ) : undefined
+              }
+            >
               <div className="flex flex-wrap items-center gap-2">
                 <EvidenceStatusBadge status={e.status} />
                 {e.source_level && <SourceLevelBadge level={e.source_level} />}
@@ -473,7 +472,6 @@ function RiskPanel({
   editable,
   busyText,
   onResolve,
-  onManual,
   onRewrite,
   rewriting,
   queuedIds,
@@ -484,7 +482,6 @@ function RiskPanel({
   items: ComplianceCheckPublic[]
   editable: boolean
   busyText: string | null
-  onManual: () => void
   onResolve: (item: ComplianceCheckPublic) => void
   onRewrite: (items: ComplianceCheckPublic[]) => void
   rewriting: boolean
@@ -590,16 +587,6 @@ function RiskPanel({
                   onClick={() => onRewrite([c])}
                 >
                   {RW.risk}
-                </Button>
-              )}
-              {editable && !busyText && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={rewriting}
-                  onClick={onManual}
-                >
-                  {CL.manual}
                 </Button>
               )}
               {editable && !busyText && !canRewriteRisk(c) && (
@@ -1459,7 +1446,6 @@ function ResultPage() {
                     items={compliance.data?.items ?? []}
                     editable={editable}
                     busyText={busyText}
-                    onManual={beginEdit}
                     onResolve={(item) => setDialog({ kind: "risk", item })}
                     rewriting={rewriteBusy}
                     onRewrite={(risks) => {

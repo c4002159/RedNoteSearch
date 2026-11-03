@@ -291,3 +291,21 @@ for (const width of [1433, 375])
       page.getByRole("region", { name: "修改清单", exact: true }),
     ).toHaveCount(0)
   })
+
+test("The batch checkbox shares the first line of the claim and risk cards have no separate manual button", async ({
+  page,
+}) => {
+  await mockResult(page, { evidence: [claim("claim-a")] })
+  await page.goto(resultUrl)
+  await page.getByRole("tab", { name: /^风险/ }).click()
+  await expect(page.getByRole("button", { name: "我自己改" })).toHaveCount(0)
+  await page.getByRole("tab", { name: /^证据/ }).click()
+  const card = page.locator('[id="evidence-claim-a"]')
+  const box = await card.getByRole("checkbox").boundingBox()
+  const title = await card.getByText("待判断断言 claim-a").first().boundingBox()
+  if (!box || !title) throw new Error("missing boxes")
+  expect(box.x).toBeLessThan(title.x)
+  expect(
+    Math.abs(box.y + box.height / 2 - (title.y + title.height / 2)),
+  ).toBeLessThan(6)
+})
