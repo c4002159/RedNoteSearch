@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { ChevronRight } from "lucide-react"
+import { Check, ChevronRight } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -22,12 +22,16 @@ import { ReasonDialog } from "@/components/Common/ReasonDialog"
 import {
   EvidenceStatusBadge,
   FlowStatusBadge,
-  HumanConfirmedBadge,
   Pill,
   SeverityBadge,
   SourceLevelBadge,
 } from "@/components/Common/StatusBadge"
 import { EvidenceBatchActions } from "@/components/Evidence/BatchActions"
+import {
+  ReviewCard,
+  type ReviewFilter,
+  ReviewFilters,
+} from "@/components/Evidence/ReviewCard"
 import {
   ChangeList,
   draftFields,
@@ -70,6 +74,7 @@ import {
   R7_CHANGELIST_TEXT as CL,
   COUNT_LABEL,
   EVIDENCE_BATCH_TEXT as EB,
+  R8_FLOW_TEXT as F,
   LAYER_LABEL,
   label,
   ORIGIN_LABEL,
@@ -324,6 +329,9 @@ function EvidencePanel({
   editable,
   busyText,
   onDecide,
+  queuedIds,
+  filter,
+  onFilter,
   bare = false,
 }: {
   versionId: string
@@ -331,10 +339,21 @@ function EvidencePanel({
   items: ClaimEvidencePublic[]
   editable: boolean
   busyText: string | null
+  queuedIds: Set<string>
+  filter: ReviewFilter
+  onFilter: (value: ReviewFilter) => void
   onDecide: (item: ClaimEvidencePublic, ok: boolean) => void
   bare?: boolean
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const isPending = (item: ClaimEvidencePublic) =>
+    item.status !== "system_supported" && item.human_confirmed === null
+  const done = items.filter((item) => !isPending(item)).length
+  const visible = items.filter(
+    (item) =>
+      filter === "all" ||
+      (filter === "pending" ? isPending(item) : !isPending(item)),
+  )
   const selectedIds = items
     .filter((item) => selected.has(item.id))
     .map((item) => item.id)
@@ -348,6 +367,7 @@ function EvidencePanel({
       <p className="text-xs text-muted-foreground">
         “系统判定支持”只表示资料与断言匹配，不是事实保证。没有系统依据的断言需要你逐条判断。
       </p>
+      <ReviewFilters value={filter} onChange={onFilter} done={done} />
       <EvidenceBatchActions
         versionId={versionId}
         items={items}
@@ -362,10 +382,18 @@ function EvidencePanel({
         </p>
       )}
       <ul className="space-y-3">
-        {items.map((e) => {
+        {visible.map((e) => {
           const needs = e.status !== "system_supported"
           return (
-            <li key={e.id} className="space-y-2 rounded-lg border p-3">
+            <ReviewCard
+              key={e.id}
+              id={`evidence-${e.id}`}
+              title={e.claim_text}
+              kind="evidence"
+              pending={isPending(e)}
+              queued={queuedIds.has(e.id)}
+              decision={e.human_confirmed}
+            >
               <div className="flex items-start gap-3">
                 {editable && !busyText && (
                   <Checkbox
@@ -387,16 +415,10 @@ function EvidencePanel({
                     }
                   />
                 )}
-                <p className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">
-                  {e.claim_text}
-                </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <EvidenceStatusBadge status={e.status} />
                 {e.source_level && <SourceLevelBadge level={e.source_level} />}
-                {e.human_confirmed !== null && e.human_confirmed && (
-                  <HumanConfirmedBadge />
-                )}
                 {e.human_confirmed === false && (
                   <Pill tone="err">人工判定：不成立</Pill>
                 )}
@@ -422,10 +444,10 @@ function EvidencePanel({
                 <div className="flex gap-2">
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant={isPending(e) ? "default" : "outline"}
                     onClick={() => onDecide(e, true)}
                   >
-                    {e.human_confirmed === true ? "重新判断：成立" : "成立"}
+                    {e.human_confirmed !== null ? F.reconsider : "成立"}
                   </Button>
                   <Button
                     size="sm"
@@ -436,7 +458,7 @@ function EvidencePanel({
                   </Button>
                 </div>
               )}
-            </li>
+            </ReviewCard>
           )
         })}
       </ul>
@@ -454,6 +476,9 @@ function RiskPanel({
   onManual,
   onRewrite,
   rewriting,
+  queuedIds,
+  filter,
+  onFilter,
   bare = false,
 }: {
   items: ComplianceCheckPublic[]
@@ -463,8 +488,16 @@ function RiskPanel({
   onResolve: (item: ComplianceCheckPublic) => void
   onRewrite: (items: ComplianceCheckPublic[]) => void
   rewriting: boolean
+  queuedIds: Set<string>
+  filter: ReviewFilter
+  onFilter: (value: ReviewFilter) => void
   bare?: boolean
 }) {
+  const visible = items.filter(
+    (item) =>
+      filter === "all" ||
+      (filter === "pending" ? !item.resolved : item.resolved),
+  )
   const pendingRisks = items.filter((item) => !item.resolved)
   const missingSuggestion = pendingRisks.some((item) => !item.suggestion.trim())
   const needsManual = pendingRisks.some((item) => !canRewriteRisk(item))
@@ -478,6 +511,11 @@ function RiskPanel({
       <p className="text-xs text-muted-foreground">
         这些是基于规则的提示，不是合规结论，不能替代人工和法务判断。
       </p>
+      <ReviewFilters
+        value={filter}
+        onChange={onFilter}
+        done={items.filter((item) => item.resolved).length}
+      />
       {editable && !busyText && items.length > 0 && (
         <div className="space-y-2">
           <Button
@@ -505,12 +543,18 @@ function RiskPanel({
         </p>
       )}
       <ul className="space-y-3">
-        {items.map((c) => (
-          <li key={c.id} className="space-y-1.5 rounded-lg border p-3">
+        {visible.map((c) => (
+          <ReviewCard
+            key={c.id}
+            id={`risk-${c.id}`}
+            title={c.matched_text}
+            kind="risk"
+            pending={!c.resolved}
+            queued={queuedIds.has(c.id)}
+          >
             <div className="flex flex-wrap items-center gap-2">
               <SeverityBadge severity={c.severity} />
               <Pill tone="neutral">{label(LAYER_LABEL, c.layer, "layer")}</Pill>
-              {c.resolved && <Pill tone="gray">已处理</Pill>}
             </div>
             <p className="text-sm">
               命中：
@@ -528,14 +572,14 @@ function RiskPanel({
               <p className="text-xs">处理说明：{c.resolved_note}</p>
             )}
             <div className="flex flex-wrap gap-2">
-              {!c.resolved && editable && (
+              {editable && (
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => onResolve(c)}
                   disabled={rewriting}
                 >
-                  标记为已处理
+                  {c.resolved ? F.reconsider : F.riskResolve}
                 </Button>
               )}
               {editable && !busyText && canRewriteRisk(c) && (
@@ -562,7 +606,7 @@ function RiskPanel({
                 <span className="text-xs text-tone-warn">{RR.manual}</span>
               )}
             </div>
-          </li>
+          </ReviewCard>
         ))}
       </ul>
     </section>
@@ -713,6 +757,10 @@ function ResultPage() {
   const [titleIndex, setTitleIndex] = useState<number | null>(null)
   const [coverIndex, setCoverIndex] = useState<number | null>(null)
   const [tab, setTab] = useState("evidence")
+  const [evidenceFilter, setEvidenceFilter] = useState<ReviewFilter>("pending")
+  const [riskFilter, setRiskFilter] = useState<ReviewFilter>("pending")
+  const [listExpanded, setListExpanded] = useState(false)
+  const reviewRef = useRef<HTMLElement>(null)
 
   const version = useQuery({
     queryKey: ["version", versionId],
@@ -902,6 +950,7 @@ function ResultPage() {
         body: { human_confirmed: a.ok, note: a.note },
       }),
     onSuccess: async () => {
+      setEvidenceFilter("all")
       setDialog(null)
       await refresh()
     },
@@ -919,6 +968,7 @@ function ResultPage() {
           (item) => item.source !== "risk" || item.sourceId !== input.id,
         ),
       }))
+      setRiskFilter("all")
       setDialog(null)
       await refresh()
     },
@@ -996,15 +1046,87 @@ function ResultPage() {
     ])
     toast.success(CL.added)
   }
-  const pendingRisks = (compliance.data?.items ?? []).filter(
-    (item) =>
-      !item.resolved &&
-      !list.state.items.some((change) => change.sourceId === item.id) &&
-      !manual.some((target) => target === riskRewriteTarget(item.field)),
+  const risks = compliance.data?.items ?? []
+  const unresolvedRisks = risks.filter((item) => !item.resolved)
+  const changeCount =
+    list.state.items.length + manual.length + (list.state.note.trim() ? 1 : 0)
+  const queuedIds = new Set(
+    list.state.items
+      .map((item) => item.sourceId)
+      .filter((id): id is string => !!id),
   )
+  const openReview = (target: "evidence" | "risk" | "constraints") => {
+    setTab(target)
+    if (target === "evidence")
+      setEvidenceFilter(undecided.length ? "pending" : "all")
+    if (target === "risk") setRiskFilter("pending")
+    requestAnimationFrame(() => {
+      const first = reviewRef.current?.querySelector<HTMLElement>(
+        '[data-review-pending="true"]',
+      )
+      const destination = first ?? reviewRef.current
+      destination?.scrollIntoView({ behavior: "smooth", block: "start" })
+      destination?.focus({ preventScroll: true })
+    })
+  }
+  const goToBlocker = () =>
+    openReview(
+      !CONFIRMABLE.includes(v.flow_status)
+        ? "constraints"
+        : openBlocks > 0
+          ? "risk"
+          : "evidence",
+    )
+  const primaryBusy =
+    inProgress || rewriteBusy || recheck.isPending || confirm.isPending
+  const queryBlocked =
+    evidence.isLoading ||
+    compliance.isLoading ||
+    evidence.isError ||
+    compliance.isError
+  const mustRecheck = !hasChanges && v.flow_status === "edited_pending_recheck"
+  const primaryDisabled =
+    primaryBusy ||
+    (hasChanges
+      ? !!planError || queryBlocked
+      : mustRecheck
+        ? false
+        : blockers.length > 0 || queryBlocked)
+  const primaryLabel = primaryBusy
+    ? F.processing
+    : hasChanges
+      ? list.state.failure
+        ? F.retry
+        : F.apply(changeCount)
+      : mustRecheck
+        ? F.recheck
+        : F.confirm
+  const onPrimary = () => {
+    if (hasChanges) {
+      setEditing(false)
+      rewrite.mutate()
+    } else if (mustRecheck) recheck.mutate()
+    else confirm.mutate(chosen)
+  }
+  const primaryButton = (
+    <LoadingButton
+      className="h-10 w-full"
+      loading={primaryBusy}
+      disabled={primaryDisabled}
+      onClick={onPrimary}
+    >
+      {primaryLabel}
+    </LoadingButton>
+  )
+  const blockedHint =
+    !inProgress && !hasChanges && !mustRecheck && blockers.length > 0
+      ? blockers[0]
+      : null
 
   return (
-    <div className="space-y-6">
+    <div
+      className={cn("min-w-0 space-y-6", isLatest && !ready && "pb-28 lg:pb-0")}
+    >
       <nav
         aria-label="位置"
         className="flex items-center gap-1.5 text-sm text-muted-foreground"
@@ -1235,119 +1357,17 @@ function ResultPage() {
             </div>
           )}
           {ready && <ExportPanel versionId={v.id} />}
-        </div>
-
-        <div className="space-y-6">
-          <section className={cn(CARD, "space-y-3 p-5")}>
-            <h2 className="text-base font-semibold">下一步</h2>
-            {editable && (
-              <>
-                <ChangeList
-                  state={list.state}
-                  original={original}
-                  pending={rewriteBusy}
-                  onRemove={list.remove}
-                  onRemoveManual={(target) => {
-                    setEditing(false)
-                    if (list.state.draft)
-                      stageDraft({
-                        ...list.state.draft,
-                        [draftFields[target]]: original[draftFields[target]],
-                      })
-                  }}
-                  onNote={(note) =>
-                    list.update((value) => ({ ...value, note }))
-                  }
-                />
-                {!inProgress && (
-                  <p className="text-xs text-muted-foreground">
-                    {CL.undecided(pendingRisks.length, undecided.length)}
-                  </p>
-                )}
-                {planError && (
-                  <p role="alert" className="text-sm text-tone-err">
-                    {planError}
-                  </p>
-                )}
-                {hasChanges && (
-                  <LoadingButton
-                    loading={rewriteBusy}
-                    disabled={
-                      inProgress ||
-                      !!planError ||
-                      evidence.isLoading ||
-                      compliance.isLoading ||
-                      evidence.isError ||
-                      compliance.isError
-                    }
-                    onClick={() => {
-                      setEditing(false)
-                      rewrite.mutate()
-                    }}
-                  >
-                    {list.state.failure ? CL.retry : CL.apply}
-                  </LoadingButton>
-                )}
-                {!hasChanges && v.flow_status === "edited_pending_recheck" && (
-                  <>
-                    <p className="text-sm">
-                      文字已编辑，需要重新检查字数、事实依据和风险提示。
-                    </p>
-                    <LoadingButton
-                      loading={recheck.isPending}
-                      onClick={() => recheck.mutate()}
-                    >
-                      重新检查
-                    </LoadingButton>
-                    {recheck.isError && (
-                      <ErrorBanner error={parseApiError(recheck.error)} />
-                    )}
-                  </>
-                )}
-                {!hasChanges && !inProgress && blockers.length === 0 && (
-                  <>
-                    <LoadingButton
-                      loading={confirm.isPending}
-                      disabled={
-                        evidence.isLoading ||
-                        compliance.isLoading ||
-                        evidence.isError ||
-                        compliance.isError
-                      }
-                      onClick={() => confirm.mutate(chosen)}
-                    >
-                      确认可复制
-                    </LoadingButton>
-                    <p className="text-xs text-muted-foreground">
-                      “可复制”只表示运营确认了这份文字，不代表合规或事实保证。
-                    </p>
-                  </>
-                )}
-                {!inProgress && blockers.length > 0 && (
-                  <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                    {blockers.map((b) => (
-                      <li key={b}>{b}</li>
-                    ))}
-                  </ul>
-                )}
-                {confirmError && <ErrorBanner error={confirmError} />}
-              </>
+          <section
+            ref={reviewRef}
+            tabIndex={-1}
+            aria-label={F.review}
+            className={cn(
+              CARD,
+              "min-w-0 scroll-mt-24 overflow-hidden p-0 outline-none focus:ring-2 focus:ring-ring",
             )}
-            {inProgress && <p className="text-sm">{busyText}</p>}
-            {ready && <p className="text-sm">运营已确认，可在左侧下方复制。</p>}
-            {!editable &&
-              !ready &&
-              v.flow_status !== "edited_pending_recheck" &&
-              !isLatest && (
-                <p className="text-sm text-muted-foreground">
-                  这是历史版本，只能查看。
-                </p>
-              )}
-          </section>
-
-          <section className={cn(CARD, "overflow-hidden p-0")}>
+          >
             <Tabs value={tab} onValueChange={setTab} className="gap-0">
-              <TabsList className="h-12 w-full justify-start gap-6 rounded-none border-b border-border/40 bg-transparent px-5 py-0">
+              <TabsList className="h-12 w-full justify-start gap-2 rounded-none border-b border-border/40 bg-transparent px-2 py-0">
                 {[
                   {
                     id: "constraints",
@@ -1357,15 +1377,15 @@ function ResultPage() {
                   },
                   {
                     id: "evidence",
-                    text: "证据",
+                    text: F.evidenceTab(items.length, undecided.length),
                     dot: "bg-tone-ok",
-                    n: items.length,
+                    n: null,
                   },
                   {
                     id: "risk",
-                    text: "风险",
+                    text: F.riskTab(risks.length, unresolvedRisks.length),
                     dot: "bg-tone-warn",
-                    n: compliance.data?.items.length ?? null,
+                    n: null,
                   },
                 ].map((x) => (
                   <TabsTrigger
@@ -1405,7 +1425,13 @@ function ResultPage() {
                   <EvidencePanel
                     key={versionId}
                     versionId={versionId}
-                    onSaved={refresh}
+                    onSaved={async () => {
+                      setEvidenceFilter("all")
+                      await refresh()
+                    }}
+                    queuedIds={queuedIds}
+                    filter={evidenceFilter}
+                    onFilter={setEvidenceFilter}
                     bare
                     items={items}
                     editable={editable && !rewriteBusy}
@@ -1426,6 +1452,9 @@ function ResultPage() {
                   />
                 ) : (
                   <RiskPanel
+                    queuedIds={queuedIds}
+                    filter={riskFilter}
+                    onFilter={setRiskFilter}
                     bare
                     items={compliance.data?.items ?? []}
                     editable={editable}
@@ -1452,7 +1481,137 @@ function ResultPage() {
             </Tabs>
           </section>
         </div>
+
+        {isLatest && (
+          <div className="min-w-0 self-start lg:sticky lg:top-4 lg:-mt-16 lg:pt-16">
+            <section
+              aria-label={F.next}
+              className={cn(
+                CARD,
+                "flex min-w-0 flex-col overflow-hidden p-5 lg:max-h-[calc(100dvh-6rem)]",
+              )}
+            >
+              <div className="shrink-0 space-y-3 bg-card pb-3">
+                <h2 className="text-base font-semibold">{F.next}</h2>
+                {isLatest && !ready && (
+                  <div className="hidden lg:block">{primaryButton}</div>
+                )}
+                <div className="flex min-h-8 items-start gap-1 text-xs text-muted-foreground">
+                  {blockedHint && (
+                    <>
+                      <span className="min-w-0 flex-1">{blockedHint}</span>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto shrink-0 p-0 text-xs"
+                        onClick={goToBlocker}
+                      >
+                        {F.go}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+              {!isLatest ? (
+                <p className="text-sm text-muted-foreground">{F.history}</p>
+              ) : ready ? (
+                <p className="text-sm">{F.ready}</p>
+              ) : (
+                <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain [overflow-wrap:anywhere]">
+                  <section className="space-y-1" aria-label={F.progress}>
+                    {[
+                      {
+                        label: F.evidenceProgress(undecided.length),
+                        count: undecided.length,
+                        action: () => openReview("evidence"),
+                      },
+                      {
+                        label: F.riskProgress(unresolvedRisks.length),
+                        count: unresolvedRisks.length,
+                        action: () => openReview("risk"),
+                      },
+                      {
+                        label: F.listProgress(changeCount),
+                        count: changeCount,
+                        action: () => setListExpanded(true),
+                      },
+                    ].map((row) => (
+                      <Button
+                        key={row.label}
+                        variant="ghost"
+                        className={cn(
+                          "h-auto min-h-8 w-full justify-start whitespace-normal text-left",
+                          !row.count && "text-muted-foreground",
+                        )}
+                        onClick={row.action}
+                      >
+                        {!row.count && (
+                          <Check className="size-4" aria-hidden="true" />
+                        )}
+                        {row.label}
+                      </Button>
+                    ))}
+                  </section>
+                  {editable && (
+                    <ChangeList
+                      expanded={listExpanded}
+                      onExpanded={setListExpanded}
+                      state={list.state}
+                      original={original}
+                      pending={rewriteBusy}
+                      onRemove={list.remove}
+                      onRemoveManual={(target) => {
+                        setEditing(false)
+                        if (list.state.draft)
+                          stageDraft({
+                            ...list.state.draft,
+                            [draftFields[target]]:
+                              original[draftFields[target]],
+                          })
+                      }}
+                      onNote={(note) =>
+                        list.update((value) => ({ ...value, note }))
+                      }
+                    />
+                  )}
+                  {planError && (
+                    <p role="alert" className="text-sm text-tone-err">
+                      {planError}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">{F.copyHint}</p>
+                  {!inProgress && blockers.length > 0 && (
+                    <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                      {blockers.map((blocker) => (
+                        <li key={blocker}>{blocker}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {confirmError && <ErrorBanner error={confirmError} />}
+                  {recheck.isError && (
+                    <ErrorBanner error={parseApiError(recheck.error)} />
+                  )}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
       </div>
+
+      {!isLatest && (
+        <p className="text-sm text-muted-foreground">{F.history}</p>
+      )}
+      {isLatest && !ready && (
+        <section
+          aria-label={F.mobile}
+          className="fixed inset-x-0 bottom-0 z-40 space-y-1 border-t border-border bg-card px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-sm lg:hidden"
+        >
+          {primaryButton}
+          <p className="truncate text-xs text-muted-foreground">
+            {blockedHint ?? F.listProgress(changeCount)}
+          </p>
+        </section>
+      )}
 
       {dialog?.kind === "evidence" &&
         editable &&

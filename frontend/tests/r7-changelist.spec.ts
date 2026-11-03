@@ -3,6 +3,7 @@ import type {
   ClaimEvidencePublic,
   GenerationVersionPublic,
 } from "../src/client"
+import { revealChangeControls } from "./utils/flowControls"
 import {
   mockResult,
   resultIds,
@@ -69,6 +70,7 @@ test("Collect, inspect, undo and refresh preserve a version-scoped queue without
 }) => {
   const state = await mockResult(page)
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await request(page, "标题", "标题用短句")
   await page.getByRole("tab", { name: /风险/ }).click()
   await page
@@ -80,15 +82,23 @@ test("Collect, inspect, undo and refresh preserve a version-scoped queue without
   ).toBeVisible()
   expect(state.writes).toEqual([])
   await page.reload()
-  await expect(queue(page).locator("summary")).toHaveCount(2)
+  await revealChangeControls(page)
+  await expect(queue(page).locator("[data-change-item] > summary")).toHaveCount(
+    2,
+  )
   await queue(page).getByText("改写要求", { exact: true }).click()
   await expect(queue(page)).toContainText("标题用短句")
   await queue(page)
     .getByRole("button", { name: "撤销：标题用短句", exact: true })
     .click()
-  await expect(queue(page).locator("summary")).toHaveCount(1)
+  await expect(queue(page).locator("[data-change-item] > summary")).toHaveCount(
+    1,
+  )
   await page.reload()
-  await expect(queue(page).locator("summary")).toHaveCount(1)
+  await revealChangeControls(page)
+  await expect(queue(page).locator("[data-change-item] > summary")).toHaveCount(
+    1,
+  )
   expect(state.writes).toEqual([])
 })
 
@@ -98,6 +108,7 @@ test("One execution groups multiple same-target requirements and applies a globa
   const { state, writes } = await setup(page)
   state.risks = resultRisks.slice(0, 2)
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await page.getByRole("tab", { name: /风险/ }).click()
   await page
     .getByRole("button", { name: "全部建议加入清单", exact: true })
@@ -107,7 +118,7 @@ test("One execution groups multiple same-target requirements and applies a globa
   await page.getByLabel("补充说明", { exact: true }).fill("使用温和语气")
   expect(writes).toEqual([])
   await page
-    .getByRole("button", { name: "按以上全部改写", exact: true })
+    .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
     .click()
   await expect(page).toHaveURL(/r7-version-1$/)
   expect(writes).toHaveLength(1)
@@ -163,6 +174,7 @@ test("Rejected evidence enters automatically, reversal removes it, immediate dec
     await route.fulfill({ json: state.evidence[0] })
   })
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await page.getByRole("button", { name: "不成立", exact: true }).click()
   await page
     .getByLabel("判断依据（必填）", { exact: true })
@@ -172,10 +184,13 @@ test("Rejected evidence enters automatically, reversal removes it, immediate dec
     queue(page).getByText("不成立的断言", { exact: true }),
   ).toBeVisible()
   await page.reload()
+  await revealChangeControls(page)
   await expect(
     queue(page).getByText("不成立的断言", { exact: true }),
   ).toBeVisible()
-  await page.getByRole("button", { name: "成立", exact: true }).click()
+  await page.getByRole("button", { name: "全部", exact: true }).click()
+  await page.locator(`[id="evidence-claim-1"] > details > summary`).click()
+  await page.getByRole("button", { name: "重新判断", exact: true }).click()
   await page
     .getByLabel("判断依据（必填）", { exact: true })
     .fill("人工重新核对后成立")
@@ -196,6 +211,7 @@ for (const save of [false, true])
   }) => {
     const { writes } = await setup(page)
     await page.goto(resultUrl)
+    await revealChangeControls(page)
     await request(page, "标题", "标题更简洁")
     await page.getByRole("button", { name: "编辑", exact: true }).click()
     await page.getByLabel("正文", { exact: true }).fill("人工改好的正文")
@@ -204,10 +220,11 @@ for (const save of [false, true])
         .getByRole("button", { name: "保存编辑到清单", exact: true })
         .click()
       await page.reload()
+      await revealChangeControls(page)
     }
     expect(writes).toEqual([])
     await page
-      .getByRole("button", { name: "按以上全部改写", exact: true })
+      .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
       .click()
     await expect(page).toHaveURL(/r7-version-1$/)
     expect(writes.map((write) => write.path.split("/").pop())).toEqual([
@@ -225,17 +242,21 @@ test("Atomic failure retains every target across refresh and retries on the orig
 }) => {
   const { writes, versions } = await setup(page, 1)
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await request(page, "标题", "简洁标题")
   await request(page, "正文", "简洁正文")
   await page
-    .getByRole("button", { name: "按以上全部改写", exact: true })
+    .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
     .click()
   await expect(page.getByRole("alert")).toContainText("r7-failed")
   await expect(page).toHaveURL(resultUrl)
   expect(versions.size).toBe(1)
   await page.reload()
-  await expect(queue(page).locator("summary")).toHaveCount(2)
-  await page.getByRole("button", { name: "重试改写", exact: true }).click()
+  await revealChangeControls(page)
+  await expect(queue(page).locator("[data-change-item] > summary")).toHaveCount(
+    2,
+  )
+  await page.getByRole("button", { name: "重试", exact: true }).click()
   await expect(page).toHaveURL(/r7-version-2$/)
   expect(writes).toHaveLength(2)
   expect(writes[0].body).toEqual(writes[1].body)
@@ -270,16 +291,22 @@ for (const failure of [422, 503, "network"] as const)
           }),
     )
     await page.goto(resultUrl)
+    await revealChangeControls(page)
     await request(page, "正文", "保留我的要求")
     await page
-      .getByRole("button", { name: "按以上全部改写", exact: true })
+      .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
       .click()
     await expect(page.getByRole("alert")).toContainText(
       failure === "network" ? "网络连接失败" : `r7-${failure}`,
     )
-    await expect(queue(page).locator("summary")).toHaveCount(1)
+    await expect(
+      queue(page).locator("[data-change-item] > summary"),
+    ).toHaveCount(1)
     await page.reload()
-    await expect(queue(page).locator("summary")).toHaveCount(1)
+    await revealChangeControls(page)
+    await expect(
+      queue(page).locator("[data-change-item] > summary"),
+    ).toHaveCount(1)
     await expect(page).toHaveURL(resultUrl)
   })
 
@@ -288,6 +315,7 @@ test("History is read only, the confirmation appears only for an empty unblocked
 }) => {
   const state = await mockResult(page, { risks: [] })
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await expect(
     page.getByRole("button", { name: "确认可复制", exact: true }),
   ).toBeVisible()
@@ -311,6 +339,7 @@ test("History is read only, the confirmation appears only for an empty unblocked
     .click()
   state.latest = resultIds.next
   await page.reload()
+  await revealChangeControls(page)
   await expect(page.getByText("历史版本", { exact: true })).toBeVisible()
   await expect(queue(page)).toHaveCount(0)
   await expect(
@@ -320,7 +349,7 @@ test("History is read only, the confirmation appears only for an empty unblocked
     page.getByText("这份本地草稿不属于历史版本正文", { exact: true }),
   ).toHaveCount(0)
   await expect(
-    page.getByRole("button", { name: "按以上全部改写", exact: true }),
+    page.getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true }),
   ).toHaveCount(0)
 })
 
@@ -343,9 +372,10 @@ test("Unavailable localStorage does not prevent collecting or executing", async 
     }
   })
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await request(page, "标题", "缩短标题")
   await page
-    .getByRole("button", { name: "按以上全部改写", exact: true })
+    .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
     .click()
   await expect(page).toHaveURL(/r7-version-1$/)
   expect(writes).toHaveLength(1)
@@ -356,9 +386,10 @@ test("An overall note alone is sent once without inventing a part or an edit req
 }) => {
   const { writes, versions } = await setup(page)
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await page.getByLabel("补充说明", { exact: true }).fill("整体更简洁")
   await page
-    .getByRole("button", { name: "按以上全部改写", exact: true })
+    .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
     .click()
   await expect(page).toHaveURL(/r7-version-1$/)
   expect(writes).toHaveLength(1)
@@ -375,11 +406,12 @@ test("Invalid stored JSON is ignored and note length is enforced without losing 
     resultIds.version,
   )
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await expect(queue(page)).toBeVisible()
   await page.getByLabel("补充说明", { exact: true }).fill("🌿".repeat(501))
   await expect(page.getByRole("alert")).toContainText("补充说明不能超过 500 字")
   await expect(
-    page.getByRole("button", { name: "按以上全部改写", exact: true }),
+    page.getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true }),
   ).toBeDisabled()
   expect(
     await page.evaluate(
@@ -396,10 +428,13 @@ test("Manual-only revision is one request; cancel and undo do not write", async 
 }) => {
   const { writes } = await setup(page)
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await page.getByRole("button", { name: "编辑", exact: true }).click()
   await page.getByLabel("正文", { exact: true }).fill("取消这次编辑")
   await page.getByRole("button", { name: "取消", exact: true }).click()
-  await expect(queue(page).locator("summary")).toHaveCount(0)
+  await expect(queue(page).locator("[data-change-item] > summary")).toHaveCount(
+    0,
+  )
   expect(writes).toEqual([])
   await page.getByRole("button", { name: "编辑", exact: true }).click()
   await page.getByLabel("正文", { exact: true }).fill("撤销这次编辑")
@@ -407,7 +442,9 @@ test("Manual-only revision is one request; cancel and undo do not write", async 
     .getByRole("button", { name: "保存编辑到清单", exact: true })
     .click()
   await queue(page).getByRole("button", { name: "撤销", exact: true }).click()
-  await expect(queue(page).locator("summary")).toHaveCount(0)
+  await expect(queue(page).locator("[data-change-item] > summary")).toHaveCount(
+    0,
+  )
   await page.getByRole("button", { name: "编辑", exact: true }).click()
   await page.getByLabel("正文", { exact: true }).fill("只保存人工写好的正文")
   await page
@@ -415,7 +452,7 @@ test("Manual-only revision is one request; cancel and undo do not write", async 
     .click()
   expect(writes).toEqual([])
   await page
-    .getByRole("button", { name: "按以上全部改写", exact: true })
+    .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
     .click()
   await expect(page).toHaveURL(/r7-version-1$/)
   expect(writes.map((write) => write.path.split("/").pop())).toEqual(["revise"])
@@ -438,9 +475,12 @@ test("Keeping a risk processed still uses the immediate endpoint and removes its
     await route.fulfill({ json: state.risks[0] })
   })
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await page.getByRole("tab", { name: /风险/ }).click()
   await page.getByRole("button", { name: "按建议改写", exact: true }).click()
-  await expect(queue(page).locator("summary")).toHaveCount(1)
+  await expect(queue(page).locator("[data-change-item] > summary")).toHaveCount(
+    1,
+  )
   await page.getByRole("button", { name: "标记为已处理", exact: true }).click()
   await page
     .getByLabel("处理说明（必填）", { exact: true })
@@ -450,7 +490,9 @@ test("Keeping a risk processed still uses the immediate endpoint and removes its
     .last()
     .click()
   await expect(page.getByRole("dialog")).toHaveCount(0)
-  await expect(queue(page).locator("summary")).toHaveCount(0)
+  await expect(queue(page).locator("[data-change-item] > summary")).toHaveCount(
+    0,
+  )
   expect(writes).toEqual([{ note: "保留并记录人工处理说明" }])
   expect(state.writes).toEqual([])
 })
@@ -464,11 +506,16 @@ for (const width of [1433, 1024, 720])
     await mockResult(page)
     await page.setViewportSize({ width, height: 900 })
     await page.goto(resultUrl)
+    await revealChangeControls(page)
     await request(page, "标题", "把标题写得更简洁")
     await request(page, "正文", "只保留资料支持的描述")
     await page.getByLabel("补充说明", { exact: true }).fill("请保留温和的表达")
-    await expect(queue(page).locator("summary")).toHaveCount(2)
-    for (const summary of await queue(page).locator("summary").all())
+    await expect(
+      queue(page).locator("[data-change-item] > summary"),
+    ).toHaveCount(2)
+    for (const summary of await queue(page)
+      .locator("[data-change-item] > summary")
+      .all())
       await summary.click()
     expect(
       await page.evaluate(
@@ -509,10 +556,11 @@ for (const completed of [true, false])
       },
     )
     await page.goto(resultUrl)
+    await revealChangeControls(page)
     await request(page, "正文", "中断后仍要保留的要求")
     await page.getByLabel("补充说明", { exact: true }).fill("整体说明")
     await page
-      .getByRole("button", { name: "按以上全部改写", exact: true })
+      .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
       .click()
     if (completed) {
       await expect(page).toHaveURL(new RegExp(`/${resultIds.next}$`))
@@ -532,17 +580,22 @@ for (const completed of [true, false])
     } else {
       await expect(page.getByRole("alert")).toContainText("网络连接失败")
       await expect(page).toHaveURL(resultUrl)
-      await expect(queue(page).locator("summary")).toHaveCount(1)
+      await expect(
+        queue(page).locator("[data-change-item] > summary"),
+      ).toHaveCount(1)
       await expect(page.getByLabel("补充说明", { exact: true })).toHaveValue(
         "整体说明",
       )
       await expect(
-        page.getByRole("button", { name: "重试改写", exact: true }),
+        page.getByRole("button", { name: "重试", exact: true }),
       ).toBeVisible()
       expect(calls).toBe(1)
       await page.reload()
-      await expect(queue(page).locator("summary")).toHaveCount(1)
-      await page.getByRole("button", { name: "重试改写", exact: true }).click()
+      await revealChangeControls(page)
+      await expect(
+        queue(page).locator("[data-change-item] > summary"),
+      ).toHaveCount(1)
+      await page.getByRole("button", { name: "重试", exact: true }).click()
       await expect(page).toHaveURL(new RegExp(`/${resultIds.next}$`))
       expect(calls).toBe(2)
     }
