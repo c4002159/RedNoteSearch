@@ -27,20 +27,29 @@ function notePageUrl(tabUrl) {
   return url.origin + url.pathname
 }
 
+const hasAccess = (origin) => chrome.permissions.contains({ origins: [`${origin}/*`] })
+
 async function loadSettings() {
   const saved = await chrome.storage.local.get(["server", "key"])
   $("server").value = saved.server || ""
   $("key").value = saved.key || ""
-  if (!saved.server || !saved.key) $("settings").open = true
+  if (!saved.server || !saved.key) return ($("settings").open = true)
+  if (!(await hasAccess(saved.server))) {
+    $("settings").open = true
+    show("warn", "连接信息已保存，但还没有授权访问这个系统地址。点“保存并授权”，在弹出的提示里选择允许。")
+  }
 }
 
+// The browser's permission prompt takes focus and closes this popup, so anything after the
+// request may never run: store the connection first, then ask for access.
 async function saveConnection(origin, key) {
-  const granted = await chrome.permissions.request({ origins: [`${origin}/*`] })
-  if (!granted) return show("error", "没有授权访问这个系统地址，无法发送。")
   await chrome.storage.local.set({ server: origin, key })
   $("server").value = origin
   $("key").value = key
-  show("ok", "已保存。")
+  if (await hasAccess(origin)) return show("ok", "已保存。")
+  show("warn", "已保存。接下来请在浏览器弹出的提示里选择允许访问这个系统地址。")
+  const granted = await chrome.permissions.request({ origins: [`${origin}/*`] })
+  show(granted ? "ok" : "error", granted ? "已保存并授权。" : "没有授权访问这个系统地址，无法发送。")
 }
 
 $("save").addEventListener("click", async () => {
