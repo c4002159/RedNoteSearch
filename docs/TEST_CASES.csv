@@ -333,3 +333,4 @@ TC-286,R7,后续部分模型失败不留版本,P1,前一部分有效而后一部
 TC-287,R7,人工断言判断继承,P1,原版本有成立或不成立的判断,revise后重新抽取相同和改变的原句,相同claim_text保留判断备注人时间；消失原句移除；原版不变,自动化pytest
 TC-288,R7,清单失败重试保持完整,P1,多个清单条目且修订422或503或断网,执行后刷新再重试,保留全部条目；同一原版重试一次请求；无逐步进度和中间版本,自动化Playwright
 TC-289,R7,仅整体说明修订,P1,parts为空且只有note,POST revise,按正文要求改写；note空白且无人工内容则422,自动化pytest与Playwright
+TC-290,R7,历史版本禁止修订,P1,任务已有新版本,对历史版本POST revise,409 INVALID_STATE且details.codes含not_latest_version；版本数量和latest不变；模型调用为0,自动化pytest

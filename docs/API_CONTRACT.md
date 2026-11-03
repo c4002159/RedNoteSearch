@@ -960,6 +960,7 @@ POST /knowledge-documents/{document_id}/similarity-preview：仅品牌admin，�
 - `edited_note` 可不传或为 null；没有人工编辑时前端不传。有值时沿用 GeneratedNote 的内容校验（标题 1–8 项且去空白后至少一项、正文非空、标签最多 20 项、封面最多 5 项，列表空白项去掉），作为改写起点，不先创建 edit 版本。该校验的补强仅针对 revise，不修改原 edit/rewrite/recheck。
 - 明确空值语义：parts 为空且 edited_note 为 null 且 note 去空白后为空，返回 422；只传 edited_note 则不做模型改写，仅保存人工内容并检查一次；只有 note（或 edited_note 加 note，没有 parts）时将 note 视为正文整体改写要求。未知请求字段和未知 parts 字段均返回 422。
 - 授权、状态、错误信封继承现有 rewrite：未登录 401；不可见版本、跨品牌及不存在版本统一 404，平台管理员不绕过品牌成员关系；同品牌 editor 和 admin 均可操作；依赖拒绝的 403 保持原错误信封。任务或源版本正在 generating 时 409，且不调用改写模型、不新增版本。不修改现有授权依赖。
+- 只有任务的最新版本可以 revise，否则 409 INVALID_STATE（details.codes 含 not_latest_version），不调用模型、不新增版本。
 - 各部分复用现有单部分提示词与有上限的结构输出重试，全部在内存中处理；**一次 HTTP 请求不等于一次模型调用**，多部分可能多次调用模型，但只保存最终结果。任一部分模型不可用返回 503；模型输出无效沿用 #206 的 `LlmOutputError → 422 INVALID_MODEL_OUTPUT`；失败不写入版本、不移动任务 latest_version_id，也不留下部分成功版本。错误响应不回显模型原始输出。
 - 成功只生成一个子版本，`origin=rewritten`，`parent_version_id` 始终指向路径中用户看到的原版本，保留父版本检索快照、模板/提示词/品牌档案版本。仅人工内容时 model 为 null；仍复用既有检查流程（检查本身可能调用证据/风险模型），后台 `run_checks_safely` 仅安排一次，不执行自动改写循环。旧版本、旧检查和旧运行记录保持不变；无需迁移。
 - 新 revise 将父版本的人工断言判断带入子版本；原检查服务重新抽取最终文本后，仅对完全相同的 claim_text 保留 human_confirmed、备注、判断人和时间，改变或消失的原句不继承。只在新 revise 路径启用，不改变原 rewrite/edit/recheck 的行为。

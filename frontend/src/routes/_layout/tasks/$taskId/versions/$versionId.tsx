@@ -767,7 +767,7 @@ function ResultPage() {
     refetchInterval: inProgress ? POLL_MS : false,
   })
 
-  const goTo = async (v: Version) => {
+  const goTo = async (v: Pick<Version, "id">) => {
     await refresh()
     setEditing(false)
     void navigate({
@@ -791,7 +791,7 @@ function ResultPage() {
               note: list.state.note.trim(),
               ...(list.state.draft ? { edited_note: list.state.draft } : {}),
             },
-            timeout: 180_000,
+            timeout: 300_000,
           })
         ).data
         list.clear()
@@ -799,6 +799,24 @@ function ResultPage() {
         await goTo(next)
       } catch (error) {
         const info = parseApiError(error)
+        if (info.status === null || info.status === 0) {
+          try {
+            const { data: latestTask } = await TasksService.readTask({
+              path: { task_id: taskId },
+            })
+            if (
+              latestTask.latest_version_id &&
+              latestTask.latest_version_id !== versionId
+            ) {
+              list.clear()
+              await goTo({ id: latestTask.latest_version_id })
+              toast.success(CL.timeoutRecovered)
+              return
+            }
+          } catch {
+            // If reconciliation fails, keep the original error and the local queue.
+          }
+        }
         const failure = {
           status: info.status,
           requestId: info.requestId,

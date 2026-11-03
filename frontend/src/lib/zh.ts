@@ -1648,6 +1648,7 @@ export const R7_CHANGELIST_TEXT = {
   preparingEdit: "正在先保存人工编辑…",
   blocked: "请先处理下方阻塞项。",
   failed: "改写未完成，请检查提示后重试；清单已保留。",
+  timeoutRecovered: "上次请求超时，但新版本已生成，已为你打开",
   manualSummary: (part: string) => `${part}：人工编辑`,
   parts: {
     titles: "标题",

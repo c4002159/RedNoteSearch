@@ -159,6 +159,15 @@ def revise_version(
     No version or task update is written until every requested part has succeeded.
     """
     begin_rewrite(task=task, version=parent)
+    if task.latest_version_id != parent.id:
+        raise InvalidStateError(
+            "Only the latest version of a task can be revised",
+            {
+                "current_state": parent.flow_status,
+                "reasons": ["Only the latest version of a task can be revised"],
+                "codes": ["not_latest_version"],
+            },
+        )
     note = data.edited_note or GeneratedNote(
         title_candidates=parent.title_candidates,
         body=parent.body,

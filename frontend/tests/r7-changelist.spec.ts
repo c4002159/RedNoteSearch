@@ -481,3 +481,69 @@ for (const width of [1433, 1024, 720])
     })
     expect(errors).toEqual([])
   })
+
+for (const completed of [true, false])
+  test(`Interrupted revise reconciles task latest (completed=${completed}) before retry`, async ({
+    page,
+  }) => {
+    const state = await mockResult(page, { risks: [] })
+    let calls = 0
+    await page.route(
+      "**/api/v1/generation-versions/*/revise",
+      async (route) => {
+        calls += 1
+        if (calls === 1) {
+          if (completed) state.latest = resultIds.next
+          return route.abort("timedout")
+        }
+        state.latest = resultIds.next
+        return route.fulfill({
+          json: {
+            ...state.version,
+            id: resultIds.next,
+            parent_version_id: resultIds.version,
+            version_no: 2,
+            origin: "rewritten",
+          },
+        })
+      },
+    )
+    await page.goto(resultUrl)
+    await request(page, "正文", "中断后仍要保留的要求")
+    await page.getByLabel("补充说明", { exact: true }).fill("整体说明")
+    await page
+      .getByRole("button", { name: "按以上全部改写", exact: true })
+      .click()
+    if (completed) {
+      await expect(page).toHaveURL(new RegExp(`/${resultIds.next}$`))
+      await expect(
+        page.getByText("上次请求超时，但新版本已生成，已为你打开", {
+          exact: true,
+        }),
+      ).toBeVisible()
+      expect(calls).toBe(1)
+      const saved = await page.evaluate(
+        (id) => JSON.parse(localStorage.getItem(`rednote:change-list:${id}`)!),
+        resultIds.version,
+      )
+      expect(saved.items).toEqual([])
+      expect(saved.note).toBe("")
+      expect(saved.failure).toBeNull()
+    } else {
+      await expect(page.getByRole("alert")).toContainText("网络连接失败")
+      await expect(page).toHaveURL(resultUrl)
+      await expect(queue(page).locator("summary")).toHaveCount(1)
+      await expect(page.getByLabel("补充说明", { exact: true })).toHaveValue(
+        "整体说明",
+      )
+      await expect(
+        page.getByRole("button", { name: "重试改写", exact: true }),
+      ).toBeVisible()
+      expect(calls).toBe(1)
+      await page.reload()
+      await expect(queue(page).locator("summary")).toHaveCount(1)
+      await page.getByRole("button", { name: "重试改写", exact: true }).click()
+      await expect(page).toHaveURL(new RegExp(`/${resultIds.next}$`))
+      expect(calls).toBe(2)
+    }
+  })

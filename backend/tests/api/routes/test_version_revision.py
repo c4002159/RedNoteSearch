@@ -332,3 +332,29 @@ def test_revision_keeps_identical_claim_decisions_only(
     assert [
         (row["claim_text"], row["human_confirmed"], row["confirm_note"]) for row in rows
     ] == [("木质香调", decision, "原版本的人工判断")]
+
+
+def test_history_revision_returns_409_without_model_or_new_version(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    llm: FakeLlmClient,
+) -> None:
+    h = superuser_token_headers
+    ids = _generated(client, h)
+    url = f"{API}/generation-versions/{ids['version']}/revise"
+    first = client.post(url, headers=h, json=PARTS)
+    assert first.status_code == 202, first.text
+    latest_id = first.json()["id"]
+    before = count_versions(client, h, ids["task"])
+    llm.requests.clear()
+
+    response = client.post(url, headers=h, json=PARTS)
+
+    assert response.status_code == 409, response.text
+    error = response.json()["error"]
+    assert error["code"] == "INVALID_STATE"
+    assert "not_latest_version" in error["details"]["codes"]
+    assert count_versions(client, h, ids["task"]) == before
+    task = client.get(f"{API}/tasks/{ids['task']}", headers=h).json()
+    assert task["latest_version_id"] == latest_id
+    assert len(llm.requests) == 0
