@@ -4,6 +4,8 @@
 
 > 合规能力是“风险提示与规则辅助审核”，不替代人工复核或法务终审。“系统判定支持”不等于事实正确。
 
+**想直接用起来：** 装好 Docker Desktop，运行 `deploy/start.ps1`（Windows）或 `bash deploy/start.sh`（macOS / Linux），详见 [一键部署指南](docs/DEPLOY_QUICKSTART.md)。
+
 ## 来源与许可
 
 骨架取自 [fastapi/full-stack-fastapi-template](https://github.com/fastapi/full-stack-fastapi-template)（MIT）`master` 分支，
