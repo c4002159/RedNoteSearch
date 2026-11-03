@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test"
 import type { ClaimEvidencePublic } from "../src/client"
+import { showAllEvidence } from "./utils/flowControls"
 import { mockResult, resultIds, resultUrl } from "./utils/resultVisual"
 
 test.use({ storageState: { cookies: [], origins: [] } })
@@ -104,6 +105,7 @@ test("Rejecting all excludes system supported claims and retains every system st
   const { state, calls } = await setup(page)
   const statuses = state.evidence.map((item) => item.status)
   await page.goto(resultUrl)
+  await showAllEvidence(page)
   await page
     .getByRole("button", { name: "全部判为不成立", exact: true })
     .click()
@@ -140,10 +142,11 @@ test("Rejecting all excludes system supported claims and retains every system st
       .filter((item) => item.status !== "system_supported")
       .every((item) => item.human_confirmed === false),
   ).toBe(true)
-  await expect(page.getByText("人工判定：不成立", { exact: true })).toHaveCount(
-    2,
-  )
+  await expect(page.getByText("已判断：不成立", { exact: true })).toHaveCount(2)
   expect(state.evidence[0].human_confirmed).toBeNull()
+  const supported = page.locator(`[id="evidence-${claims()[0].id}"] > details`)
+  if (!(await supported.evaluate((el) => (el as HTMLDetailsElement).open)))
+    await supported.locator(":scope > summary").click()
   await expect(page.getByText("系统判定支持", { exact: true })).toBeVisible()
 })
 
@@ -152,6 +155,7 @@ test("Positive decisions require individual checkboxes and a note; no all-positi
 }) => {
   const { state, calls } = await setup(page)
   await page.goto(resultUrl)
+  await showAllEvidence(page)
   await expect(page.getByRole("checkbox")).toHaveCount(3)
   for (const checkbox of await page.getByRole("checkbox").all())
     await expect(checkbox).not.toBeChecked()
@@ -206,6 +210,7 @@ test("Positive decisions require individual checkboxes and a note; no all-positi
   ])
   expect(state.evidence[1].status).toBe("needs_human_review")
   expect(state.evidence[0].human_confirmed).toBeNull()
+  await showAllEvidence(page)
   await expect(page.getByRole("checkbox").nth(1)).not.toBeChecked()
   await expect(accept).toBeDisabled()
 })
@@ -216,6 +221,7 @@ test("All supported claims disable reject-all but can still be individually conf
   const { state, calls } = await setup(page)
   state.evidence = [claims()[0]]
   await page.goto(resultUrl)
+  await showAllEvidence(page)
   await expect(
     page.getByRole("button", { name: "全部判为不成立", exact: true }),
   ).toBeDisabled()
@@ -266,6 +272,7 @@ test("A failed batch keeps the note and selection for retry and never changes lo
     }),
   )
   await page.goto(resultUrl)
+  await showAllEvidence(page)
   await page
     .getByRole("checkbox", {
       name: "选择断言：需要人工判断 B（演示）",
@@ -329,6 +336,7 @@ test("A brand editor can record human decisions through the same member endpoint
     }),
   )
   await page.goto(resultUrl)
+  await showAllEvidence(page)
   await page
     .getByRole("checkbox", {
       name: "选择断言：需要人工判断 B（演示）",
@@ -379,6 +387,7 @@ test("The note uses the 500 code point limit and the dialog blocks duplicate sub
     },
   )
   await page.goto(resultUrl)
+  await showAllEvidence(page)
   await page
     .getByRole("checkbox", {
       name: "选择断言：需要人工判断 B（演示）",
@@ -419,6 +428,7 @@ test("Historical and checking versions cannot start batch decisions", async ({
 }) => {
   await setup(page, { historical: true })
   await page.goto(resultUrl)
+  await showAllEvidence(page)
   await expect(page.getByText("历史版本", { exact: true })).toBeVisible()
   await expect(page.getByRole("checkbox")).toHaveCount(0)
   await expect(

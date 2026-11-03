@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test"
+import { revealChangeControls } from "./utils/flowControls"
 import {
   mockResult,
   resultIds,
@@ -13,13 +14,14 @@ test("A risk rewrites the body using the exact recommendation and opens the new 
 }) => {
   const state = await mockResult(page)
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await page.getByRole("tab", { name: /风险/ }).click()
   const card = page
     .getByRole("listitem")
     .filter({ hasText: resultRisks[0].suggestion })
   await card.getByRole("button", { name: "按建议改写", exact: true }).click()
   await page
-    .getByRole("button", { name: "按以上全部改写", exact: true })
+    .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
     .click()
   await expect(page).toHaveURL(
     `/tasks/${resultIds.task}/versions/${resultIds.next}`,
@@ -44,12 +46,13 @@ test("One-click risk rewrite includes every unresolved recommendation and exclud
 }) => {
   const state = await mockResult(page)
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await page.getByRole("tab", { name: /风险/ }).click()
   await page
     .getByRole("button", { name: "全部建议加入清单", exact: true })
     .click()
   await page
-    .getByRole("button", { name: "按以上全部改写", exact: true })
+    .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
     .click()
   await expect.poll(() => state.writes.length).toBe(1)
   const instruction = String(
@@ -71,17 +74,19 @@ test("Long recommendations remain intact in the queue and cannot exceed one requ
     risks: [{ ...resultRisks[0], suggestion }],
   })
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await page.getByRole("tab", { name: /风险/ }).click()
   await page.getByRole("button", { name: "按建议改写", exact: true }).click()
   await expect(
-    page.getByRole("button", { name: "按以上全部改写", exact: true }),
+    page.getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true }),
   ).toBeDisabled()
   await expect(page.getByRole("alert")).toContainText("合并要求超过 500 字")
   const list = page.getByRole("region", { name: "修改清单", exact: true })
-  await list.locator("summary").click()
+  await list.locator("[data-change-item] > summary").click()
   await expect(list).toContainText(suggestion)
   expect(state.writes).toHaveLength(0)
   await page.reload()
+  await revealChangeControls(page)
   const saved = await page.evaluate(
     (id) =>
       JSON.parse(localStorage.getItem(`rednote:change-list:${id}`)!).items[0]
@@ -97,10 +102,11 @@ test("Refreshing tags uses the hashtags target even when there are no old tags",
 }) => {
   const state = await mockResult(page, { tags: [] })
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await expect(page.getByText("暂无推荐标签", { exact: true })).toBeVisible()
   await page.getByRole("button", { name: "换一批标签", exact: true }).click()
   await page
-    .getByRole("button", { name: "按以上全部改写", exact: true })
+    .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
     .click()
   await expect(page).toHaveURL(
     `/tasks/${resultIds.task}/versions/${resultIds.next}`,
@@ -129,9 +135,10 @@ test("Failed rewrites retain the original version and request id; absent suggest
     }),
   )
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await page.getByRole("button", { name: "换一批标签", exact: true }).click()
   await page
-    .getByRole("button", { name: "按以上全部改写", exact: true })
+    .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
     .click()
   await expect(page.getByRole("alert")).toContainText("rewrite-fixture")
   await expect(page.getByRole("alert")).not.toContainText("Model unavailable")
@@ -139,6 +146,7 @@ test("Failed rewrites retain the original version and request id; absent suggest
   expect(state.writes).toEqual([])
   state.risks = [{ ...resultRisks[0], suggestion: "" }]
   await page.reload()
+  await revealChangeControls(page)
   await page.getByRole("tab", { name: /风险/ }).click()
   await expect(
     page.getByRole("button", { name: "按建议改写", exact: true }),
@@ -206,12 +214,13 @@ test("Title and mixed-field risks use one revision; unsupported fields require m
   })
   await mockRevision(page, state)
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await page.getByRole("tab", { name: /风险/ }).click()
   await page
     .getByRole("button", { name: "全部建议加入清单", exact: true })
     .click()
   await page
-    .getByRole("button", { name: "按以上全部改写", exact: true })
+    .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
     .click()
   await expect.poll(() => state.writes.length).toBe(1)
   expect(
@@ -223,6 +232,7 @@ test("Title and mixed-field risks use one revision; unsupported fields require m
   await expect(page).toHaveURL(new RegExp(`${resultIds.next}$`))
   state.risks = [{ ...resultRisks[0], field: "unknown-field" }]
   await page.reload()
+  await revealChangeControls(page)
   await page.getByRole("tab", { name: /风险/ }).click()
   await expect(page.getByText("请手动编辑", { exact: true })).toBeVisible()
   await expect(
@@ -249,12 +259,13 @@ test("Atomic failure exposes no intermediate version and retries the complete ch
   })
   await mockRevision(page, state, 1, pending)
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await page.getByRole("tab", { name: /风险/ }).click()
   await page
     .getByRole("button", { name: "全部建议加入清单", exact: true })
     .click()
   await page
-    .getByRole("button", { name: "按以上全部改写", exact: true })
+    .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
     .click()
   await expect(
     page.getByText("正在改写，完成后将打开新版本；原版本保留。", {
@@ -269,9 +280,9 @@ test("Atomic failure exposes no intermediate version and retries the complete ch
   await expect(
     page
       .getByRole("region", { name: "修改清单", exact: true })
-      .locator("summary"),
+      .locator("[data-change-item] > summary"),
   ).toHaveCount(3)
-  await page.getByRole("button", { name: "重试改写", exact: true }).click()
+  await page.getByRole("button", { name: "重试", exact: true }).click()
   await expect(page).toHaveURL(/bbbbbbb3-bbbb/)
   expect(state.writes).toHaveLength(2)
   expect(state.writes[1].body).toEqual(state.writes[0].body)
@@ -290,12 +301,13 @@ test("Many risks are retained completely when the merged target exceeds 500", as
   }))
   const state = await mockResult(page, { risks })
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await page.getByRole("tab", { name: /风险/ }).click()
   await page
     .getByRole("button", { name: "全部建议加入清单", exact: true })
     .click()
   await expect(
-    page.getByRole("button", { name: "按以上全部改写", exact: true }),
+    page.getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true }),
   ).toBeDisabled()
   await expect(page.getByRole("alert")).toContainText("合并要求超过 500 字")
   const saved = await page.evaluate(
@@ -319,6 +331,7 @@ test("Historical and checking versions have no quick rewrite controls", async ({
 }) => {
   await mockResult(page, { historical: true })
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await expect(page.getByText("历史版本", { exact: true })).toBeVisible()
   await expect(
     page.getByRole("button", { name: "换一批标签", exact: true }),
@@ -329,6 +342,7 @@ test("Historical and checking versions have no quick rewrite controls", async ({
   ).toHaveCount(0)
   await mockResult(page, { flow: "checking" })
   await page.reload()
+  await revealChangeControls(page)
   await expect(page.getByText("检查中", { exact: true })).toBeVisible()
   await expect(
     page.getByRole("button", { name: "换一批标签", exact: true }),
@@ -340,6 +354,7 @@ test("Existing manual rewrite keeps its target and instruction", async ({
 }) => {
   const state = await mockResult(page)
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await page
     .getByLabel("封面修改要求", { exact: true })
     .fill("请使用短句（演示）")
@@ -348,7 +363,7 @@ test("Existing manual rewrite keeps its target and instruction", async ({
     .click()
   expect(state.writes).toHaveLength(0)
   await page
-    .getByRole("button", { name: "按以上全部改写", exact: true })
+    .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
     .click()
   await expect(page).toHaveURL(
     `/tasks/${resultIds.task}/versions/${resultIds.next}`,
@@ -383,12 +398,13 @@ test("A pending rewrite disables the other rewrite actions and recovers after fa
     })
   })
   await page.goto(resultUrl)
+  await revealChangeControls(page)
   await page.getByRole("tab", { name: /风险/ }).click()
   await page
     .getByRole("button", { name: "全部建议加入清单", exact: true })
     .click()
   await page
-    .getByRole("button", { name: "按以上全部改写", exact: true })
+    .getByRole("button", { name: /^按清单改写（\d+ 项）$/, exact: true })
     .click()
   await expect(
     page.getByText("正在改写，完成后将打开新版本；原版本保留。", {
