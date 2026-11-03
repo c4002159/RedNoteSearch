@@ -776,70 +776,27 @@ function ResultPage() {
     })
   }
 
-  const rewriteProgress = list.state.progress ?? { total: 0, completed: [] }
   const rewrite = useMutation({
     mutationFn: async () => {
-      applyingRef.current = true
-      const plan = changeListSteps(list.state.items, list.state.note)
+      const plan = changeListSteps(list.state.items, "")
       if (plan.error) throw new Error(plan.error)
-      let remaining = {
-        ...list.state,
-        failure: null as typeof list.state.failure,
-      }
-      const completed = [...(remaining.progress?.completed ?? [])]
-      const total = completed.length + plan.steps.length
-      let currentId = versionId
-      let last: Version | undefined
-      const checkpoint = (next: typeof remaining) => {
-        remaining = next
-        list.update(() => next)
-        if (last) saveChangeList(last.id, next)
-      }
-      checkpoint({
-        ...remaining,
-        progress: { total, completed: [...completed] },
-      })
+      applyingRef.current = true
+      list.update((value) => ({ ...value, failure: null }))
       try {
-        if (remaining.draft) {
-          last = (
-            await VersionsService.editVersion({
-              path: { version_id: currentId },
-              body: remaining.draft,
-            })
-          ).data
-          currentId = last.id
-          checkpoint({ ...remaining, draft: null })
-        }
-        for (const body of plan.steps) {
-          const previousId = currentId
-          last = (
-            await VersionsService.rewritePart({
-              path: { version_id: currentId },
-              body,
-              timeout: 180_000,
-            })
-          ).data
-          currentId = last.id
-          completed.push(body.target)
-          checkpoint({
-            ...remaining,
-            items: remaining.items.filter(
-              (item) => item.target !== body.target,
-            ),
-            progress: { total, completed: [...completed] },
+        const next = (
+          await VersionsService.reviseVersion({
+            path: { version_id: versionId },
+            body: {
+              parts: plan.steps,
+              note: list.state.note.trim(),
+              ...(list.state.draft ? { edited_note: list.state.draft } : {}),
+            },
+            timeout: 180_000,
           })
-          if (previousId !== versionId)
-            saveChangeList(previousId, emptyChangeList())
-        }
-        if (last && !plan.steps.length)
-          await VersionsService.recheckVersion({
-            path: { version_id: last.id },
-          })
+        ).data
         list.clear()
-        if (last) {
-          saveChangeList(last.id, emptyChangeList())
-          await goTo(last)
-        }
+        saveChangeList(next.id, emptyChangeList())
+        await goTo(next)
       } catch (error) {
         const info = parseApiError(error)
         const failure = {
@@ -849,18 +806,12 @@ function ResultPage() {
             ? info.message
             : (PAGE_ERROR_TEXT.status[info.status ?? 0] ?? CL.failed),
         }
-        checkpoint({ ...remaining, failure })
-        if (last) {
-          list.clear()
-          await goTo(last)
-        }
-        if (!last) applyingRef.current = false
+        list.update((value) => ({ ...value, failure }))
+        applyingRef.current = false
         throw error
       }
     },
   })
-  const partialRewrite =
-    !!list.state.progress?.completed.length && !!list.state.failure
   const rewriteBusy = rewrite.isPending
   useEffect(() => {
     if (
@@ -909,7 +860,7 @@ function ResultPage() {
         })
       ).data,
     onSuccess: async () => {
-      list.update((value) => ({ ...value, failure: null, progress: null }))
+      list.update((value) => ({ ...value, failure: null }))
       await refresh()
     },
   })
@@ -1003,7 +954,10 @@ function ResultPage() {
     manual.length ||
     list.state.note.trim()
   )
-  const plan = changeListSteps(list.state.items, list.state.note)
+  const plan = changeListSteps(list.state.items, "")
+  const planError =
+    plan.error ??
+    (codePointCount(list.state.note.trim()) > 500 ? CL.noteTooLong : null)
   const stageDraft = (draft: ChangeDraft | null) =>
     list.update((value) => ({
       ...value,
@@ -1071,28 +1025,6 @@ function ResultPage() {
       {rewrite.isPending && (
         <p role="status" className="rounded-lg bg-surface-low p-3 text-sm">
           {RW.pending}
-          {rewriteProgress.total > 1 && (
-            <span className="ml-2">
-              {RR.progress(
-                Math.min(
-                  rewriteProgress.completed.length + 1,
-                  rewriteProgress.total,
-                ),
-                rewriteProgress.total,
-              )}
-            </span>
-          )}
-        </p>
-      )}
-      {partialRewrite && (
-        <p role="status" className="rounded-lg bg-surface-low p-3 text-sm">
-          {CL.continuation(
-            rewriteProgress.completed
-              .map((target) => CL.parts[target])
-              .join("、"),
-            rewriteProgress.completed.length,
-            rewriteProgress.total,
-          )}
         </p>
       )}
       {rewriteError && (
@@ -1314,9 +1246,9 @@ function ResultPage() {
                     {CL.undecided(pendingRisks.length, undecided.length)}
                   </p>
                 )}
-                {plan.error && (
+                {planError && (
                   <p role="alert" className="text-sm text-tone-err">
-                    {plan.error}
+                    {planError}
                   </p>
                 )}
                 {hasChanges && (
@@ -1324,7 +1256,7 @@ function ResultPage() {
                     loading={rewriteBusy}
                     disabled={
                       inProgress ||
-                      !!plan.error ||
+                      !!planError ||
                       evidence.isLoading ||
                       compliance.isLoading ||
                       evidence.isError ||
@@ -1335,7 +1267,7 @@ function ResultPage() {
                       rewrite.mutate()
                     }}
                   >
-                    {partialRewrite ? CL.retry : CL.apply}
+                    {list.state.failure ? CL.retry : CL.apply}
                   </LoadingButton>
                 )}
                 {!hasChanges && v.flow_status === "edited_pending_recheck" && (

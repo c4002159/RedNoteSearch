@@ -26,10 +26,15 @@ test("A risk rewrites the body using the exact recommendation and opens the new 
   )
   expect(state.writes).toHaveLength(1)
   expect(state.writes[0]).toEqual({
-    path: `/api/v1/generation-versions/${resultIds.version}/rewrite`,
+    path: `/api/v1/generation-versions/${resultIds.version}/revise`,
     body: {
-      target: "body",
-      instruction: `把‘育发’改为：${resultRisks[0].suggestion}`,
+      parts: [
+        {
+          target: "body",
+          instruction: `把‘育发’改为：${resultRisks[0].suggestion}`,
+        },
+      ],
+      note: "",
     },
   })
 })
@@ -47,11 +52,15 @@ test("One-click risk rewrite includes every unresolved recommendation and exclud
     .getByRole("button", { name: "按以上全部改写", exact: true })
     .click()
   await expect.poll(() => state.writes.length).toBe(1)
-  const instruction = String(state.writes[0].body.instruction)
+  const instruction = String(
+    (state.writes[0].body.parts as { instruction: string }[])[0].instruction,
+  )
   expect(instruction).toContain(resultRisks[0].matched_text)
   expect(instruction).toContain(resultRisks[1].suggestion)
   expect(instruction).not.toContain(resultRisks[2].matched_text)
-  expect(state.writes[0].body.target).toBe("body")
+  expect((state.writes[0].body.parts as { target: string }[])[0].target).toBe(
+    "body",
+  )
 })
 
 test("Long recommendations remain intact in the queue and cannot exceed one request per target", async ({
@@ -97,14 +106,17 @@ test("Refreshing tags uses the hashtags target even when there are no old tags",
     `/tasks/${resultIds.task}/versions/${resultIds.next}`,
   )
   expect(state.writes).toHaveLength(1)
-  expect(state.writes[0].body).toEqual({ target: "hashtags" })
+  expect(state.writes[0].body).toEqual({
+    parts: [{ target: "hashtags" }],
+    note: "",
+  })
 })
 
 test("Failed rewrites retain the original version and request id; absent suggestions are not invented", async ({
   page,
 }) => {
   const state = await mockResult(page)
-  await page.route("**/api/v1/generation-versions/*/rewrite", (route) =>
+  await page.route("**/api/v1/generation-versions/*/revise", (route) =>
     route.fulfill({
       status: 503,
       json: {
@@ -139,7 +151,7 @@ test("Failed rewrites retain the original version and request id; absent suggest
   ).toBeVisible()
 })
 
-async function mockSequence(
+async function mockRevision(
   page: import("@playwright/test").Page,
   state: Awaited<ReturnType<typeof mockResult>>,
   failAt = 0,
@@ -148,7 +160,7 @@ async function mockSequence(
   const versions = new Map<string, typeof state.version>()
   await page.route("**/api/v1/generation-versions/**", async (route) => {
     const path = new URL(route.request().url()).pathname
-    if (route.request().method() === "POST" && path.endsWith("/rewrite")) {
+    if (route.request().method() === "POST" && path.endsWith("/revise")) {
       state.writes.push({ path, body: route.request().postDataJSON() })
       if (state.writes.length === failAt) await pending
       if (state.writes.length === failAt)
@@ -170,7 +182,7 @@ async function mockSequence(
       const version = {
         ...state.version,
         id,
-        version_no: state.writes.length + 1,
+        version_no: state.version.version_no + 1,
       }
       versions.set(id, version)
       return route.fulfill({ status: 202, json: version })
@@ -182,7 +194,7 @@ async function mockSequence(
   })
 }
 
-test("Title risks use titles; mixed fields are sequential and unsupported fields require manual edit", async ({
+test("Title and mixed-field risks use one revision; unsupported fields require manual edit", async ({
   page,
 }) => {
   const state = await mockResult(page, {
@@ -192,7 +204,7 @@ test("Title risks use titles; mixed fields are sequential and unsupported fields
       { ...resultRisks[2], resolved: false, field: "hashtags" },
     ],
   })
-  await mockSequence(page, state)
+  await mockRevision(page, state)
   await page.goto(resultUrl)
   await page.getByRole("tab", { name: /风险/ }).click()
   await page
@@ -201,15 +213,14 @@ test("Title risks use titles; mixed fields are sequential and unsupported fields
   await page
     .getByRole("button", { name: "按以上全部改写", exact: true })
     .click()
-  await expect.poll(() => state.writes.length).toBe(3)
-  expect(state.writes.map((w) => w.body.target)).toEqual([
-    "titles",
-    "cover",
-    "hashtags",
-  ])
-  expect(state.writes[1].path).toContain(resultIds.next)
-  expect(state.writes[2].path).toContain("bbbbbbb3-bbbb")
-  await expect(page).toHaveURL(/bbbbbbb4-bbbb/)
+  await expect.poll(() => state.writes.length).toBe(1)
+  expect(
+    (state.writes[0].body.parts as { target: string }[]).map(
+      (part) => part.target,
+    ),
+  ).toEqual(["titles", "cover", "hashtags"])
+  expect(state.writes[0].path).toContain(resultIds.version)
+  await expect(page).toHaveURL(new RegExp(`${resultIds.next}$`))
   state.risks = [{ ...resultRisks[0], field: "unknown-field" }]
   await page.reload()
   await page.getByRole("tab", { name: /风险/ }).click()
@@ -222,7 +233,7 @@ test("Title risks use titles; mixed fields are sequential and unsupported fields
   ).toBeDisabled()
 })
 
-test("A later failure stops the sequence and exposes completed steps and the saved version", async ({
+test("Atomic failure exposes no intermediate version and retries the complete change list", async ({
   page,
 }) => {
   const state = await mockResult(page, {
@@ -236,7 +247,7 @@ test("A later failure stops the sequence and exposes completed steps and the sav
   const pending = new Promise<void>((resolve) => {
     release = resolve
   })
-  await mockSequence(page, state, 2, pending)
+  await mockRevision(page, state, 1, pending)
   await page.goto(resultUrl)
   await page.getByRole("tab", { name: /风险/ }).click()
   await page
@@ -245,22 +256,27 @@ test("A later failure stops the sequence and exposes completed steps and the sav
   await page
     .getByRole("button", { name: "按以上全部改写", exact: true })
     .click()
-  await expect(page.getByText("第 2 / 3 步", { exact: true })).toBeVisible()
+  await expect(
+    page.getByText("正在改写，完成后将打开新版本；原版本保留。", {
+      exact: true,
+    }),
+  ).toBeVisible()
   release?.()
-  await expect(page.getByText("改写已停止", { exact: false })).toContainText(
-    "已完成 1 / 3 步（标题）",
-  )
   await expect(page.getByRole("alert")).toContainText("step-failed")
+  await expect(page).toHaveURL(resultUrl)
+  expect(state.writes).toHaveLength(1)
+  expect(state.latest).toBe(resultIds.version)
+  await expect(
+    page
+      .getByRole("region", { name: "修改清单", exact: true })
+      .locator("summary"),
+  ).toHaveCount(3)
+  await page.getByRole("button", { name: "重试改写", exact: true }).click()
+  await expect(page).toHaveURL(/bbbbbbb3-bbbb/)
   expect(state.writes).toHaveLength(2)
-  await expect(
-    page.getByRole("button", { name: "重试未完成的修改", exact: true }),
-  ).toBeEnabled()
-  await expect(page).toHaveURL(
-    `/tasks/${resultIds.task}/versions/${resultIds.next}`,
-  )
-  await expect(
-    page.getByRole("button", { name: "换一批标签", exact: true }),
-  ).toBeEnabled()
+  expect(state.writes[1].body).toEqual(state.writes[0].body)
+  expect(state.writes[1].path).toContain(resultIds.version)
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("第 2 版")
 })
 
 test("Many risks are retained completely when the merged target exceeds 500", async ({
@@ -338,8 +354,8 @@ test("Existing manual rewrite keeps its target and instruction", async ({
     `/tasks/${resultIds.task}/versions/${resultIds.next}`,
   )
   expect(state.writes[0].body).toEqual({
-    target: "cover",
-    instruction: "请使用短句（演示）",
+    parts: [{ target: "cover", instruction: "请使用短句（演示）" }],
+    note: "",
   })
 })
 
@@ -352,7 +368,7 @@ test("A pending rewrite disables the other rewrite actions and recovers after fa
     release = resolve
   })
   let calls = 0
-  await page.route("**/api/v1/generation-versions/*/rewrite", async (route) => {
+  await page.route("**/api/v1/generation-versions/*/revise", async (route) => {
     calls++
     await pending
     await route.fulfill({

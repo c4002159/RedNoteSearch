@@ -6,15 +6,25 @@ Edits never change a version: they create a new one (contract section 5). A vers
 """
 
 import uuid
+from collections.abc import Callable
 from typing import Any
 
 from sqlmodel import Session
 
 from app.domain.constraints import plain_body, to_markdown, to_xhs_parts
 from app.domain.flow import FlowStatus, confirm_blockers
+from app.domain.generation.rewrite import build_rewrite_messages, target_problem
 from app.domain.generation.schema import GeneratedNote
-from app.models import ComplianceCheck, GenerationVersion, Task, VersionOrigin
+from app.models import (
+    ClaimEvidence,
+    ComplianceCheck,
+    GenerationVersion,
+    Task,
+    VersionOrigin,
+)
 from app.models.common import get_datetime_utc
+from app.models.revision import ReviseRequest
+from app.ports.llm import LlmClient, LlmRequest
 from app.services import compliance as compliance_service
 from app.services import evidence as evidence_service
 from app.services import results as results_service
@@ -24,8 +34,13 @@ from app.services.errors import (
     InvalidStateError,
     ModelUnavailableError,
 )
-from app.services.llm_structured import LlmOutputError
-from app.services.pipeline import PipelineDeps, new_version_from, run_checks
+from app.services.llm_structured import LlmOutputError, generate_structured
+from app.services.pipeline import (
+    REWRITE_ATTEMPTS,
+    PipelineDeps,
+    new_version_from,
+    run_checks,
+)
 
 # A version in one of these states can be checked again. ``ready_to_copy`` is final and
 # ``generating`` is still being produced.
@@ -127,6 +142,108 @@ def record_rewrite(
         detail={"target": target, "parent": str(version.parent_version_id)},
     )
     session.commit()
+
+
+def revise_version(
+    *,
+    session: Session,
+    task: Task,
+    parent: GenerationVersion,
+    data: ReviseRequest,
+    user_id: uuid.UUID,
+    llm_factory: Callable[[], LlmClient],
+) -> GenerationVersion:
+    """Rewrite in memory, then persist exactly one child and one audit transaction.
+
+    The existing single-part prompt and bounded structured-output retries are reused.
+    No version or task update is written until every requested part has succeeded.
+    """
+    begin_rewrite(task=task, version=parent)
+    note = data.edited_note or GeneratedNote(
+        title_candidates=parent.title_candidates,
+        body=parent.body,
+        hashtags=parent.hashtags,
+        cover_candidates=parent.cover_candidates,
+    )
+    parts = data.model_parts()
+    model: str | None = None
+    if parts:
+        llm = llm_factory()
+        for part in parts:
+            instruction = "\n".join(
+                text for text in (part.instruction.strip(), data.note) if text
+            )
+            result = generate_structured(
+                llm,
+                LlmRequest(
+                    messages=build_rewrite_messages(
+                        note, [target_problem(part.target)], instruction
+                    ),
+                    temperature=0.5,
+                    purpose="rewrite",
+                ),
+                GeneratedNote,
+                max_attempts=REWRITE_ATTEMPTS,
+            )
+            note = result.value
+            if not note.title_candidates:
+                raise LlmOutputError("The model returned no nonblank title candidates")
+            model = result.responses[-1].model
+    new = new_version_from(
+        session=session,
+        task=task,
+        parent=parent,
+        note=note,
+        origin=VersionOrigin.REWRITTEN,
+        model=model,
+    )
+    if not parts:
+        new.model = None  # Manual content was stored; no model generated this text.
+    # Seed only human decisions. The existing checker re-extracts the final text and
+    # retains these decisions only for identical claim_text; changed claims are dropped.
+    for claim in evidence_service.list_evidence(session=session, version_id=parent.id):
+        if claim.human_confirmed is not None:
+            session.add(
+                ClaimEvidence(
+                    version_id=new.id,
+                    brand_id=task.brand_id,
+                    claim_text=claim.claim_text,
+                    status="needs_human_review",
+                    human_confirmed=claim.human_confirmed,
+                    confirm_note=claim.confirm_note,
+                    confirmed_by=claim.confirmed_by,
+                    confirmed_at=claim.confirmed_at,
+                )
+            )
+    task.last_error = None
+    _mirror(session, task, new, "evidence")
+    record_audit(
+        session,
+        action="version.revise",
+        entity_type="generation_version",
+        entity_id=new.id,
+        brand_id=task.brand_id,
+        actor_id=user_id,
+        detail={
+            "parent": str(parent.id),
+            "targets": [part.target for part in parts],
+            "has_note": bool(data.note),
+            "contains_manual_edit": data.edited_note is not None,
+        },
+    )
+    if data.edited_note is not None:
+        record_audit(
+            session,
+            action="version.revise.manual_edit",
+            entity_type="generation_version",
+            entity_id=new.id,
+            brand_id=task.brand_id,
+            actor_id=user_id,
+            detail={"parent": str(parent.id), "contains_manual_edit": True},
+        )
+    session.commit()
+    session.refresh(new)
+    return new
 
 
 def begin_recheck(*, session: Session, task: Task, version: GenerationVersion) -> None:

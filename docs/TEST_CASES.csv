@@ -323,3 +323,13 @@ TC-276,R6,香调默认显示与手动展开,P1,新增商品,选择香水家居�
 TC-277,R6,商品自定义种类展示,P1,商品页面及推广对象,输入香膏保存后查看列表和详情,请求提交原文字；列表详情和推广对象直接显示香膏而非其他或空白,本机Playwright通过
 TC-278,R6,编辑香调不丢失,P1,已有香调的商品,编辑时切换护肤并保存,香调持续显示；原香调保留；预设中文回显且提交对应键,本机Playwright通过
 TC-279,R6,局部重写遇到无效模型输出,P1,已有生成版本；模型对重写返回不符合结构的内容,POST /generation-versions/{id}/rewrite,返回422 INVALID_MODEL_OUTPUT且不含模型原始输出；不新增版本,自动化（pytest）
+TC-280,R7,修改清单批量修订授权,P1,有生成版本及成员和非成员,POST revise未登录及跨品牌及不存在版本及依赖403,401与404与403原错误信封；同品牌editor允许；不绕过品牌边界,自动化pytest
+TC-281,R7,修订空值重复与长度校验,P1,已有生成版本,传全空或重复target或未知字段或超长要求或非法edited_note,422且不写入版本；空白标题及空正文拒绝,自动化pytest
+TC-282,R7,多部分一次版本与一次检查,P1,两个不同target,一次POST revise并检查版本和模型调用,只新增一版且parent为原版；各部分内存处理后只触发一次检查；原版不变,自动化pytest与Playwright
+TC-283,R7,人工编辑合并修订,P1,编辑正文并对标题写要求,一次提交edited_note及parts,以人工内容起步；origin rewritten且parent原版；无edit中间版本；额外人工审计不记正文,自动化pytest与Playwright
+TC-284,R7,仅人工编辑一次保存检查,P1,只有edited_note,一次POST revise,无改写模型调用；只新增一版并检查一次；空白项去掉且model为空,自动化pytest与Playwright
+TC-285,R7,生成中禁止修订,P1,任务或源版本generating,POST revise,409且无改写调用和新版本,自动化pytest
+TC-286,R7,后续部分模型失败不留版本,P1,前一部分有效而后一部分503或无效输出,POST revise,503或422 INVALID_MODEL_OUTPUT；原latest不变；无部分版本及成功审计,自动化pytest
+TC-287,R7,人工断言判断继承,P1,原版本有成立或不成立的判断,revise后重新抽取相同和改变的原句,相同claim_text保留判断备注人时间；消失原句移除；原版不变,自动化pytest
+TC-288,R7,清单失败重试保持完整,P1,多个清单条目且修订422或503或断网,执行后刷新再重试,保留全部条目；同一原版重试一次请求；无逐步进度和中间版本,自动化Playwright
+TC-289,R7,仅整体说明修订,P1,parts为空且只有note,POST revise,按正文要求改写；note空白且无人工内容则422,自动化pytest与Playwright

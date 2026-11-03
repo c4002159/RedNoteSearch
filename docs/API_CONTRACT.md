@@ -943,3 +943,26 @@ POST /knowledge-documents/{document_id}/similarity-preview：仅品牌admin，�
 - 相近检查失败只降级提示；原入库嵌入不可用仍503并保持待审。正常批准、拒绝、停用及取消日志只增不改，新增similar_decision和related_document_ids；不修改或删除旧审核记录。
 
 迁移与ADR-015：来源默认file；审核动作新增cancel，新增决定与关联id字段。downgrade不能删改取消记录：若已有cancel日志则明确拒绝降级，待人工安排兼容方案。迁移接开工时唯一head；若B1先合并须同步main并重接当时head，不使用alembic merge。
+
+## R7：修改清单一次修订
+
+`POST /generation-versions/{version_id}/revise`，成功 202 返回既有 `GenerationVersionPublic`（响应状态 `checking`）。请求：
+
+```json
+{
+  "parts": [{"target": "titles", "instruction": "标题用短句"}, {"target": "body", "instruction": "只保留有来源的描述"}],
+  "note": "整体语气温和",
+  "edited_note": {"title_candidates": ["人工标题"], "body": "人工编辑的正文", "hashtags": [], "cover_candidates": []}
+}
+```
+
+- `parts` 默认 `[]`，最多 5 项，target 沿用 `titles|opening|body|cover|hashtags`；同一 target 不得重复（重复返回 422），按输入顺序处理。instruction 默认空串，每项最多 500 Unicode 码点。`note` 默认空串、最多 500 码点、去首尾空白，作为所有模型改写部分的整体要求；与每部分 instruction 分别校验，不在前端重复拼入。
+- `edited_note` 可不传或为 null；没有人工编辑时前端不传。有值时沿用 GeneratedNote 的内容校验（标题 1–8 项且去空白后至少一项、正文非空、标签最多 20 项、封面最多 5 项，列表空白项去掉），作为改写起点，不先创建 edit 版本。该校验的补强仅针对 revise，不修改原 edit/rewrite/recheck。
+- 明确空值语义：parts 为空且 edited_note 为 null 且 note 去空白后为空，返回 422；只传 edited_note 则不做模型改写，仅保存人工内容并检查一次；只有 note（或 edited_note 加 note，没有 parts）时将 note 视为正文整体改写要求。未知请求字段和未知 parts 字段均返回 422。
+- 授权、状态、错误信封继承现有 rewrite：未登录 401；不可见版本、跨品牌及不存在版本统一 404，平台管理员不绕过品牌成员关系；同品牌 editor 和 admin 均可操作；依赖拒绝的 403 保持原错误信封。任务或源版本正在 generating 时 409，且不调用改写模型、不新增版本。不修改现有授权依赖。
+- 各部分复用现有单部分提示词与有上限的结构输出重试，全部在内存中处理；**一次 HTTP 请求不等于一次模型调用**，多部分可能多次调用模型，但只保存最终结果。任一部分模型不可用返回 503；模型输出无效沿用 #206 的 `LlmOutputError → 422 INVALID_MODEL_OUTPUT`；失败不写入版本、不移动任务 latest_version_id，也不留下部分成功版本。错误响应不回显模型原始输出。
+- 成功只生成一个子版本，`origin=rewritten`，`parent_version_id` 始终指向路径中用户看到的原版本，保留父版本检索快照、模板/提示词/品牌档案版本。仅人工内容时 model 为 null；仍复用既有检查流程（检查本身可能调用证据/风险模型），后台 `run_checks_safely` 仅安排一次，不执行自动改写循环。旧版本、旧检查和旧运行记录保持不变；无需迁移。
+- 新 revise 将父版本的人工断言判断带入子版本；原检查服务重新抽取最终文本后，仅对完全相同的 claim_text 保留 human_confirmed、备注、判断人和时间，改变或消失的原句不继承。只在新 revise 路径启用，不改变原 rewrite/edit/recheck 的行为。
+- 审计 `version.revise` 仅记 parent、targets、has_note、contains_manual_edit；有人工编辑时额外写 `version.revise.manual_edit`（“含人工编辑”）。同事务提交，不记录正文、修改要求或 note 原文。
+
+前端修改清单保持按版本本地保存，主按钮仅调用上述接口一次；成功后清空源版本清单并打开返回版本。422/503/网络失败保留整份清单供重试，不再显示逐目标完成数或中间版本状态。契约变更须在 PR 中 @CHNERUI 并经确认后由 A 合并。
