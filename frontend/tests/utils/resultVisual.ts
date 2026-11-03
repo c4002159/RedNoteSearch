@@ -137,7 +137,10 @@ export async function mockResult(
   })
   await page.route("**/api/v1/generation-versions/**", async (route) => {
     const path = new URL(route.request().url()).pathname
-    if (route.request().method() === "POST" && path.endsWith("/rewrite")) {
+    if (
+      route.request().method() === "POST" &&
+      (path.endsWith("/rewrite") || path.endsWith("/revise"))
+    ) {
       state.writes.push({ path, body: route.request().postDataJSON() })
       state.latest = resultIds.next
       return route.fulfill({

@@ -20,6 +20,7 @@ from app.models import (
     Task,
     XhsPartsExport,
 )
+from app.models.revision import ReviseRequest
 from app.ports.embedding import EmbeddingProvider
 from app.services import versions as version_service
 from app.services.knowledge_search import DbKnowledgeSearch
@@ -140,6 +141,36 @@ def rewrite_part(
         _check_in_background, task.id, new.id, task.brand_id, llm_factory, embedder
     )
     session.refresh(new)
+    return _public(new)
+
+
+@router.post(
+    "/generation-versions/{version_id}/revise",
+    response_model=GenerationVersionPublic,
+    status_code=202,
+)
+def revise_version(
+    access: VersionAccessDep,
+    session: SessionDep,
+    background: BackgroundTasks,
+    llm_factory: LlmFactoryDep,
+    embedder: EmbedderDep,
+    body: ReviseRequest,
+) -> GenerationVersionPublic:
+    """Apply the complete change list as one child version, then check it exactly once."""
+    version, brand_access = access
+    task = _task_of(session, version)
+    new = version_service.revise_version(
+        session=session,
+        task=task,
+        parent=version,
+        data=body,
+        user_id=brand_access.user_id,
+        llm_factory=lambda: llm_factory(task.brand_id, task.id),
+    )
+    background.add_task(
+        _check_in_background, task.id, new.id, task.brand_id, llm_factory, embedder
+    )
     return _public(new)
 
 

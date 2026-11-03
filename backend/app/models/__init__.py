@@ -193,11 +193,14 @@ from app.models.results import (
     ResultsSummary,
     UsageStat,
 )
+from app.models.revision import RevisePart, ReviseRequest
 from app.models.task_input import AuditLog, TaskInput, TaskInputChunk
 from app.models.viral import ViralPattern as ViralPattern
 from app.models.viral import ViralSample as ViralSample
 
 __all__ = [
+    "RevisePart",
+    "ReviseRequest",
     "ExtensionKey",
     "ExtensionKeyCreate",
     "ExtensionKeyCreated",

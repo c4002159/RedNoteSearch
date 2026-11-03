@@ -1623,7 +1623,7 @@ export const R7_CHANGELIST_TEXT = {
   note: "补充说明",
   noteHint: "写给模型的整体要求，最多 500 字。",
   apply: "按以上全部改写",
-  retry: "重试未完成的修改",
+  retry: "重试改写",
   request: "写要求",
   requestLabel: (part: string) => `${part}修改要求`,
   addPart: (part: string) => `加入${part}修改要求`,
@@ -1645,11 +1645,10 @@ export const R7_CHANGELIST_TEXT = {
   tooLong: (part: string) =>
     `${part}的合并要求超过 500 字，请缩短要求或撤销部分条目；清单已保留。`,
   noteTooLong: "补充说明不能超过 500 字。",
-  continuation: (fields: string, count: number, total: number) =>
-    `改写已停止：已完成 ${count} / ${total} 步（${fields}），未完成项已保留，可继续重试。`,
   preparingEdit: "正在先保存人工编辑…",
   blocked: "请先处理下方阻塞项。",
   failed: "改写未完成，请检查提示后重试；清单已保留。",
+  timeoutRecovered: "上次请求超时，但新版本已生成，已为你打开",
   manualSummary: (part: string) => `${part}：人工编辑`,
   parts: {
     titles: "标题",

@@ -2335,6 +2335,35 @@ export type ReviewPublic = {
 };
 
 /**
+ * RevisePart
+ */
+export type RevisePart = {
+    /**
+     * Target
+     */
+    target: 'titles' | 'opening' | 'body' | 'cover' | 'hashtags';
+    /**
+     * Instruction
+     */
+    instruction?: string;
+};
+
+/**
+ * ReviseRequest
+ */
+export type ReviseRequest = {
+    /**
+     * Parts
+     */
+    parts?: Array<RevisePart>;
+    /**
+     * Note
+     */
+    note?: string;
+    edited_note?: GeneratedNote | null;
+};
+
+/**
  * RewriteRequest
  */
 export type RewriteRequest = {
@@ -6645,6 +6674,36 @@ export type versionsRewritePartResponses = {
 };
 
 export type versionsRewritePartResponse = versionsRewritePartResponses[keyof versionsRewritePartResponses];
+
+export type versionsReviseVersionData = {
+    body: ReviseRequest;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/api/v1/generation-versions/{version_id}/revise';
+};
+
+export type versionsReviseVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HTTPValidationError;
+};
+
+export type versionsReviseVersionError = versionsReviseVersionErrors[keyof versionsReviseVersionErrors];
+
+export type versionsReviseVersionResponses = {
+    /**
+     * Successful Response
+     */
+    202: GenerationVersionPublic;
+};
+
+export type versionsReviseVersionResponse = versionsReviseVersionResponses[keyof versionsReviseVersionResponses];
 
 export type versionsConfirmVersionData = {
     body: ConfirmVersion;

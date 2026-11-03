@@ -22,9 +22,6 @@ const stateSchema = z.object({
   draft: draftSchema.nullable(),
   note: z.string(),
   dismissedEvidence: z.array(z.string()),
-  progress: z
-    .object({ completed: z.array(targetSchema), total: z.number() })
-    .nullable(),
   failure: z
     .object({
       message: z.string(),
@@ -44,7 +41,6 @@ export const emptyChangeList = (): ChangeListState => ({
   draft: null,
   note: "",
   dismissedEvidence: [],
-  progress: null,
   failure: null,
 })
 export function saveChangeList(versionId: string, state: ChangeListState) {

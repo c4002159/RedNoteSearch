@@ -44,21 +44,18 @@ async function setup(page: Page, failAt = 0) {
           },
         },
       })
+    expect(path.endsWith("/revise")).toBe(true)
     const parentId = path.split("/").slice(-2)[0]
     const parent = versions.get(parentId)!
-    if (path.endsWith("/recheck"))
-      return route.fulfill({ json: { ...parent, flow_status: "checking" } })
     const id = `r7-version-${writes.length}`
     const next: GenerationVersionPublic = {
       ...parent,
-      ...(path.endsWith("/edit") ? body : {}),
+      ...(body.edited_note ?? {}),
       id,
       parent_version_id: parentId,
       version_no: parent.version_no + 1,
-      origin: path.endsWith("/edit") ? "edited" : "rewritten",
-      flow_status: path.endsWith("/edit")
-        ? "edited_pending_recheck"
-        : "needs_human_review",
+      origin: "rewritten",
+      flow_status: "needs_human_review",
     }
     state.latest = id
     versions.set(id, next)
@@ -112,18 +109,20 @@ test("One execution groups multiple same-target requirements and applies a globa
   await page
     .getByRole("button", { name: "按以上全部改写", exact: true })
     .click()
-  await expect(page).toHaveURL(/r7-version-2$/)
-  expect(writes.map((write) => write.body.target)).toEqual(["body", "titles"])
-  expect(writes[1].path).toContain("r7-version-1")
+  await expect(page).toHaveURL(/r7-version-1$/)
+  expect(writes).toHaveLength(1)
+  const parts = writes[0].body.parts as {
+    target: string
+    instruction: string
+  }[]
+  expect(parts.map((part) => part.target)).toEqual(["body", "titles"])
+  expect(writes[0].path).toContain(resultIds.version)
   for (const risk of state.risks)
-    expect(writes[0].body.instruction).toContain(risk.suggestion)
-  expect(writes[0].body.instruction).toContain("保留客观描述")
-  for (const write of writes) {
-    expect(write.body.instruction).toContain("使用温和语气")
-    expect(
-      Array.from(String(write.body.instruction)).length,
-    ).toBeLessThanOrEqual(500)
-  }
+    expect(parts[0].instruction).toContain(risk.suggestion)
+  expect(parts[0].instruction).toContain("保留客观描述")
+  expect(writes[0].body.note).toBe("使用温和语气")
+  for (const part of parts)
+    expect(Array.from(part.instruction).length).toBeLessThanOrEqual(500)
   const saved = await page.evaluate(
     (id) => JSON.parse(localStorage.getItem(`rednote:change-list:${id}`)!),
     resultIds.version,
@@ -210,57 +209,53 @@ for (const save of [false, true])
     await page
       .getByRole("button", { name: "按以上全部改写", exact: true })
       .click()
-    await expect(page).toHaveURL(/r7-version-2$/)
+    await expect(page).toHaveURL(/r7-version-1$/)
     expect(writes.map((write) => write.path.split("/").pop())).toEqual([
-      "edit",
-      "rewrite",
+      "revise",
     ])
-    expect(writes[0].body.body).toBe("人工改好的正文")
-    expect(writes[1].path).toContain("r7-version-1")
-    expect(writes[1].body).toEqual({
-      target: "titles",
-      instruction: "标题更简洁",
-    })
+    expect(writes[0].body.edited_note).toMatchObject({ body: "人工改好的正文" })
+    expect(writes[0].path).toContain(resultIds.version)
+    expect(writes[0].body.parts).toEqual([
+      { target: "titles", instruction: "标题更简洁" },
+    ])
   })
 
-test("Partial failure preserves only unfinished targets on the latest version and resumes after refresh", async ({
+test("Atomic failure retains every target across refresh and retries on the original parent", async ({
   page,
 }) => {
-  const { writes } = await setup(page, 2)
+  const { writes, versions } = await setup(page, 1)
   await page.goto(resultUrl)
   await request(page, "标题", "简洁标题")
   await request(page, "正文", "简洁正文")
   await page
     .getByRole("button", { name: "按以上全部改写", exact: true })
     .click()
-  await expect(page).toHaveURL(/r7-version-1$/)
   await expect(page.getByRole("alert")).toContainText("r7-failed")
-  await expect(page.getByText("改写已停止", { exact: false })).toContainText(
-    "已完成 1 / 2 步",
-  )
+  await expect(page).toHaveURL(resultUrl)
+  expect(versions.size).toBe(1)
   await page.reload()
-  await expect(queue(page).locator("summary")).toHaveCount(1)
-  await expect(
-    queue(page).getByRole("region", { name: "标题修改清单" }),
-  ).toHaveCount(0)
-  await page
-    .getByRole("button", { name: "重试未完成的修改", exact: true })
-    .click()
-  await expect(page).toHaveURL(/r7-version-3$/)
-  expect(writes.map((write) => write.body.target)).toEqual([
-    "titles",
-    "body",
-    "body",
-  ])
-  expect(writes[2].path).toContain("r7-version-1")
+  await expect(queue(page).locator("summary")).toHaveCount(2)
+  await page.getByRole("button", { name: "重试改写", exact: true }).click()
+  await expect(page).toHaveURL(/r7-version-2$/)
+  expect(writes).toHaveLength(2)
+  expect(writes[0].body).toEqual(writes[1].body)
+  expect(writes.every((write) => write.path.includes(resultIds.version))).toBe(
+    true,
+  )
+  expect(versions.size).toBe(2)
+  const persisted = await page.evaluate(
+    (id) => JSON.parse(localStorage.getItem(`rednote:change-list:${id}`)!),
+    resultIds.version,
+  )
+  expect(persisted).not.toHaveProperty("progress")
 })
 
 for (const failure of [422, 503, "network"] as const)
-  test(`First-step ${failure} keeps all changes and shows Chinese failure`, async ({
+  test(`Atomic ${failure} keeps all changes and shows Chinese failure`, async ({
     page,
   }) => {
     await mockResult(page, { risks: [] })
-    await page.route("**/api/v1/generation-versions/*/rewrite", (route) =>
+    await page.route("**/api/v1/generation-versions/*/revise", (route) =>
       failure === "network"
         ? route.abort("failed")
         : route.fulfill({
@@ -356,6 +351,21 @@ test("Unavailable localStorage does not prevent collecting or executing", async 
   expect(writes).toHaveLength(1)
 })
 
+test("An overall note alone is sent once without inventing a part or an edit request", async ({
+  page,
+}) => {
+  const { writes, versions } = await setup(page)
+  await page.goto(resultUrl)
+  await page.getByLabel("补充说明", { exact: true }).fill("整体更简洁")
+  await page
+    .getByRole("button", { name: "按以上全部改写", exact: true })
+    .click()
+  await expect(page).toHaveURL(/r7-version-1$/)
+  expect(writes).toHaveLength(1)
+  expect(writes[0].body).toEqual({ parts: [], note: "整体更简洁" })
+  expect(versions.size).toBe(2)
+})
+
 test("Invalid stored JSON is ignored and note length is enforced without losing it", async ({
   page,
 }) => {
@@ -381,7 +391,7 @@ test("Invalid stored JSON is ignored and note length is enforced without losing 
   ).toBe(1002)
 })
 
-test("Manual-only execution edits and rechecks once; cancel and undo do not write", async ({
+test("Manual-only revision is one request; cancel and undo do not write", async ({
   page,
 }) => {
   const { writes } = await setup(page)
@@ -408,11 +418,8 @@ test("Manual-only execution edits and rechecks once; cancel and undo do not writ
     .getByRole("button", { name: "按以上全部改写", exact: true })
     .click()
   await expect(page).toHaveURL(/r7-version-1$/)
-  expect(writes.map((write) => write.path.split("/").pop())).toEqual([
-    "edit",
-    "recheck",
-  ])
-  expect(writes[1].path).toContain("r7-version-1")
+  expect(writes.map((write) => write.path.split("/").pop())).toEqual(["revise"])
+  expect(writes[0].path).toContain(resultIds.version)
 })
 
 test("Keeping a risk processed still uses the immediate endpoint and removes its queued suggestion", async ({
@@ -473,4 +480,70 @@ for (const width of [1433, 1024, 720])
       fullPage: true,
     })
     expect(errors).toEqual([])
+  })
+
+for (const completed of [true, false])
+  test(`Interrupted revise reconciles task latest (completed=${completed}) before retry`, async ({
+    page,
+  }) => {
+    const state = await mockResult(page, { risks: [] })
+    let calls = 0
+    await page.route(
+      "**/api/v1/generation-versions/*/revise",
+      async (route) => {
+        calls += 1
+        if (calls === 1) {
+          if (completed) state.latest = resultIds.next
+          return route.abort("timedout")
+        }
+        state.latest = resultIds.next
+        return route.fulfill({
+          json: {
+            ...state.version,
+            id: resultIds.next,
+            parent_version_id: resultIds.version,
+            version_no: 2,
+            origin: "rewritten",
+          },
+        })
+      },
+    )
+    await page.goto(resultUrl)
+    await request(page, "正文", "中断后仍要保留的要求")
+    await page.getByLabel("补充说明", { exact: true }).fill("整体说明")
+    await page
+      .getByRole("button", { name: "按以上全部改写", exact: true })
+      .click()
+    if (completed) {
+      await expect(page).toHaveURL(new RegExp(`/${resultIds.next}$`))
+      await expect(
+        page.getByText("上次请求超时，但新版本已生成，已为你打开", {
+          exact: true,
+        }),
+      ).toBeVisible()
+      expect(calls).toBe(1)
+      const saved = await page.evaluate(
+        (id) => JSON.parse(localStorage.getItem(`rednote:change-list:${id}`)!),
+        resultIds.version,
+      )
+      expect(saved.items).toEqual([])
+      expect(saved.note).toBe("")
+      expect(saved.failure).toBeNull()
+    } else {
+      await expect(page.getByRole("alert")).toContainText("网络连接失败")
+      await expect(page).toHaveURL(resultUrl)
+      await expect(queue(page).locator("summary")).toHaveCount(1)
+      await expect(page.getByLabel("补充说明", { exact: true })).toHaveValue(
+        "整体说明",
+      )
+      await expect(
+        page.getByRole("button", { name: "重试改写", exact: true }),
+      ).toBeVisible()
+      expect(calls).toBe(1)
+      await page.reload()
+      await expect(queue(page).locator("summary")).toHaveCount(1)
+      await page.getByRole("button", { name: "重试改写", exact: true }).click()
+      await expect(page).toHaveURL(new RegExp(`/${resultIds.next}$`))
+      expect(calls).toBe(2)
+    }
   })
