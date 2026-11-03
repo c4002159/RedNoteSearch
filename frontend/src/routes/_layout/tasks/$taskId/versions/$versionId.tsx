@@ -28,6 +28,11 @@ import {
   SourceLevelBadge,
 } from "@/components/Common/StatusBadge"
 import { EvidenceBatchActions } from "@/components/Evidence/BatchActions"
+import {
+  ChangeList,
+  draftFields,
+  manualTargets,
+} from "@/components/Generation/ChangeList"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -35,10 +40,18 @@ import { LoadingButton } from "@/components/ui/loading-button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  type ChangeDraft,
+  type ChangeItem,
+  emptyChangeList,
+  saveChangeList,
+  useChangeList,
+} from "@/hooks/useChangeList"
 import { parseApiError } from "@/lib/apiError"
 import {
   BODY_LIMIT,
   bodyUnits,
+  codePointCount,
   formatWeight,
   normalizeTag,
   TAG_LIMIT,
@@ -47,9 +60,14 @@ import {
   titleWeight,
 } from "@/lib/count"
 import { formatTime } from "@/lib/format"
-import { canRewriteRisk, riskRewriteSteps } from "@/lib/riskRewrite"
+import {
+  canRewriteRisk,
+  changeListSteps,
+  riskRewriteTarget,
+} from "@/lib/riskRewrite"
 import { cn } from "@/lib/utils"
 import {
+  R7_CHANGELIST_TEXT as CL,
   COUNT_LABEL,
   EVIDENCE_BATCH_TEXT as EB,
   LAYER_LABEL,
@@ -64,7 +82,7 @@ import {
 export const Route = createFileRoute(
   "/_layout/tasks/$taskId/versions/$versionId",
 )({
-  component: ResultPage,
+  component: ResultRoute,
   head: () => ({ meta: [{ title: "结果页 - RedNoteSearch" }] }),
 })
 
@@ -134,10 +152,12 @@ function EditForm({
   version,
   onCancel,
   onSaved,
+  onChange,
 }: {
   version: Version
   onCancel: () => void
-  onSaved: (v: Version) => void
+  onSaved: () => void
+  onChange: (draft: ChangeDraft) => void
 }) {
   const [titles, setTitles] = useState(version.title_candidates)
   const [body, setBody] = useState(version.body)
@@ -147,24 +167,22 @@ function EditForm({
     .split(/[\s,，]+/)
     .map(normalizeTag)
     .filter(Boolean)
-  const save = useMutation({
-    mutationFn: async () =>
-      (
-        await VersionsService.editVersion({
-          path: { version_id: version.id },
-          body: {
-            title_candidates: titles.map((t) => t.trim()).filter(Boolean),
-            body,
-            hashtags: tagList,
-            cover_candidates: covers
-              .split("\n")
-              .map((c) => c.trim())
-              .filter(Boolean),
-          },
-        })
-      ).data,
-    onSuccess: onSaved,
-  })
+  const changeRef = useRef(onChange)
+  changeRef.current = onChange
+  useEffect(() => {
+    changeRef.current({
+      title_candidates: titles.map((t) => t.trim()).filter(Boolean),
+      body,
+      hashtags: tags
+        .split(/[\s,，]+/)
+        .map(normalizeTag)
+        .filter(Boolean),
+      cover_candidates: covers
+        .split("\n")
+        .map((c) => c.trim())
+        .filter(Boolean),
+    })
+  }, [titles, body, tags, covers])
   const total = bodyUnits(body) + tagsVisibleUnits(tagList)
 
   return (
@@ -172,12 +190,10 @@ function EditForm({
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault()
-        save.mutate()
+        onSaved()
       }}
     >
-      <p className="text-sm text-muted-foreground">
-        保存会生成一个新版本，原版本保留；新版本需要重新检查。
-      </p>
+      <p className="text-sm text-muted-foreground">{CL.editHint}</p>
       {titles.map((t, i) => (
         <div key={`${i}-title`} className="space-y-1">
           <label className="text-sm font-medium" htmlFor={`title-${i}`}>
@@ -232,17 +248,9 @@ function EditForm({
       <p className="text-xs text-muted-foreground">
         字数以服务器检查结果为准。
       </p>
-      {save.isError && <ErrorBanner error={parseApiError(save.error)} />}
       <div className="flex gap-3">
-        <LoadingButton type="submit" loading={save.isPending}>
-          保存为新版本
-        </LoadingButton>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={save.isPending}
-        >
+        <Button type="submit">{CL.editSave}</Button>
+        <Button type="button" variant="outline" onClick={onCancel}>
           取消
         </Button>
       </div>
@@ -443,6 +451,7 @@ function RiskPanel({
   editable,
   busyText,
   onResolve,
+  onManual,
   onRewrite,
   rewriting,
   bare = false,
@@ -450,6 +459,7 @@ function RiskPanel({
   items: ComplianceCheckPublic[]
   editable: boolean
   busyText: string | null
+  onManual: () => void
   onResolve: (item: ComplianceCheckPublic) => void
   onRewrite: (items: ComplianceCheckPublic[]) => void
   rewriting: boolean
@@ -476,9 +486,11 @@ function RiskPanel({
             disabled={rewriting || pendingRisks.length === 0 || needsManual}
             onClick={() => onRewrite(pendingRisks)}
           >
-            {RW.allRisks}
+            {CL.riskAll}
           </Button>
-          <p className="text-xs leading-6 text-muted-foreground">{RR.hint}</p>
+          <p className="text-xs leading-6 text-muted-foreground">
+            {CL.riskHint}
+          </p>
           {needsManual && (
             <p className="text-xs text-tone-warn">{RR.manualHint}</p>
           )}
@@ -521,6 +533,7 @@ function RiskPanel({
                   size="sm"
                   variant="outline"
                   onClick={() => onResolve(c)}
+                  disabled={rewriting}
                 >
                   标记为已处理
                 </Button>
@@ -533,6 +546,16 @@ function RiskPanel({
                   onClick={() => onRewrite([c])}
                 >
                   {RW.risk}
+                </Button>
+              )}
+              {editable && !busyText && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={rewriting}
+                  onClick={onManual}
+                >
+                  {CL.manual}
                 </Button>
               )}
               {editable && !busyText && !canRewriteRisk(c) && (
@@ -548,61 +571,52 @@ function RiskPanel({
 
 // ---- rewrite
 
-const REWRITE_TARGETS = [
-  { value: "titles", text: "标题" },
-  { value: "opening", text: "开头" },
-  { value: "body", text: "正文" },
-  { value: "cover", text: "封面文字" },
-] as const
-
 function RewriteBar({
   onRewrite,
   pending,
+  target,
 }: {
   onRewrite: (body: RewriteRequest) => void
   pending: boolean
+  target: RewriteRequest["target"]
 }) {
-  const [target, setTarget] =
-    useState<(typeof REWRITE_TARGETS)[number]["value"]>("titles")
   const [instruction, setInstruction] = useState("")
   return (
     <section className="space-y-2 rounded-xl border bg-card p-4">
-      <h2 className="text-base font-semibold">局部重写</h2>
-      <div className="flex flex-wrap gap-2">
-        <select
-          aria-label="重写部分"
-          className="h-10 rounded-lg border border-transparent bg-surface-low px-3 text-sm"
-          value={target}
-          disabled={pending}
-          onChange={(e) => setTarget(e.target.value as typeof target)}
-        >
-          {REWRITE_TARGETS.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.text}
-            </option>
-          ))}
-        </select>
-        <Input
-          className="min-w-48 flex-1"
-          aria-label="重写要求"
-          placeholder="可选：想要怎么改"
-          value={instruction}
-          disabled={pending}
-          onChange={(e) => setInstruction(e.target.value)}
-        />
-        <LoadingButton
+      <h2 className="text-sm font-semibold">
+        {CL.parts[target]} · {CL.request}
+      </h2>
+      <label className="sr-only" htmlFor={`request-${target}`}>
+        {CL.requestLabel(CL.parts[target])}
+      </label>
+      <Textarea
+        id={`request-${target}`}
+        value={instruction}
+        placeholder={CL.requestPlaceholder}
+        disabled={pending}
+        rows={2}
+        onChange={(e) => setInstruction(e.target.value)}
+      />
+      <div className="flex items-center justify-between gap-2">
+        <CharCounter value={codePointCount(instruction)} limit={500} />
+        <Button
           variant="outline"
-          loading={pending}
-          onClick={() =>
-            onRewrite({ target, instruction: instruction.trim() || undefined })
+          size="sm"
+          disabled={
+            pending ||
+            !instruction.trim() ||
+            codePointCount(instruction.trim()) > 500
           }
+          aria-label={CL.addPart(CL.parts[target])}
+          onClick={() => {
+            onRewrite({ target, instruction: instruction.trim() })
+            setInstruction("")
+          }}
         >
-          重写
-        </LoadingButton>
+          {CL.add}
+        </Button>
       </div>
-      <p className="text-xs text-muted-foreground">
-        重写会生成新版本，原版本保留。
-      </p>
+      <p className="text-xs text-muted-foreground">{CL.requestHint}</p>
     </section>
   )
 }
@@ -675,10 +689,25 @@ type Dialog =
   | { kind: "risk"; item: ComplianceCheckPublic }
   | null
 
+function ResultRoute() {
+  const { versionId } = Route.useParams()
+  return <ResultPage key={versionId} />
+}
+function asDraft(v: Version): ChangeDraft {
+  return {
+    title_candidates: v.title_candidates,
+    body: v.body,
+    hashtags: v.hashtags,
+    cover_candidates: v.cover_candidates,
+  }
+}
 function ResultPage() {
   const { taskId, versionId } = Route.useParams()
   const navigate = useNavigate()
   const refresh = useRefreshVersion(taskId, versionId)
+  const list = useChangeList(versionId)
+  const applyingRef = useRef(false)
+  const editSnapshot = useRef<ChangeDraft | null>(null)
   const [editing, setEditing] = useState(false)
   const [dialog, setDialog] = useState<Dialog>(null)
   const [titleIndex, setTitleIndex] = useState<number | null>(null)
@@ -747,40 +776,130 @@ function ResultPage() {
     })
   }
 
-  const [rewriteProgress, setRewriteProgress] = useState<{
-    total: number
-    completed: RewriteRequest["target"][]
-    last: Version | null
-  }>({ total: 0, completed: [], last: null })
+  const rewriteProgress = list.state.progress ?? { total: 0, completed: [] }
   const rewrite = useMutation({
-    mutationFn: async (input: RewriteRequest | RewriteRequest[]) => {
-      const steps = Array.isArray(input) ? input : [input]
+    mutationFn: async () => {
+      applyingRef.current = true
+      const plan = changeListSteps(list.state.items, list.state.note)
+      if (plan.error) throw new Error(plan.error)
+      let remaining = {
+        ...list.state,
+        failure: null as typeof list.state.failure,
+      }
+      const completed = [...(remaining.progress?.completed ?? [])]
+      const total = completed.length + plan.steps.length
       let currentId = versionId
       let last: Version | undefined
-      const completed: RewriteRequest["target"][] = []
-      setRewriteProgress({ total: steps.length, completed: [], last: null })
-      for (const body of steps) {
-        last = (
-          await VersionsService.rewritePart({
-            path: { version_id: currentId },
-            body,
-            timeout: 180_000,
-          })
-        ).data
-        currentId = last.id
-        completed.push(body.target)
-        setRewriteProgress({
-          total: steps.length,
-          completed: [...completed],
-          last,
-        })
+      const checkpoint = (next: typeof remaining) => {
+        remaining = next
+        list.update(() => next)
+        if (last) saveChangeList(last.id, next)
       }
-      return last!
+      checkpoint({
+        ...remaining,
+        progress: { total, completed: [...completed] },
+      })
+      try {
+        if (remaining.draft) {
+          last = (
+            await VersionsService.editVersion({
+              path: { version_id: currentId },
+              body: remaining.draft,
+            })
+          ).data
+          currentId = last.id
+          checkpoint({ ...remaining, draft: null })
+        }
+        for (const body of plan.steps) {
+          const previousId = currentId
+          last = (
+            await VersionsService.rewritePart({
+              path: { version_id: currentId },
+              body,
+              timeout: 180_000,
+            })
+          ).data
+          currentId = last.id
+          completed.push(body.target)
+          checkpoint({
+            ...remaining,
+            items: remaining.items.filter(
+              (item) => item.target !== body.target,
+            ),
+            progress: { total, completed: [...completed] },
+          })
+          if (previousId !== versionId)
+            saveChangeList(previousId, emptyChangeList())
+        }
+        if (last && !plan.steps.length)
+          await VersionsService.recheckVersion({
+            path: { version_id: last.id },
+          })
+        list.clear()
+        if (last) {
+          saveChangeList(last.id, emptyChangeList())
+          await goTo(last)
+        }
+      } catch (error) {
+        const info = parseApiError(error)
+        const failure = {
+          status: info.status,
+          requestId: info.requestId,
+          message: /[\u3400-\u9fff]/.test(info.message)
+            ? info.message
+            : (PAGE_ERROR_TEXT.status[info.status ?? 0] ?? CL.failed),
+        }
+        checkpoint({ ...remaining, failure })
+        if (last) {
+          list.clear()
+          await goTo(last)
+        }
+        if (!last) applyingRef.current = false
+        throw error
+      }
     },
-    onSuccess: goTo,
   })
-  const partialRewrite = rewrite.isError && rewriteProgress.completed.length > 0
-  const rewriteBusy = rewrite.isPending || partialRewrite
+  const partialRewrite =
+    !!list.state.progress?.completed.length && !!list.state.failure
+  const rewriteBusy = rewrite.isPending
+  useEffect(() => {
+    if (
+      applyingRef.current ||
+      !evidence.data ||
+      !version.data ||
+      task.data?.latest_version_id !== versionId
+    )
+      return
+    const v = version.data
+    const changes: ChangeItem[] = []
+    for (const claim of evidence.data.filter(
+      (item) => item.human_confirmed === false,
+    )) {
+      const targets: RewriteRequest["target"][] = []
+      if (v.title_candidates.some((text) => text.includes(claim.claim_text)))
+        targets.push("titles")
+      if (v.body.includes(claim.claim_text)) targets.push("body")
+      if (v.cover_candidates.some((text) => text.includes(claim.claim_text)))
+        targets.push("cover")
+      if (v.hashtags.some((text) => text.includes(claim.claim_text)))
+        targets.push("hashtags")
+      for (const target of targets.length ? targets : ["body" as const])
+        changes.push({
+          id: `evidence:${claim.id}:${target}`,
+          sourceId: claim.id,
+          source: "evidence",
+          target,
+          instruction: CL.rejected(claim.claim_text),
+        })
+    }
+    list.syncEvidence(changes)
+  }, [
+    evidence.data,
+    version.data,
+    task.data?.latest_version_id,
+    versionId,
+    list.syncEvidence,
+  ])
 
   const recheck = useMutation({
     mutationFn: async () =>
@@ -789,7 +908,10 @@ function ResultPage() {
           path: { version_id: versionId },
         })
       ).data,
-    onSuccess: refresh,
+    onSuccess: async () => {
+      list.update((value) => ({ ...value, failure: null, progress: null }))
+      await refresh()
+    },
   })
   const confirm = useMutation({
     mutationFn: async (idx: number) =>
@@ -821,7 +943,13 @@ function ResultPage() {
         path: { check_id: a.id },
         body: { note: a.note },
       }),
-    onSuccess: async () => {
+    onSuccess: async (_, input) => {
+      list.update((value) => ({
+        ...value,
+        items: value.items.filter(
+          (item) => item.source !== "risk" || item.sourceId !== input.id,
+        ),
+      }))
       setDialog(null)
       await refresh()
     },
@@ -864,7 +992,44 @@ function ResultPage() {
     blockers.push(`有 ${rejected.length} 条断言被判为不成立`)
   if (!isLatest) blockers.push("只有最新版本可以确认")
   const confirmError = confirm.isError ? parseApiError(confirm.error) : null
-  const rewriteError = rewrite.isError ? parseApiError(rewrite.error) : null
+  const rewriteError = list.state.failure
+    ? { ...list.state.failure, code: "REWRITE_FAILED", details: {} }
+    : null
+  const original = asDraft(v)
+  const content = editable ? { ...v, ...list.state.draft } : v
+  const manual = manualTargets(original, list.state.draft)
+  const hasChanges = !!(
+    list.state.items.length ||
+    manual.length ||
+    list.state.note.trim()
+  )
+  const plan = changeListSteps(list.state.items, list.state.note)
+  const stageDraft = (draft: ChangeDraft | null) =>
+    list.update((value) => ({
+      ...value,
+      draft: draft && manualTargets(original, draft).length ? draft : null,
+    }))
+  const beginEdit = () => {
+    editSnapshot.current = list.state.draft
+    setEditing(true)
+  }
+  const request = (body: RewriteRequest) => {
+    list.add([
+      {
+        id: `request:${body.target}`,
+        source: "request",
+        target: body.target,
+        instruction: body.instruction,
+      },
+    ])
+    toast.success(CL.added)
+  }
+  const pendingRisks = (compliance.data?.items ?? []).filter(
+    (item) =>
+      !item.resolved &&
+      !list.state.items.some((change) => change.sourceId === item.id) &&
+      !manual.some((target) => target === riskRewriteTarget(item.field)),
+  )
 
   return (
     <div className="space-y-6">
@@ -920,33 +1085,15 @@ function ResultPage() {
         </p>
       )}
       {partialRewrite && (
-        <div
-          role="status"
-          className="space-y-2 rounded-lg bg-surface-low p-3 text-sm"
-        >
-          <p>
-            {RR.stopped(
-              rewriteProgress.completed
-                .map((target) => RR.targets[target])
-                .join("、"),
-              rewriteProgress.completed.length,
-              rewriteProgress.total,
-            )}
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (rewriteProgress.last) {
-                const last = rewriteProgress.last
-                rewrite.reset()
-                setRewriteProgress({ total: 0, completed: [], last: null })
-                void goTo(last)
-              }
-            }}
-          >
-            {RR.openLast}
-          </Button>
-        </div>
+        <p role="status" className="rounded-lg bg-surface-low p-3 text-sm">
+          {CL.continuation(
+            rewriteProgress.completed
+              .map((target) => CL.parts[target])
+              .join("、"),
+            rewriteProgress.completed.length,
+            rewriteProgress.total,
+          )}
+        </p>
       )}
       {rewriteError && (
         <ErrorBanner
@@ -967,12 +1114,19 @@ function ResultPage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="space-y-6">
-          {editing ? (
+          {editing && editable && !inProgress ? (
             <section className={CARD}>
               <EditForm
-                version={v}
-                onCancel={() => setEditing(false)}
-                onSaved={goTo}
+                version={content}
+                onChange={stageDraft}
+                onCancel={() => {
+                  stageDraft(editSnapshot.current)
+                  setEditing(false)
+                }}
+                onSaved={() => {
+                  setEditing(false)
+                  toast.success(CL.editStored)
+                }}
               />
             </section>
           ) : (
@@ -985,7 +1139,7 @@ function ResultPage() {
                   </span>
                 </div>
                 <ul className="mt-4 space-y-3">
-                  {v.title_candidates.map((t, i) => (
+                  {content.title_candidates.map((t, i) => (
                     <li key={`${i}-${t}`}>
                       <label
                         className={cn(
@@ -1018,7 +1172,10 @@ function ResultPage() {
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-lg font-semibold">正文内容</h2>
                   <CharCounter
-                    value={bodyUnits(v.body) + tagsVisibleUnits(v.hashtags)}
+                    value={
+                      bodyUnits(content.body) +
+                      tagsVisibleUnits(content.hashtags)
+                    }
                     limit={BODY_LIMIT}
                     suffix="（含话题）"
                   />
@@ -1027,14 +1184,15 @@ function ResultPage() {
                       className="ml-auto"
                       variant="outline"
                       size="sm"
-                      onClick={() => setEditing(true)}
+                      disabled={rewriteBusy}
+                      onClick={beginEdit}
                     >
                       编辑
                     </Button>
                   )}
                 </div>
                 <p className="mt-4 whitespace-pre-wrap rounded-xl bg-surface-low p-5 text-sm leading-7">
-                  {v.body}
+                  {content.body}
                 </p>
               </section>
 
@@ -1046,22 +1204,22 @@ function ResultPage() {
                       variant="outline"
                       size="sm"
                       disabled={rewriteBusy}
-                      onClick={() => rewrite.mutate({ target: "hashtags" })}
+                      onClick={() => request({ target: "hashtags" })}
                     >
                       {RW.tags}
                     </Button>
                   )}
                   <span className="text-xs text-muted-foreground">
-                    已选 {v.hashtags.length} / 10
+                    已选 {content.hashtags.length} / 10
                   </span>
                 </div>
-                {v.hashtags.length === 0 && (
+                {content.hashtags.length === 0 && (
                   <p className="mt-4 text-sm text-muted-foreground">
                     {RW.emptyTags}
                   </p>
                 )}
                 <ul className="mt-4 flex flex-wrap gap-2">
-                  {v.hashtags.map((t) => (
+                  {content.hashtags.map((t) => (
                     <li
                       key={t}
                       className="rounded-full bg-surface-low px-3.5 py-1.5 text-sm font-medium"
@@ -1072,7 +1230,7 @@ function ResultPage() {
                 </ul>
               </section>
 
-              {v.cover_candidates.length > 0 && (
+              {content.cover_candidates.length > 0 && (
                 <section className={CARD}>
                   <div className="flex items-baseline gap-3">
                     <h2 className="text-lg font-semibold">封面文案候选</h2>
@@ -1081,7 +1239,7 @@ function ResultPage() {
                     </span>
                   </div>
                   <ul className="mt-4 space-y-3">
-                    {v.cover_candidates.map((c, i) => {
+                    {content.cover_candidates.map((c, i) => {
                       const on = (coverIndex ?? v.selected_cover_index) === i
                       return (
                         <li key={`${i}-${c}`}>
@@ -1113,10 +1271,18 @@ function ResultPage() {
           )}
 
           {editable && !editing && !inProgress && (
-            <RewriteBar
-              pending={rewriteBusy}
-              onRewrite={(body) => rewrite.mutate(body)}
-            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(["titles", "body", "cover", "hashtags"] as const).map(
+                (target) => (
+                  <RewriteBar
+                    key={target}
+                    target={target}
+                    pending={rewriteBusy}
+                    onRewrite={request}
+                  />
+                ),
+              )}
+            </div>
           )}
           {ready && <ExportPanel versionId={v.id} />}
         </div>
@@ -1124,52 +1290,100 @@ function ResultPage() {
         <div className="space-y-6">
           <section className={cn(CARD, "space-y-3 p-5")}>
             <h2 className="text-base font-semibold">下一步</h2>
-            {v.flow_status === "edited_pending_recheck" && isLatest && (
+            {editable && (
               <>
-                <p className="text-sm">
-                  文字已编辑，需要重新检查字数、事实依据和风险提示。
-                </p>
-                <LoadingButton
-                  loading={recheck.isPending}
-                  onClick={() => recheck.mutate()}
-                >
-                  重新检查
-                </LoadingButton>
-                {recheck.isError && (
-                  <ErrorBanner error={parseApiError(recheck.error)} />
-                )}
-              </>
-            )}
-            {inProgress && (
-              <>
-                <p className="text-sm">{busyText}</p>
-                <Button disabled>确认可复制</Button>
-              </>
-            )}
-            {editable &&
-              !inProgress &&
-              v.flow_status !== "edited_pending_recheck" && (
-                <>
-                  {blockers.length > 0 && (
-                    <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                      {blockers.map((b) => (
-                        <li key={b}>{b}</li>
-                      ))}
-                    </ul>
-                  )}
-                  <LoadingButton
-                    loading={confirm.isPending}
-                    disabled={blockers.length > 0}
-                    onClick={() => confirm.mutate(chosen)}
-                  >
-                    确认可复制
-                  </LoadingButton>
+                <ChangeList
+                  state={list.state}
+                  original={original}
+                  pending={rewriteBusy}
+                  onRemove={list.remove}
+                  onRemoveManual={(target) => {
+                    setEditing(false)
+                    if (list.state.draft)
+                      stageDraft({
+                        ...list.state.draft,
+                        [draftFields[target]]: original[draftFields[target]],
+                      })
+                  }}
+                  onNote={(note) =>
+                    list.update((value) => ({ ...value, note }))
+                  }
+                />
+                {!inProgress && (
                   <p className="text-xs text-muted-foreground">
-                    “可复制”只表示运营确认了这份文字，不代表合规或事实保证。
+                    {CL.undecided(pendingRisks.length, undecided.length)}
                   </p>
-                  {confirmError && <ErrorBanner error={confirmError} />}
-                </>
-              )}
+                )}
+                {plan.error && (
+                  <p role="alert" className="text-sm text-tone-err">
+                    {plan.error}
+                  </p>
+                )}
+                {hasChanges && (
+                  <LoadingButton
+                    loading={rewriteBusy}
+                    disabled={
+                      inProgress ||
+                      !!plan.error ||
+                      evidence.isLoading ||
+                      compliance.isLoading ||
+                      evidence.isError ||
+                      compliance.isError
+                    }
+                    onClick={() => {
+                      setEditing(false)
+                      rewrite.mutate()
+                    }}
+                  >
+                    {partialRewrite ? CL.retry : CL.apply}
+                  </LoadingButton>
+                )}
+                {!hasChanges && v.flow_status === "edited_pending_recheck" && (
+                  <>
+                    <p className="text-sm">
+                      文字已编辑，需要重新检查字数、事实依据和风险提示。
+                    </p>
+                    <LoadingButton
+                      loading={recheck.isPending}
+                      onClick={() => recheck.mutate()}
+                    >
+                      重新检查
+                    </LoadingButton>
+                    {recheck.isError && (
+                      <ErrorBanner error={parseApiError(recheck.error)} />
+                    )}
+                  </>
+                )}
+                {!hasChanges && !inProgress && blockers.length === 0 && (
+                  <>
+                    <LoadingButton
+                      loading={confirm.isPending}
+                      disabled={
+                        evidence.isLoading ||
+                        compliance.isLoading ||
+                        evidence.isError ||
+                        compliance.isError
+                      }
+                      onClick={() => confirm.mutate(chosen)}
+                    >
+                      确认可复制
+                    </LoadingButton>
+                    <p className="text-xs text-muted-foreground">
+                      “可复制”只表示运营确认了这份文字，不代表合规或事实保证。
+                    </p>
+                  </>
+                )}
+                {!inProgress && blockers.length > 0 && (
+                  <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                    {blockers.map((b) => (
+                      <li key={b}>{b}</li>
+                    ))}
+                  </ul>
+                )}
+                {confirmError && <ErrorBanner error={confirmError} />}
+              </>
+            )}
+            {inProgress && <p className="text-sm">{busyText}</p>}
             {ready && <p className="text-sm">运营已确认，可在左侧下方复制。</p>}
             {!editable &&
               !ready &&
@@ -1244,7 +1458,7 @@ function ResultPage() {
                     onSaved={refresh}
                     bare
                     items={items}
-                    editable={editable}
+                    editable={editable && !rewriteBusy}
                     busyText={busyText}
                     onDecide={(item, ok) =>
                       setDialog({ kind: "evidence", item, ok })
@@ -1266,11 +1480,21 @@ function ResultPage() {
                     items={compliance.data?.items ?? []}
                     editable={editable}
                     busyText={busyText}
+                    onManual={beginEdit}
                     onResolve={(item) => setDialog({ kind: "risk", item })}
                     rewriting={rewriteBusy}
                     onRewrite={(risks) => {
-                      const steps = riskRewriteSteps(risks)
-                      if (steps.length) rewrite.mutate(steps)
+                      list.add(
+                        risks.filter(canRewriteRisk).map((risk) => ({
+                          id: `risk:${risk.id}`,
+                          sourceId: risk.id,
+                          source: "risk",
+                          target: riskRewriteTarget(risk.field)!,
+                          matched_text: risk.matched_text,
+                          suggestion: risk.suggestion,
+                        })),
+                      )
+                      toast.success(CL.added)
                     }}
                   />
                 )}
@@ -1280,23 +1504,26 @@ function ResultPage() {
         </div>
       </div>
 
-      {dialog?.kind === "evidence" && (
-        <ReasonDialog
-          key={dialog.item.id + String(dialog.ok)}
-          open
-          variant="default"
-          fieldLabel="判断依据（必填）"
-          title={dialog.ok ? "这条断言成立" : "这条断言不成立"}
-          description={`断言：${dialog.item.claim_text}。你的判断会被记录为“人工确认（非系统验证）”。`}
-          confirmLabel={dialog.ok ? "确认成立" : "确认不成立"}
-          pending={decide.isPending}
-          onCancel={() => setDialog(null)}
-          onConfirm={(note) =>
-            decide.mutate({ id: dialog.item.id, ok: dialog.ok, note })
-          }
-        />
-      )}
-      {dialog?.kind === "risk" && (
+      {dialog?.kind === "evidence" &&
+        editable &&
+        !rewriteBusy &&
+        !inProgress && (
+          <ReasonDialog
+            key={dialog.item.id + String(dialog.ok)}
+            open
+            variant="default"
+            fieldLabel="判断依据（必填）"
+            title={dialog.ok ? "这条断言成立" : "这条断言不成立"}
+            description={`断言：${dialog.item.claim_text}。你的判断会被记录为“人工确认（非系统验证）”。`}
+            confirmLabel={dialog.ok ? "确认成立" : "确认不成立"}
+            pending={decide.isPending}
+            onCancel={() => setDialog(null)}
+            onConfirm={(note) =>
+              decide.mutate({ id: dialog.item.id, ok: dialog.ok, note })
+            }
+          />
+        )}
+      {dialog?.kind === "risk" && editable && !rewriteBusy && !inProgress && (
         <ReasonDialog
           key={dialog.item.id}
           open
