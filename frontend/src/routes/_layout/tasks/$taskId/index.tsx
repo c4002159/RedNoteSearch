@@ -5,13 +5,14 @@ import { useState } from "react"
 import { TasksService } from "@/client"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { MissingPage } from "@/components/Common/ForbiddenPage"
+import { TaskFailureMessage } from "@/components/Common/ModelConfigurationHint"
 import { StageProgress } from "@/components/Common/StageProgress"
 import { FlowStatusBadge } from "@/components/Common/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { parseApiError } from "@/lib/apiError"
 import { formatTime } from "@/lib/format"
-import { label, ORIGIN_LABEL, TASK_ERROR_LABEL } from "@/lib/zh"
+import { label, ORIGIN_LABEL } from "@/lib/zh"
 
 export const Route = createFileRoute("/_layout/tasks/$taskId/")({
   component: TaskDetail,
@@ -71,11 +72,7 @@ function TaskDetail() {
 
       <section className="space-y-3 rounded-xl border bg-card p-4">
         <StageProgress flowStatus={t.flow_status} stage={stage} />
-        {t.last_error && (
-          <p role="alert" className="text-sm text-destructive">
-            {label(TASK_ERROR_LABEL, t.last_error, "task_error")}
-          </p>
-        )}
+        {t.last_error && <TaskFailureMessage error={t.last_error} />}
         <dl className="grid gap-3 text-sm md:grid-cols-2">
           <div>
             <dt className="text-muted-foreground">创建时间</dt>

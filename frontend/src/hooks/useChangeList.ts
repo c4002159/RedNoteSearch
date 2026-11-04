@@ -27,6 +27,7 @@ const stateSchema = z.object({
       message: z.string(),
       requestId: z.string().nullable(),
       status: z.number().nullable(),
+      reason: z.literal("model_not_configured").optional(),
     })
     .nullable(),
 })

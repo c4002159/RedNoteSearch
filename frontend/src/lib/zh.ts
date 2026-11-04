@@ -794,6 +794,8 @@ export const SHELL_TEXT = {
 } as const
 
 export const TASK_ERROR_LABEL = {
+  model_not_configured:
+    "还没有配置模型密钥，请管理员到「设置 → 模型」填写后重试",
   model_unavailable: "模型暂时不可用，任务没有丢，可以直接重试。",
   invalid_model_output: "模型多次返回不符合格式的内容，请调整创作要求后重试。",
 } as const
@@ -1694,4 +1696,11 @@ export const R8_FLOW_TEXT = {
   review: "检查与处理",
   progress: "处理进度",
   noPending: "当前筛选下没有待办。",
+} as const
+
+// Offline model configuration guidance.
+export const MODEL_CONFIGURATION_TEXT = {
+  admin: "还没有配置模型密钥。请到「设置 → 模型」填写后再试",
+  member: "还没有配置模型密钥，请联系管理员",
+  settings: "前往设置",
 } as const

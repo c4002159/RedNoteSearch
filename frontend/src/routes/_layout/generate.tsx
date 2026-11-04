@@ -26,6 +26,7 @@ import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { FilterSelect } from "@/components/Common/FilterSelect"
 import { ForbiddenPage, MissingPage } from "@/components/Common/ForbiddenPage"
+import { TaskFailureMessage } from "@/components/Common/ModelConfigurationHint"
 import { type DockStep, ProgressDock } from "@/components/Common/ProgressDock"
 import { StageProgress } from "@/components/Common/StageProgress"
 import { FlowStatusBadge } from "@/components/Common/StatusBadge"
@@ -42,19 +43,23 @@ import { Input } from "@/components/ui/input"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
+import useAuth from "@/hooks/useAuth"
 import { useBrand } from "@/hooks/useBrand"
-import { type ApiErrorInfo, parseApiError } from "@/lib/apiError"
+import {
+  type ApiErrorInfo,
+  isModelNotConfigured,
+  parseApiError,
+} from "@/lib/apiError"
 import { cn } from "@/lib/utils"
 import {
   CUSTOM_SCENE_TEXT as CS,
   EMOJI_LABEL,
   LENGTH_LABEL,
-  label,
+  MODEL_CONFIGURATION_TEXT,
   PERSON_LABEL,
   PROMO_REVIEW_TEXT as PR,
   PROMO_TARGET_TEXT as PT,
   SCENARIO_TEXT,
-  TASK_ERROR_LABEL,
   TONE_DIALOG_TEXT,
 } from "@/lib/zh"
 
@@ -302,7 +307,14 @@ function splitTerms(text: string): string[] {
     .filter(Boolean)
 }
 
-function NewTaskForm() {
+type TaskUploadFailure = { taskId: string; error: ApiErrorInfo }
+
+function NewTaskForm({
+  onUploadFailure,
+}: {
+  onUploadFailure: (failure: TaskUploadFailure) => void
+}) {
+  const { user } = useAuth()
   const { current } = useBrand()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -431,7 +443,18 @@ function NewTaskForm() {
     onSuccess: async ({ id, uploadError, uploadFailure }) => {
       await queryClient.invalidateQueries({ queryKey: ["tasks"] })
       if (uploadError) {
-        toast.error(uploadFailure, { duration: 12000 })
+        const info = parseApiError(uploadError)
+        if (isModelNotConfigured(info)) {
+          onUploadFailure({ taskId: id, error: info })
+          toast.error(
+            user?.is_superuser
+              ? MODEL_CONFIGURATION_TEXT.admin
+              : MODEL_CONFIGURATION_TEXT.member,
+            { duration: 12000 },
+          )
+        } else {
+          toast.error(uploadFailure, { duration: 12000 })
+        }
       }
       void navigate({ to: "/generate", search: { task: id } })
     },
@@ -1063,11 +1086,7 @@ function TaskRun({ taskId }: { taskId: string }) {
             正在处理，你可以离开这个页面，稍后在“任务与版本历史”里查看。
           </p>
         )}
-        {t.last_error && (
-          <p role="alert" className="text-sm text-destructive">
-            {label(TASK_ERROR_LABEL, t.last_error, "task_error")}
-          </p>
-        )}
+        {t.last_error && <TaskFailureMessage error={t.last_error} />}
         {generate.isError && (
           <ErrorBanner error={parseApiError(generate.error)} />
         )}
@@ -1110,6 +1129,9 @@ function TaskRun({ taskId }: { taskId: string }) {
 
 function GeneratePage() {
   const { task } = Route.useSearch()
+  const [uploadFailure, setUploadFailure] = useState<TaskUploadFailure | null>(
+    null,
+  )
   return (
     <div className="space-y-6">
       <div>
@@ -1118,7 +1140,14 @@ function GeneratePage() {
           选择商品和场景，系统基于已审核的品牌资料生成文案，并逐条检查约束、事实依据和风险提示。
         </p>
       </div>
-      {task ? <TaskRun taskId={task} /> : <NewTaskForm />}
+      {task && uploadFailure?.taskId === task && (
+        <ErrorBanner error={uploadFailure.error} />
+      )}
+      {task ? (
+        <TaskRun taskId={task} />
+      ) : (
+        <NewTaskForm onUploadFailure={setUploadFailure} />
+      )}
     </div>
   )
 }
