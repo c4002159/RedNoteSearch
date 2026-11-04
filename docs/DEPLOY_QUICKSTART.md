@@ -44,9 +44,27 @@ bash deploy/start.sh
 | 停止（数据保留） | `docker compose stop` |
 | 再次启动 | `docker compose start`，或重新运行启动脚本 |
 | 升级到新版本 | 拿到新源码后重新运行启动脚本，数据库会自动升级 |
-| 备份数据库 | `docker compose exec -T db pg_dump -U postgres app > backup.sql` |
-| 恢复备份 | `docker compose exec -T db psql -U postgres app < backup.sql`（先在空库上做） |
+| 备份数据库 | 见下方“备份与恢复”（不要用 `>` 重定向，Windows PowerShell 会把备份存成 UTF-16，文件损坏） |
+| 恢复备份 | 见下方“备份与恢复”；**会覆盖现有数据，先确认** |
 | 彻底删除（**数据一并删除**） | `docker compose down -v` |
+
+### 备份与恢复
+
+在 `deploy` 目录下的终端里运行。备份文件在容器内生成后用 `docker compose cp` 取出，不经过终端重定向：
+
+```text
+docker compose exec -T db pg_dump -U postgres -Fc -f /tmp/backup.dump app
+docker compose cp db:/tmp/backup.dump backup.dump
+```
+
+恢复会覆盖现有数据，操作前先确认。把要恢复的 `backup.dump` 放到 `deploy` 目录，系统保持运行，再依次执行（只停应用，数据库保持运行）：
+
+```text
+docker compose stop app
+docker compose cp backup.dump db:/tmp/backup.dump
+docker compose exec -T db pg_restore -U postgres -d app --clean --if-exists --no-owner --exit-on-error /tmp/backup.dump
+docker compose up -d --wait app
+```
 
 ## 4. 常见问题
 
