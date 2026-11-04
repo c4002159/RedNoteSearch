@@ -83,7 +83,9 @@ docker compose up -d --wait app
 
 ## 6. 离线安装包
 
-客户拿到的是预构建镜像、启动/停止脚本和一页安装说明，不需要源码、Python、Node 或单独安装数据库。先安装并打开 Docker Desktop（Linux 容器模式，Compose 须支持 `--wait` 和 `--pull never`），Windows 双击包内 `启动.bat`；macOS/Linux 同样提供启动脚本 `启动.sh`。首次自动导入镜像、生成随机密钥和管理员密码、创建本机数据卷，健康检查通过后打开浏览器。后续启动保留配置与数据；停止不删除卷。
+配套 Docker Desktop Windows x64 安装器版本： **4.98.0.245422**；应用镜像为 linux/amd64。系统要求以 [Docker 官方 Windows 安装页](https://docs.docker.com/desktop/setup/install/windows-install/)为准，本说明写于 **2026-11-05**：WSL ≥2.1.5；Windows 10 22H2（19045）或 Windows 11 23H2（22631）及以上，并满足官方列出的版本与维护支持范围；至少 8 GB 内存、64 位 Intel/AMD 处理器支持 SLAT、BIOS/UEFI 开启虚拟化。`wsl --install` 命令的 Windows 10 2004 下限不是 Docker Desktop 的系统下限。安装方式、离线 WSL 步骤以包内 README 为准。
+
+客户拿到的是预构建镜像、启动/停止脚本和一页安装说明，不需要源码、Python、Node 或单独安装数据库。先安装并打开 Docker Desktop（Linux 容器模式，Compose 须支持 `--wait` 和 `--pull never`），Windows 双击包内 `启动.bat`；macOS/Linux 同样提供启动脚本 `启动.sh`。首次自动导入镜像、生成随机密钥和管理员密码、创建本机数据卷，健康检查通过后打开浏览器。后续启动保留配置与数据；停止不删除卷。启动会检查宿主机端口与登录页；失败不会自动 down，按包内 README 的“修改端口”处理。不要把安装目录放入共享盘或云同步目录。
 
 交付人员在可联网构建的电脑上运行：
 
@@ -93,6 +95,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-offline-packag
 
 脚本 fetch 后从最新 `origin/main` 创建独立的干净检出构建镜像，版本标签取其提交号；不会把当前工作区未提交的应用改动编入镜像。输出目录必须为空。只按白名单复制离线脚本，保存两份镜像 tar，写入 `VERSION.txt` 和 `SHA256SUMS.txt`（不包含校验文件自身）。安装包输出、临时检出及 tar 不进 Git；包内不带环境配置、密钥、真实资料或内部协作文档。
 
-`deploy/start.ps1` / `start.sh` 仍是原来的源码构建入口，行为不变；离线入口使用 `deploy/offline/compose.offline.yml`，没有 build，启动显式禁止拉取。离线版保留原两服务、健康检查、初始化命令和环境变量含义。默认同为 `rednote` 项目和数据卷，因此不要在同一台机器同时启用源码版与离线版；切换前先停止并备份，并将原 `deploy/.env` 复制到离线包根目录，避免对原数据卷使用新密码。启动入口从 VERSION.txt 读取本次镜像标签；旧配置若没有 APP_TAG，手工执行 Compose 备份等命令前须先把该标签设为环境变量。升级保留原配置与卷，只更换镜像和脚本；降级应用不等于降级数据库，操作前备份。
+`deploy/start.ps1` / `start.sh` 仍是原来的源码构建入口，行为不变；离线入口使用 `deploy/offline/compose.offline.yml`，没有 build，启动显式禁止拉取。离线版保留原两服务、健康检查、初始化命令和环境变量含义。默认同为 `rednote` 项目和数据卷，因此不要在同一台机器同时启用源码版与离线版；切换前先停止并备份，并将原 `deploy/.env` 复制到离线包根目录，避免对原数据卷使用新密码。启动与停止入口从 VERSION.txt 读取镜像标签，并原子同步 `.env` 的 APP_TAG（缺失时补入），保持其他配置不变。升级后先运行启动入口，再新开终端执行 Compose 手工命令；无需再设置 APP_TAG，避免旧环境变量覆盖它。升级保留原配置与卷，只更换镜像和脚本；降级应用不等于降级数据库，操作前备份。
 
-模型功能仍需联网：管理员在设置中填模型密钥，只有调用模型时相关文本才发往模型服务。启动包不含密钥。没有验证 macOS/Linux、没有输入真实模型密钥做生成、没有在第二台干净电脑上试。每次交付应另记录 Windows 实测、总大小、耗时、镜像架构和校验结果，不能把同机独立目录测试写成第二台机器验证。
+模型功能仍需联网：管理员在设置中填模型密钥，只有调用模型时相关文本才发往模型服务。启动包不含密钥。验证范围：仅完成本机 Windows 环境的启动、登录与数据保留检查；macOS/Linux、真实模型功能及第二台电脑尚未验证。
+
+客户操作提示：资源管理器打开安装目录，在地址栏输入 `powershell` 后按回车即可打开本目录终端；数据卷是 Docker 保存数据库的本机目录，删了就没有了；网页改过密码后 `.env` 的初始密码不会同步，忘记新密码请找管理员重置。

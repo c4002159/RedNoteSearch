@@ -42,7 +42,7 @@ try {
     $timings.Add("image_build_seconds=$([math]::Round($step.Elapsed.TotalSeconds, 1))")
     Invoke-Docker -Arguments @("pull", "pgvector/pgvector:pg18")
     [void](New-Item -ItemType Directory -Path (Join-Path $output "images") -Force)
-    $files = @("启动.bat", "启动.sh", "停止.bat", "停止.sh", "run.ps1", "compose.offline.yml", "README_安装说明.md")
+    $files = @("启动.bat", "启动.sh", "停止.bat", "停止.sh", "run.ps1", "sync-tag.sh", "compose.offline.yml", "README_安装说明.md")
     foreach ($file in $files) { Copy-Item -LiteralPath (Join-Path $repo "deploy/offline/$file") -Destination (Join-Path $output $file) }
     $step.Restart()
     Invoke-Docker -Arguments @("save", "--output", (Join-Path $output "images/rednote-app.tar"), "rednote-app:$tag")
