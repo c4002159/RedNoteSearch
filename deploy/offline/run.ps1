@@ -99,12 +99,7 @@ function Sync-ConfigTag([string]$Tag) {
     Write-Host "已把版本从 $old 更新为 $Tag"
 }
 
-function Get-DataRecoveryAdvice {
-    return "想保留旧数据：把以前安装目录里的 .env 复制到当前安装目录，再重新启动。`n不需要旧数据、想从头开始：在当前安装目录打开终端，运行 docker compose -f compose.offline.yml down -v，再重新启动。此命令会删除全部旧数据，无法恢复；请先确认。详见 README_安装说明.md 的「这台电脑以前装过本系统怎么办」。"
-}
-
-function Assert-NoPreviousData {
-    if (Test-Path -LiteralPath ".env") { return }
+function Get-OfflineProject {
     $previous = $ErrorActionPreference
     try {
         $ErrorActionPreference = "Continue"
@@ -112,13 +107,39 @@ function Assert-NoPreviousData {
         if ($LASTEXITCODE -ne 0) { throw "Configuration unavailable" }
         $project = ($configuration | ConvertFrom-Json).name
         if ($project -notmatch '^[a-z0-9][a-z0-9_-]*$') { throw "Invalid project" }
+        return $project
+    } catch {
+        throw "无法识别本系统的项目名，请确认 Docker 正常运行，或联系管理员；请勿自行清空数据。"
+    } finally { $ErrorActionPreference = $previous }
+}
+
+function Get-DataRecoveryAdvice([string]$Project = "") {
+    $keep = "想保留旧数据：把以前安装目录里的 .env 复制到当前安装目录，再重新启动。"
+    try {
+        if (-not $Project) { $Project = Get-OfflineProject }
+        if ($Project -notmatch '^[a-z0-9][a-z0-9_-]*$') { throw "Invalid project" }
+    } catch { return ($keep + "`n无法确认本系统的项目名，不提供清空命令；请联系管理员。") }
+    # These strings are printed only. The launcher never executes cleanup commands.
+    return ($keep + "`n不需要旧数据、想从头开始：确认后在当前安装目录的 PowerShell 终端原样粘贴以下三行，再重新启动。`n这会删除全部旧数据，无法恢复；命令只按本系统项目标签选择容器、数据库卷和网络，不会影响其他项目。`n" +
+        "docker ps -aq --filter 'label=com.docker.compose.project=$Project' | ForEach-Object { docker rm -f `$_ }`n" +
+        "docker volume ls -q --filter 'label=com.docker.compose.project=$Project' --filter 'label=com.docker.compose.volume=rednote-db-data' | ForEach-Object { docker volume rm `$_ }`n" +
+        "docker network ls -q --filter 'label=com.docker.compose.project=$Project' | ForEach-Object { docker network rm `$_ }`n" +
+        "详见 README_安装说明.md 的「这台电脑以前装过本系统怎么办」。")
+}
+
+function Assert-NoPreviousData {
+    if (Test-Path -LiteralPath ".env") { return }
+    $previous = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $project = Get-OfflineProject
         $volumes = @(docker volume ls -q --filter "label=com.docker.compose.project=$project" --filter "label=com.docker.compose.volume=rednote-db-data" 2>$null)
         if ($LASTEXITCODE -ne 0) { throw "Volume inspection unavailable" }
     } catch {
         throw "无法检查这台电脑上已有的数据，未生成配置、未启动。请确认 Docker 正常运行后重试，或联系管理员。"
     } finally { $ErrorActionPreference = $previous }
     if (@($volumes | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) {
-        throw ("这台电脑上已有本系统的数据（以前安装留下的），新生成的密码打不开它。`n" + (Get-DataRecoveryAdvice))
+        throw ("这台电脑上已有本系统的数据（以前安装留下的），新生成的密码打不开它。`n" + (Get-DataRecoveryAdvice $project))
     }
 }
 

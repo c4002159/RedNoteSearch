@@ -133,7 +133,7 @@ Docker Desktop 不在本系统的文件里，需要单独安装（安装包约 6
 ### 停止与卸载
 
 - **停止**：双击 **`停止.bat`**，数据保留在这台电脑上，下次双击 `启动.bat` 即可继续使用。（macOS/Linux：`bash 停止.sh`）
-- **彻底清空数据**：Docker 把数据库保存在一个“数据卷”里，数据卷里的内容删了就没有了。仅仅删掉安装文件夹**不会**删除数据卷。确实要清空时，先停止，确认已经备份，再在安装目录的终端里运行 `docker compose -f compose.offline.yml down -v`。这会删除全部本系统数据，无法恢复。最后再删除安装文件夹。
+- **彻底清空数据**：Docker 把数据库保存在一个“数据卷”里，数据卷里的内容删了就没有了。仅仅删掉安装文件夹**不会**删除数据卷。确实要清空时，确认已经备份，再按“这台电脑以前装过本系统怎么办”里的直接 Docker 命令操作。这会删除全部本系统数据，无法恢复。最后再删除安装文件夹。
 
 ### 升级
 
@@ -177,13 +177,17 @@ PUBLIC_URL=http://localhost:8080
 删除安装文件夹不会删除 Docker 中的数据卷。换目录解压新包时，如果没有原来的 `.env`，新生成的密码打不开旧数据库，因此启动会提前停止；如果 `.env` 被替换过，也可能出现数据库密码认证失败。脚本不会自动删除旧数据。
 
 1. **想保留旧数据**：把以前安装目录里的 `.env` 复制到当前安装目录，再重新双击 `启动.bat`。找不到旧配置时，先联系管理员，不要清空数据。
-2. **不需要旧数据，想从头开始**：先确认不再需要旧数据或已经备份。**必须在当前安装目录里打开终端**：资源管理器打开该目录，在地址栏输入 `powershell` 后回车；不要停在 `C:\WINDOWS\system32`。然后运行：
+2. **不需要旧数据，想从头开始**：先确认不再需要旧数据或已经备份。**必须在当前安装目录里打开终端**：资源管理器打开该目录，在地址栏输入 `powershell` 后回车；不要停在 `C:\WINDOWS\system32`。原样复制启动窗口中已填好项目名的三行 `docker` 命令，或在 PowerShell 里原样粘贴以下整段（不需要手填项目名或卷名）：
 
-   ```text
-   docker compose -f compose.offline.yml down -v
+   ```powershell
+   $project = (docker compose -f compose.offline.yml config --no-interpolate --format json | ConvertFrom-Json).name
+   if ($LASTEXITCODE -ne 0 -or $project -notmatch '^[a-z0-9][a-z0-9_-]*$') { throw '无法确定本系统项目名，请联系管理员，不要清空数据。' }
+   docker ps -aq --filter "label=com.docker.compose.project=$project" | ForEach-Object { docker rm -f $_ }
+   docker volume ls -q --filter "label=com.docker.compose.project=$project" --filter 'label=com.docker.compose.volume=rednote-db-data' | ForEach-Object { docker volume rm $_ }
+   docker network ls -q --filter "label=com.docker.compose.project=$project" | ForEach-Object { docker network rm $_ }
    ```
 
-   **这会删除全部本系统数据，无法恢复。** 确认命令成功后，再双击 `启动.bat`。如果当前目录已有 `.env`，继续使用它，不必重新生成密码。
+   **这会删除全部本系统旧数据，无法恢复。** 首行只读取不插值的项目名，不要求 `.env`；清理直接按项目标签选择本系统的容器、数据库卷和网络，不经过 Compose 的停止配置解析，不影响其他项目。确认每行命令均无报错后，再双击 `启动.bat`。如果当前目录已有 `.env`，继续使用它，不必重新生成密码。macOS/Linux 请使用 `启动.sh` 窗口打印的 Bash 版三行命令，不要粘贴 PowerShell 语法。
 
 ## 常见问题
 
@@ -193,6 +197,7 @@ PUBLIC_URL=http://localhost:8080
 | 提示请先安装并打开 Docker Desktop | 打开 Docker Desktop，等它显示运行中后重新双击。 |
 | 提示端口被占用 | 见上面的“修改端口”。 |
 | 提示数据库密码认证失败，或应用一直 unhealthy | 可能是旧数据卷与当前 `.env` 的密码不一致，见“这台电脑以前装过本系统怎么办”；不是修改端口就能解决。 |
+| 照旧写法清理时出现 `required variable ... is missing` | 某些 Compose 版本没有 `.env` 就无法解析旧的清理命令。请改用上面按项目标签筛选的直接 Docker 命令，不要填写临时密码，也不要反复运行旧命令。 |
 | 首次启动很久 | 首次要导入约 700 MB 的镜像，请保持窗口打开等待。 |
 | 输入 `changethis` 登录失败 | 这不是密码，见步骤 7。 |
 | 爆款分析、生成、重新检查、语气推荐报错 | 这些功能都要调用模型。没有填模型密钥，或这台电脑连不上模型服务，就会报错。管理员先到“设置 → 模型”填写密钥，并确认电脑能联网。 |
