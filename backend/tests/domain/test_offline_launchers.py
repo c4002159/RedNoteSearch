@@ -12,6 +12,161 @@ import pytest
 ROOT = Path(__file__).parents[3]
 
 
+@pytest.mark.parametrize(
+    "scenario", ["volume", "config_error", "volume_error", "auth", "other", "fresh"]
+)
+def test_shell_stale_volume_guard_and_failure_diagnostics(
+    tmp_path: Path, scenario: str
+) -> None:
+    bash = shutil.which("bash")
+    if bash is None:
+        pytest.skip("Bash is required")
+    for name in ("启动.sh", "sync-tag.sh"):
+        shutil.copyfile(ROOT / "deploy/offline" / name, tmp_path / name)
+    (tmp_path / "VERSION.txt").write_text("APP_TAG=cafebabe\n")
+    existing = scenario in {"auth", "other"}
+    if existing:
+        (tmp_path / ".env").write_text("APP_TAG=cafebabe\nAPP_PORT=8092\n")
+    binaries = tmp_path / "bin"
+    binaries.mkdir()
+    commands = {
+        "docker": r"""printf '%s\n' "$*" >> calls.txt
+case "$*" in
+info|image\ inspect*) exit 0 ;;
+'compose up --help') echo '--wait --pull' ;;
+'compose -f compose.offline.yml config --no-interpolate')
+  [[ "$SCENARIO" != config_error ]] || exit 1
+  printf 'name: %s\n' "$COMPOSE_PROJECT_NAME" ;;
+volume\ ls*)
+  [[ "$*" == *"label=com.docker.compose.project=rnstale"* ]] || exit 4
+  [[ "$*" == *"label=com.docker.compose.volume=rednote-db-data"* ]] || exit 4
+  [[ "$SCENARIO" != volume_error ]] || exit 1
+  if [[ "$SCENARIO" == volume ]]; then echo rnstale_rednote-db-data; fi ;;
+'compose -f compose.offline.yml up -d --wait --pull never')
+  [[ "$SCENARIO" == fresh ]] ;;
+'compose -f compose.offline.yml logs --tail 50 db app')
+  if [[ "$SCENARIO" == auth ]]; then
+    echo 'FATAL: password authentication failed for user postgres PRIVATE_LOG_SENTINEL'
+  else echo 'PRIVATE_LOG_SENTINEL unrelated failure'; fi ;;
+*) exit 2 ;;
+esac
+""",
+        "nc": "exit 1\n",
+        "curl": "printf '%s' '<title>RedNoteSearch</title><div id=\"root\"></div>'\n",
+        "open": "exit 0\n",
+        "xdg-open": "exit 0\n",
+    }
+    for name, body in commands.items():
+        file = binaries / name
+        file.write_text("#!/usr/bin/env bash\n" + body, encoding="utf-8", newline="\n")
+        file.chmod(0o700)
+    env = dict(os.environ, SCENARIO=scenario, COMPOSE_PROJECT_NAME="rnstale")
+    env.pop("APP_PORT", None)
+    result = subprocess.run(
+        [
+            bash,
+            "-c",
+            'bin="$1"; if command -v cygpath >/dev/null; then bin="$(cygpath -u "$bin")"; fi; export PATH="$bin:$PATH"; source "$0"',
+            (tmp_path / "启动.sh").as_posix(),
+            binaries.as_posix(),
+        ],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        check=False,
+        timeout=20,
+    )
+    output = (result.stdout + result.stderr).decode("utf-8", errors="replace")
+    calls = (tmp_path / "calls.txt").read_text()
+    assert (result.returncode == 0) is (scenario == "fresh"), output
+    assert "PRIVATE_LOG_SENTINEL" not in output
+    assert "password authentication failed" not in output
+    assert " down" not in calls and "volume rm" not in calls
+    if scenario in {"volume", "config_error", "volume_error"}:
+        assert not (tmp_path / ".env").exists()
+        assert " up -d" not in calls
+    if scenario in {"volume", "auth"}:
+        assert "以前安装目录里的 .env" in output
+        assert "docker compose -f compose.offline.yml down -v" in output
+        assert "无法恢复" in output
+    if scenario == "auth":
+        assert "数据库里保存的密码与当前 .env 不一致" in output
+    if scenario == "other":
+        assert "启动未完成" in output and "若端口被占用" in output
+    if existing:
+        assert (tmp_path / ".env").read_text() == "APP_TAG=cafebabe\nAPP_PORT=8092\n"
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    ["volume", "config_error", "volume_error", "auth", "other", "fresh", "existing"],
+)
+def test_windows_stale_volume_functions(tmp_path: Path, scenario: str) -> None:
+    powershell = shutil.which("powershell.exe")
+    if powershell is None:
+        pytest.skip("Windows PowerShell 5.1 is required")
+    source = (ROOT / "deploy/offline/run.ps1").read_text("utf-8-sig")
+    functions = source.split("\ntry {\n    if (-not (Get-Command docker", 1)[0]
+    if scenario == "existing":
+        (tmp_path / ".env").write_text("unchanged")
+    mock = r"""
+function docker {
+    $call = $args -join ' '
+    Add-Content -LiteralPath calls.txt -Value $call
+    $global:LASTEXITCODE = 0
+    if ($call -eq 'compose -f compose.offline.yml config --no-interpolate --format json') {
+        if ($env:SCENARIO -eq 'config_error') { $global:LASTEXITCODE = 1; return }
+        return '{"name":"rnstale"}'
+    }
+    if ($call.StartsWith('volume ls')) {
+        if (-not $call.Contains('label=com.docker.compose.project=rnstale') -or -not $call.Contains('label=com.docker.compose.volume=rednote-db-data')) { throw 'Wrong labels' }
+        if ($env:SCENARIO -eq 'volume_error') { $global:LASTEXITCODE = 1; return }
+        if ($env:SCENARIO -eq 'volume') { return 'rnstale_rednote-db-data' }
+        return
+    }
+    if ($call -eq 'compose -f compose.offline.yml logs --tail 50 db app') {
+        if ($env:SCENARIO -eq 'auth') { return 'FATAL: password authentication failed PRIVATE_LOG_SENTINEL' }
+        return 'PRIVATE_LOG_SENTINEL unrelated failure'
+    }
+    throw 'Unexpected Docker call'
+}
+try {
+    if ($env:SCENARIO -in @('auth', 'other')) {
+        if (Test-DatabasePasswordFailure) { Write-Output 'AUTH_MATCH' }
+    } else { Assert-NoPreviousData }
+} catch { Write-Output $_.Exception.Message; exit 1 }
+"""
+    runner = tmp_path / "guard.ps1"
+    runner.write_text(functions + mock, "utf-8-sig")
+    result = subprocess.run(
+        [powershell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(runner)],
+        cwd=tmp_path,
+        env=dict(os.environ, SCENARIO=scenario),
+        capture_output=True,
+        timeout=15,
+        check=False,
+    )
+    output = result.stdout.decode("utf-8", errors="replace")
+    assert (result.returncode != 0) is (
+        scenario in {"volume", "config_error", "volume_error"}
+    )
+    assert (b"AUTH_MATCH" in result.stdout) is (scenario == "auth")
+    assert "PRIVATE_LOG_SENTINEL" not in output
+    calls = (
+        (tmp_path / "calls.txt").read_text()
+        if (tmp_path / "calls.txt").exists()
+        else ""
+    )
+    assert " down" not in calls and "volume rm" not in calls
+    if scenario == "volume":
+        # PowerShell output encoding varies by host; verify the ASCII recovery command.
+        assert b"docker compose -f compose.offline.yml down -v" in result.stdout
+    if scenario == "existing":
+        assert calls == "" and (tmp_path / ".env").read_text() == "unchanged"
+    else:
+        assert not (tmp_path / ".env").exists()
+
+
 @pytest.mark.parametrize("eol", [b"\n", b"\r\n"])
 def test_shell_launcher_reads_port_from_existing_configuration(
     tmp_path: Path, eol: bytes

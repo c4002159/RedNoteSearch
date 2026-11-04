@@ -99,6 +99,40 @@ function Sync-ConfigTag([string]$Tag) {
     Write-Host "已把版本从 $old 更新为 $Tag"
 }
 
+function Get-DataRecoveryAdvice {
+    return "想保留旧数据：把以前安装目录里的 .env 复制到当前安装目录，再重新启动。`n不需要旧数据、想从头开始：在当前安装目录打开终端，运行 docker compose -f compose.offline.yml down -v，再重新启动。此命令会删除全部旧数据，无法恢复；请先确认。详见 README_安装说明.md 的「这台电脑以前装过本系统怎么办」。"
+}
+
+function Assert-NoPreviousData {
+    if (Test-Path -LiteralPath ".env") { return }
+    $previous = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $configuration = docker compose -f compose.offline.yml config --no-interpolate --format json 2>$null | Out-String
+        if ($LASTEXITCODE -ne 0) { throw "Configuration unavailable" }
+        $project = ($configuration | ConvertFrom-Json).name
+        if ($project -notmatch '^[a-z0-9][a-z0-9_-]*$') { throw "Invalid project" }
+        $volumes = @(docker volume ls -q --filter "label=com.docker.compose.project=$project" --filter "label=com.docker.compose.volume=rednote-db-data" 2>$null)
+        if ($LASTEXITCODE -ne 0) { throw "Volume inspection unavailable" }
+    } catch {
+        throw "无法检查这台电脑上已有的数据，未生成配置、未启动。请确认 Docker 正常运行后重试，或联系管理员。"
+    } finally { $ErrorActionPreference = $previous }
+    if (@($volumes | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) {
+        throw ("这台电脑上已有本系统的数据（以前安装留下的），新生成的密码打不开它。`n" + (Get-DataRecoveryAdvice))
+    }
+}
+
+function Test-DatabasePasswordFailure {
+    $previous = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        # Keep diagnostic logs in memory only; never echo their contents.
+        $recent = docker compose -f compose.offline.yml logs --tail 50 db app 2>$null | Out-String
+        return ($recent -match 'password authentication failed')
+    } catch { return $false }
+    finally { $ErrorActionPreference = $previous }
+}
+
 function Test-OwnAppPort([string]$Port) {
     try {
         $ids = @(docker compose -f compose.offline.yml ps --status running -q app 2>$null)
@@ -173,6 +207,7 @@ try {
     if (-not $port) { $port = "8000" }
     if ($port -notmatch '^[1-9][0-9]{0,4}$' -or [int]$port -gt 65535) { throw "APP_PORT 必须为 1 到 65535 的端口号。" }
     if (-not (Test-Path -LiteralPath ".env")) {
+        Assert-NoPreviousData
         $password = New-Secret 16
         $lines = @(
             "APP_TAG=$env:APP_TAG",
@@ -204,7 +239,12 @@ try {
 
     Write-Host "正在启动并等待服务就绪……"
     docker compose -f compose.offline.yml up -d --wait --pull never
-    if ($LASTEXITCODE -ne 0) { throw "启动未完成。请查看容器日志；若端口被占用，请按 README_安装说明.md 的「修改端口」小节修改 APP_PORT 和 PUBLIC_URL 后重试；容器已保留。" }
+    if ($LASTEXITCODE -ne 0) {
+        if (Test-DatabasePasswordFailure) {
+            throw ("数据库里保存的密码与当前 .env 不一致（可能是以前安装留下的数据，或 .env 被替换过）。`n" + (Get-DataRecoveryAdvice))
+        }
+        throw "启动未完成。请查看容器日志；若端口被占用，请按 README_安装说明.md 的「修改端口」小节修改 APP_PORT 和 PUBLIC_URL 后重试；容器已保留。"
+    }
     Wait-HostLogin $port
     $url = "http://localhost:$port"
     Write-Host "已启动：$url"
