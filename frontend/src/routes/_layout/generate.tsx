@@ -26,6 +26,10 @@ import { EmptyState } from "@/components/Common/EmptyState"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { FilterSelect } from "@/components/Common/FilterSelect"
 import { ForbiddenPage, MissingPage } from "@/components/Common/ForbiddenPage"
+import {
+  ModelConfigurationHint,
+  TaskFailureMessage,
+} from "@/components/Common/ModelConfigurationHint"
 import { type DockStep, ProgressDock } from "@/components/Common/ProgressDock"
 import { StageProgress } from "@/components/Common/StageProgress"
 import { FlowStatusBadge } from "@/components/Common/StatusBadge"
@@ -43,18 +47,20 @@ import { LoadingButton } from "@/components/ui/loading-button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { useBrand } from "@/hooks/useBrand"
-import { type ApiErrorInfo, parseApiError } from "@/lib/apiError"
+import {
+  type ApiErrorInfo,
+  isModelNotConfigured,
+  parseApiError,
+} from "@/lib/apiError"
 import { cn } from "@/lib/utils"
 import {
   CUSTOM_SCENE_TEXT as CS,
   EMOJI_LABEL,
   LENGTH_LABEL,
-  label,
   PERSON_LABEL,
   PROMO_REVIEW_TEXT as PR,
   PROMO_TARGET_TEXT as PT,
   SCENARIO_TEXT,
-  TASK_ERROR_LABEL,
   TONE_DIALOG_TEXT,
 } from "@/lib/zh"
 
@@ -431,7 +437,14 @@ function NewTaskForm() {
     onSuccess: async ({ id, uploadError, uploadFailure }) => {
       await queryClient.invalidateQueries({ queryKey: ["tasks"] })
       if (uploadError) {
-        toast.error(uploadFailure, { duration: 12000 })
+        toast.error(
+          isModelNotConfigured(parseApiError(uploadError)) ? (
+            <ModelConfigurationHint />
+          ) : (
+            uploadFailure
+          ),
+          { duration: 12000 },
+        )
       }
       void navigate({ to: "/generate", search: { task: id } })
     },
@@ -1063,11 +1076,7 @@ function TaskRun({ taskId }: { taskId: string }) {
             正在处理，你可以离开这个页面，稍后在“任务与版本历史”里查看。
           </p>
         )}
-        {t.last_error && (
-          <p role="alert" className="text-sm text-destructive">
-            {label(TASK_ERROR_LABEL, t.last_error, "task_error")}
-          </p>
-        )}
+        {t.last_error && <TaskFailureMessage error={t.last_error} />}
         {generate.isError && (
           <ErrorBanner error={parseApiError(generate.error)} />
         )}

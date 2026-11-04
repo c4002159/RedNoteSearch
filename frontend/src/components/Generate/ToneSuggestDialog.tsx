@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { parseApiError } from "@/lib/apiError"
+import { isModelNotConfigured, parseApiError } from "@/lib/apiError"
 import { toneKey, uniqueTones } from "@/lib/toneKey"
 import { TONE_DIALOG_TEXT as T } from "@/lib/zh"
 
@@ -42,7 +42,14 @@ function ToneError({
           ? info.message
           : T.failed
   return (
-    <ErrorBanner error={{ ...info, message, details: {} }} onRetry={retry} />
+    <ErrorBanner
+      error={{
+        ...info,
+        message,
+        details: isModelNotConfigured(info) ? info.details : {},
+      }}
+      onRetry={retry}
+    />
   )
 }
 

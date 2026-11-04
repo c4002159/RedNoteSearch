@@ -1,8 +1,13 @@
 import { CircleAlert, RotateCw } from "lucide-react"
 
+import { ModelConfigurationHint } from "@/components/Common/ModelConfigurationHint"
 import { RequestId } from "@/components/Common/RequestId"
 import { Button } from "@/components/ui/button"
-import { type ApiErrorInfo, reasonsOf } from "@/lib/apiError"
+import {
+  type ApiErrorInfo,
+  isModelNotConfigured,
+  reasonsOf,
+} from "@/lib/apiError"
 
 // Error strip for a failed request: readable message, request number, optional retry (FC-07).
 export function ErrorBanner({
@@ -15,6 +20,7 @@ export function ErrorBanner({
   onRetry?: () => void
 }) {
   const reasons = reasonsOf(error)
+  const needsConfiguration = isModelNotConfigured(error)
   return (
     <div
       role="alert"
@@ -22,9 +28,15 @@ export function ErrorBanner({
     >
       <CircleAlert className="mt-0.5 size-4 shrink-0" />
       <div className="min-w-0 flex-1 space-y-1">
-        <p className="text-sm font-medium">{title ?? error.message}</p>
-        {title && <p className="text-sm">{error.message}</p>}
-        {reasons.length > 0 && (
+        {needsConfiguration ? (
+          <ModelConfigurationHint />
+        ) : (
+          <>
+            <p className="text-sm font-medium">{title ?? error.message}</p>
+            {title && <p className="text-sm">{error.message}</p>}
+          </>
+        )}
+        {!needsConfiguration && reasons.length > 0 && (
           <ul className="list-disc pl-4 text-sm">
             {reasons.map((r) => (
               <li key={r}>{r}</li>
@@ -33,7 +45,7 @@ export function ErrorBanner({
         )}
         <RequestId id={error.requestId} />
       </div>
-      {onRetry && (
+      {onRetry && !needsConfiguration && (
         <Button type="button" size="sm" variant="outline" onClick={onRetry}>
           <RotateCw /> 重试
         </Button>

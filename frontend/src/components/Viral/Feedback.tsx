@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { ErrorBanner } from "@/components/Common/ErrorBanner"
 import { ForbiddenPage, MissingPage } from "@/components/Common/ForbiddenPage"
 import { SimplePager } from "@/components/Common/SimplePager"
-import { parseApiError } from "@/lib/apiError"
+import { isModelNotConfigured, parseApiError } from "@/lib/apiError"
 import {
   label,
   VIRAL_TEXT as T,
@@ -64,7 +64,7 @@ export function ViralError({
   ) : (
     <div className="space-y-3">
       <ErrorBanner error={info} onRetry={retry} />
-      {typeof reason === "string" && (
+      {!isModelNotConfigured(info) && typeof reason === "string" && (
         <p className="text-sm text-muted-foreground">
           {label(VIRAL_REASON_LABEL, reason, "viral_reason")}
         </p>

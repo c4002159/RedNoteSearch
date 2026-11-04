@@ -45,6 +45,10 @@ export function parseApiError(err: unknown): ApiErrorInfo {
   }
 }
 
+export function isModelNotConfigured(info: ApiErrorInfo): boolean {
+  return info.status === 503 && info.details.reason === "model_not_configured"
+}
+
 // `details.reasons[]` of a refused action: readable sentences, never code names.
 export function reasonsOf(info: ApiErrorInfo): string[] {
   const reasons = info.details.reasons

@@ -51,7 +51,7 @@ import {
   saveChangeList,
   useChangeList,
 } from "@/hooks/useChangeList"
-import { parseApiError } from "@/lib/apiError"
+import { isModelNotConfigured, parseApiError } from "@/lib/apiError"
 import {
   BODY_LIMIT,
   bodyUnits,
@@ -853,6 +853,9 @@ function ResultPage() {
           }
         }
         const failure = {
+          ...(isModelNotConfigured(info)
+            ? { reason: "model_not_configured" as const }
+            : {}),
           status: info.status,
           requestId: info.requestId,
           message: /[\u3400-\u9fff]/.test(info.message)
@@ -999,7 +1002,13 @@ function ResultPage() {
   if (!isLatest) blockers.push("只有最新版本可以确认")
   const confirmError = confirm.isError ? parseApiError(confirm.error) : null
   const rewriteError = list.state.failure
-    ? { ...list.state.failure, code: "REWRITE_FAILED", details: {} }
+    ? {
+        ...list.state.failure,
+        code: "REWRITE_FAILED",
+        details: list.state.failure.reason
+          ? { reason: list.state.failure.reason }
+          : {},
+      }
     : null
   const original = asDraft(v)
   const content = editable ? { ...v, ...list.state.draft } : v

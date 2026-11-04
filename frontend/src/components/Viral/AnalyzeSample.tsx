@@ -6,6 +6,7 @@ import {
   ViralService,
 } from "@/client"
 import { EmptyState } from "@/components/Common/EmptyState"
+import { ModelConfigurationHint } from "@/components/Common/ModelConfigurationHint"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -17,7 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { LoadingButton } from "@/components/ui/loading-button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { parseApiError } from "@/lib/apiError"
+import { isModelNotConfigured, parseApiError } from "@/lib/apiError"
 import { VIRAL_TEXT as T, ANALYSIS_VISUAL_TEXT as V } from "@/lib/zh"
 import { ViralError } from "./Feedback"
 
@@ -82,7 +83,10 @@ export function AnalyzeSample({
     onSuccess: onSaved,
     onError: (error) => {
       const info = parseApiError(error)
-      setMustCheck(info.status === null || info.status >= 500)
+      setMustCheck(
+        !isModelNotConfigured(info) &&
+          (info.status === null || info.status >= 500),
+      )
     },
   })
   const pending = mutation.isPending
@@ -118,7 +122,10 @@ export function AnalyzeSample({
           <ViralError error={models.error} retry={() => models.refetch()} />
         )}
         {models.data && available.length === 0 && (
-          <EmptyState title={T.noModels} />
+          <div className="space-y-3">
+            <EmptyState title={T.noModels} />
+            <ModelConfigurationHint />
+          </div>
         )}
         {!!models.data?.length && (
           <fieldset disabled={pending || check.isPending} className="space-y-3">
