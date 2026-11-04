@@ -15,8 +15,9 @@ ROOT = Path(__file__).parents[3]
 @pytest.mark.parametrize(
     "scenario", ["volume", "config_error", "volume_error", "auth", "other", "fresh"]
 )
+@pytest.mark.parametrize("project", ["rnclean", "rnclean-alt"])
 def test_shell_stale_volume_guard_and_failure_diagnostics(
-    tmp_path: Path, scenario: str
+    tmp_path: Path, scenario: str, project: str
 ) -> None:
     bash = shutil.which("bash")
     if bash is None:
@@ -38,10 +39,10 @@ info|image\ inspect*) exit 0 ;;
   [[ "$SCENARIO" != config_error ]] || exit 1
   printf 'name: %s\n' "$COMPOSE_PROJECT_NAME" ;;
 volume\ ls*)
-  [[ "$*" == *"label=com.docker.compose.project=rnstale"* ]] || exit 4
+  [[ "$*" == *"label=com.docker.compose.project=$COMPOSE_PROJECT_NAME"* ]] || exit 4
   [[ "$*" == *"label=com.docker.compose.volume=rednote-db-data"* ]] || exit 4
   [[ "$SCENARIO" != volume_error ]] || exit 1
-  if [[ "$SCENARIO" == volume ]]; then echo rnstale_rednote-db-data; fi ;;
+  if [[ "$SCENARIO" == volume ]]; then echo "${COMPOSE_PROJECT_NAME}_rednote-db-data"; fi ;;
 'compose -f compose.offline.yml up -d --wait --pull never')
   [[ "$SCENARIO" == fresh ]] ;;
 'compose -f compose.offline.yml logs --tail 50 db app')
@@ -60,7 +61,7 @@ esac
         file = binaries / name
         file.write_text("#!/usr/bin/env bash\n" + body, encoding="utf-8", newline="\n")
         file.chmod(0o700)
-    env = dict(os.environ, SCENARIO=scenario, COMPOSE_PROJECT_NAME="rnstale")
+    env = dict(os.environ, SCENARIO=scenario, COMPOSE_PROJECT_NAME=project)
     env.pop("APP_PORT", None)
     result = subprocess.run(
         [
@@ -87,7 +88,16 @@ esac
         assert " up -d" not in calls
     if scenario in {"volume", "auth"}:
         assert "以前安装目录里的 .env" in output
-        assert "docker compose -f compose.offline.yml down -v" in output
+        # Replace the obsolete advice assertion: some Compose versions require .env for down.
+        assert "down -v" not in output
+        commands = [line for line in output.splitlines() if line.startswith("docker ")]
+        assert len(commands) == 3
+        assert all(
+            f"label=com.docker.compose.project={project}'" in line for line in commands
+        )
+        assert "docker rm -f" in commands[0]
+        assert "com.docker.compose.volume=rednote-db-data" in commands[1]
+        assert "docker volume rm" in commands[1] and "docker network rm" in commands[2]
         assert "无法恢复" in output
     if scenario == "auth":
         assert "数据库里保存的密码与当前 .env 不一致" in output
@@ -101,7 +111,10 @@ esac
     "scenario",
     ["volume", "config_error", "volume_error", "auth", "other", "fresh", "existing"],
 )
-def test_windows_stale_volume_functions(tmp_path: Path, scenario: str) -> None:
+@pytest.mark.parametrize("project", ["rnclean", "rnclean-alt"])
+def test_windows_stale_volume_functions(
+    tmp_path: Path, scenario: str, project: str
+) -> None:
     powershell = shutil.which("powershell.exe")
     if powershell is None:
         pytest.skip("Windows PowerShell 5.1 is required")
@@ -116,12 +129,12 @@ function docker {
     $global:LASTEXITCODE = 0
     if ($call -eq 'compose -f compose.offline.yml config --no-interpolate --format json') {
         if ($env:SCENARIO -eq 'config_error') { $global:LASTEXITCODE = 1; return }
-        return '{"name":"rnstale"}'
+        return ('{"name":"' + $env:COMPOSE_PROJECT_NAME + '"}')
     }
     if ($call.StartsWith('volume ls')) {
-        if (-not $call.Contains('label=com.docker.compose.project=rnstale') -or -not $call.Contains('label=com.docker.compose.volume=rednote-db-data')) { throw 'Wrong labels' }
+        if (-not $call.Contains('label=com.docker.compose.project=' + $env:COMPOSE_PROJECT_NAME) -or -not $call.Contains('label=com.docker.compose.volume=rednote-db-data')) { throw 'Wrong labels' }
         if ($env:SCENARIO -eq 'volume_error') { $global:LASTEXITCODE = 1; return }
-        if ($env:SCENARIO -eq 'volume') { return 'rnstale_rednote-db-data' }
+        if ($env:SCENARIO -eq 'volume') { return ($env:COMPOSE_PROJECT_NAME + '_rednote-db-data') }
         return
     }
     if ($call -eq 'compose -f compose.offline.yml logs --tail 50 db app') {
@@ -132,7 +145,7 @@ function docker {
 }
 try {
     if ($env:SCENARIO -in @('auth', 'other')) {
-        if (Test-DatabasePasswordFailure) { Write-Output 'AUTH_MATCH' }
+        if (Test-DatabasePasswordFailure) { Write-Output 'AUTH_MATCH'; Get-DataRecoveryAdvice }
     } else { Assert-NoPreviousData }
 } catch { Write-Output $_.Exception.Message; exit 1 }
 """
@@ -141,7 +154,7 @@ try {
     result = subprocess.run(
         [powershell, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(runner)],
         cwd=tmp_path,
-        env=dict(os.environ, SCENARIO=scenario),
+        env=dict(os.environ, SCENARIO=scenario, COMPOSE_PROJECT_NAME=project),
         capture_output=True,
         timeout=15,
         check=False,
@@ -158,9 +171,24 @@ try {
         else ""
     )
     assert " down" not in calls and "volume rm" not in calls
-    if scenario == "volume":
+    if scenario in {"volume", "auth"}:
         # PowerShell output encoding varies by host; verify the ASCII recovery command.
-        assert b"docker compose -f compose.offline.yml down -v" in result.stdout
+        assert b"down -v" not in result.stdout
+        commands = [
+            line
+            for line in result.stdout.decode(errors="replace").splitlines()
+            if line.startswith("docker ")
+        ]
+        assert len(commands) == 3
+        assert all(
+            f"label=com.docker.compose.project={project}'" in line for line in commands
+        )
+        assert "docker rm -f $_" in commands[0]
+        assert "com.docker.compose.volume=rednote-db-data" in commands[1]
+        assert (
+            "docker volume rm $_" in commands[1]
+            and "docker network rm $_" in commands[2]
+        )
     if scenario == "existing":
         assert calls == "" and (tmp_path / ".env").read_text() == "unchanged"
     else:

@@ -37,19 +37,35 @@ random() {
   done
   printf '%s' "$value"
 }
+offline_project() {
+  local configuration project
+  configuration="$(docker compose -f compose.offline.yml config --no-interpolate 2>/dev/null)" || return 1
+  project="$(sed -n 's/^name: //p' <<<"$configuration")"
+  [[ "$project" =~ ^[a-z0-9][a-z0-9_-]*$ ]] || return 1
+  printf '%s' "$project"
+}
 data_recovery_advice() {
-  printf '%s\n' '想保留旧数据：把以前安装目录里的 .env 复制到当前安装目录，再重新启动。' \
-    '不需要旧数据、想从头开始：在当前安装目录打开终端，运行 docker compose -f compose.offline.yml down -v，再重新启动。此命令会删除全部旧数据，无法恢复；请先确认。详见 README_安装说明.md 的“这台电脑以前装过本系统怎么办”。'
+  local project="${1:-}"
+  printf '%s\n' '想保留旧数据：把以前安装目录里的 .env 复制到当前安装目录，再重新启动。'
+  if [[ -z "$project" ]]; then project="$(offline_project)" || project=""; fi
+  if [[ ! "$project" =~ ^[a-z0-9][a-z0-9_-]*$ ]]; then
+    printf '%s\n' '无法确认本系统的项目名，不提供清空命令；请联系管理员。'
+    return
+  fi
+  printf '%s\n' '不需要旧数据、想从头开始：确认后在当前安装目录的 Bash 终端原样粘贴以下三行，再重新启动。' \
+    '这会删除全部旧数据，无法恢复；命令只按本系统项目标签选择容器、数据库卷和网络，不会影响其他项目。' \
+    "docker ps -aq --filter 'label=com.docker.compose.project=$project' | while IFS= read -r id; do docker rm -f \"\$id\"; done" \
+    "docker volume ls -q --filter 'label=com.docker.compose.project=$project' --filter 'label=com.docker.compose.volume=rednote-db-data' | while IFS= read -r id; do docker volume rm \"\$id\"; done" \
+    "docker network ls -q --filter 'label=com.docker.compose.project=$project' | while IFS= read -r id; do docker network rm \"\$id\"; done" \
+    '详见 README_安装说明.md 的“这台电脑以前装过本系统怎么办”。'
 }
 if [[ ! -e .env ]]; then
   # Normalized Compose output resolves environment project overrides without secrets.
-  configuration="$(docker compose -f compose.offline.yml config --no-interpolate 2>/dev/null)" || fail '无法检查这台电脑上已有的数据，未生成配置、未启动。请确认 Docker 正常运行后重试，或联系管理员。'
-  project="$(sed -n 's/^name: //p' <<<"$configuration")"
-  [[ "$project" =~ ^[a-z0-9][a-z0-9_-]*$ ]] || fail '无法识别本系统的项目名，未生成配置、未启动。请联系管理员。'
+  project="$(offline_project)" || fail '无法检查这台电脑上已有的数据，未生成配置、未启动。请确认 Docker 正常运行后重试，或联系管理员。'
   volumes="$(docker volume ls -q --filter "label=com.docker.compose.project=$project" --filter label=com.docker.compose.volume=rednote-db-data 2>/dev/null)" || fail '无法检查这台电脑上已有的数据，未生成配置、未启动。请确认 Docker 正常运行后重试，或联系管理员。'
   if [[ -n "$volumes" ]]; then
     fail "这台电脑上已有本系统的数据（以前安装留下的），新生成的密码打不开它。
-$(data_recovery_advice)"
+$(data_recovery_advice "$project")"
   fi
   umask 077
   password="$(random 16)"
