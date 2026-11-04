@@ -268,3 +268,132 @@ for (const admin of [true, false]) {
     await guidance(page, admin)
   })
 }
+
+for (const admin of [true, false]) {
+  test(`model configuration: new task material upload toast admin=${admin}`, async ({
+    page,
+  }) => {
+    await setup(page, admin)
+    const errors: string[] = []
+    page.on("pageerror", (error) => errors.push(error.message))
+    await page.route("**/api/v1/brands/*/products?*", (route) =>
+      route.fulfill({
+        json: {
+          items: [
+            {
+              id: "33333333-3333-4333-8333-333333333333",
+              name: "测试商品",
+              category: "perfume",
+              status: "active",
+              selling_points: [],
+              notes: {},
+            },
+          ],
+          total: 1,
+        },
+      }),
+    )
+    await page.route("**/api/v1/scenarios", (route) =>
+      route.fulfill({
+        json: {
+          items: [
+            {
+              id: "44444444-4444-4444-8444-444444444444",
+              name: "测试场景",
+              scene: "seeding",
+              template_version: 1,
+              structure: "测试结构",
+              brand_id: null,
+            },
+          ],
+        },
+      }),
+    )
+    await page.route("**/api/v1/brands/*/creative-types", (route) =>
+      route.fulfill({
+        json: {
+          items: [
+            { key: "seeding", name: "种草", builtin: true, template_count: 1 },
+          ],
+        },
+      }),
+    )
+    await page.route("**/api/v1/brands/*/style-presets", (route) =>
+      route.fulfill({ json: { items: [] } }),
+    )
+    await page.route("**/api/v1/tasks", (route) =>
+      route.fulfill({ status: 201, json: { id: taskId } }),
+    )
+    // Upload failures do not set Task.last_error on the backend.
+    await page.route(`**/api/v1/tasks/${taskId}`, (route) =>
+      route.fulfill({
+        json: {
+          id: taskId,
+          brand_id: ids.brand,
+          product_name: "测试商品",
+          scenario_name: "测试场景",
+          flow_status: "queued",
+          progress: null,
+          last_error: null,
+          latest_version_id: null,
+        },
+      }),
+    )
+    let uploads = 0
+    let generations = 0
+    await page.route(`**/api/v1/tasks/${taskId}/generate`, (route) => {
+      generations++
+      return route.fulfill({ status: 202, json: {} })
+    })
+    await page.route(`**/api/v1/tasks/${taskId}/materials`, (route) => {
+      if (route.request().method() === "GET")
+        return route.fulfill({ json: { items: [] } })
+      uploads++
+      return route.fulfill({
+        status: 503,
+        json: {
+          error: {
+            code: "MODEL_UNAVAILABLE",
+            message: "Model provider is unavailable",
+            details: { reason: "model_not_configured" },
+            request_id: "req-new-task-upload",
+          },
+        },
+      })
+    })
+    await page.goto("/generate")
+    await page.getByRole("combobox", { name: "选择商品", exact: true }).click()
+    await page.getByRole("option", { name: "测试商品", exact: true }).click()
+    await page
+      .getByRole("radiogroup", { name: "场景", exact: true })
+      .getByText("种草", { exact: true })
+      .click()
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "test.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("测试任务资料"),
+    })
+    await page
+      .getByRole("button", { name: "创建并开始生成", exact: true })
+      .click()
+    await expect.poll(() => uploads).toBe(1)
+    await expect(page).toHaveURL(`/generate?task=${taskId}`)
+    const toast = page.locator("[data-sonner-toast]")
+    await expect(toast).toContainText(admin ? adminMessage : memberMessage)
+    await expect(toast.getByRole("link")).toHaveCount(0)
+    const content = page.locator("main")
+    await expect(
+      content.getByText(admin ? adminMessage : memberMessage, { exact: true }),
+    ).toBeVisible()
+    const settings = content.getByRole("link", {
+      name: "前往设置",
+      exact: true,
+    })
+    if (admin)
+      await expect(settings).toHaveAttribute("href", "/settings?tab=models")
+    else await expect(settings).toHaveCount(0)
+    await expect(content.getByText("req-new-task-upload")).toBeVisible()
+    expect(generations).toBe(0)
+    expect(errors).toEqual([])
+  })
+}
