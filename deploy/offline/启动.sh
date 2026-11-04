@@ -37,7 +37,20 @@ random() {
   done
   printf '%s' "$value"
 }
+data_recovery_advice() {
+  printf '%s\n' '想保留旧数据：把以前安装目录里的 .env 复制到当前安装目录，再重新启动。' \
+    '不需要旧数据、想从头开始：在当前安装目录打开终端，运行 docker compose -f compose.offline.yml down -v，再重新启动。此命令会删除全部旧数据，无法恢复；请先确认。详见 README_安装说明.md 的“这台电脑以前装过本系统怎么办”。'
+}
 if [[ ! -e .env ]]; then
+  # Normalized Compose output resolves environment project overrides without secrets.
+  configuration="$(docker compose -f compose.offline.yml config --no-interpolate 2>/dev/null)" || fail '无法检查这台电脑上已有的数据，未生成配置、未启动。请确认 Docker 正常运行后重试，或联系管理员。'
+  project="$(sed -n 's/^name: //p' <<<"$configuration")"
+  [[ "$project" =~ ^[a-z0-9][a-z0-9_-]*$ ]] || fail '无法识别本系统的项目名，未生成配置、未启动。请联系管理员。'
+  volumes="$(docker volume ls -q --filter "label=com.docker.compose.project=$project" --filter label=com.docker.compose.volume=rednote-db-data 2>/dev/null)" || fail '无法检查这台电脑上已有的数据，未生成配置、未启动。请确认 Docker 正常运行后重试，或联系管理员。'
+  if [[ -n "$volumes" ]]; then
+    fail "这台电脑上已有本系统的数据（以前安装留下的），新生成的密码打不开它。
+$(data_recovery_advice)"
+  fi
   umask 077
   password="$(random 16)"
   (set -C; printf '%s\n' "APP_TAG=$APP_TAG" "SECRET_KEY=$(random 48)" "POSTGRES_PASSWORD=$(random 24)" \
@@ -74,6 +87,11 @@ for item in "rednote-app:$APP_TAG|images/rednote-app.tar" "pgvector/pgvector:pg1
   fi
 done
 if ! docker compose -f compose.offline.yml up -d --wait --pull never; then
+  recent="$(docker compose -f compose.offline.yml logs --tail 50 db app 2>&1)" || true
+  if grep -qi -- 'password authentication failed' <<<"$recent"; then
+    fail "数据库里保存的密码与当前 .env 不一致（可能是以前安装留下的数据，或 .env 被替换过）。
+$(data_recovery_advice)"
+  fi
   fail "启动未完成。请查看容器日志；若端口被占用，请按 README_安装说明.md 的“修改端口”小节修改 APP_PORT 和 PUBLIC_URL；容器已保留。"
 fi
 ready=0
