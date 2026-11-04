@@ -392,3 +392,70 @@ def test_every_model_call_is_logged_even_when_it_fails(
         == 2
     )
     assert db.exec(select(GenerationVersion)).all() is not None
+
+
+@pytest.mark.parametrize("mode", ["missing", "server", "timeout"])
+@pytest.mark.parametrize("provider_kind", ["llm", "embedding"])
+def test_generation_model_configuration_reason(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    fake_llm: FakeLlmClient,
+    mode: str,
+    provider_kind: str,
+) -> None:
+    import httpx
+
+    from app.infra.dashscope import DashScopeEmbeddingProvider
+    from tests.utils.model_failure import failing_llm, failure_transport
+
+    h = superuser_token_headers
+    ids = _setup(client, h)
+    with httpx.Client(transport=failure_transport(mode)) as upstream:
+        if provider_kind == "llm":
+            llm = failing_llm(mode, upstream)
+            app.dependency_overrides[get_llm_factory] = lambda: lambda _b, _t: llm
+        else:
+            embedding = DashScopeEmbeddingProvider(
+                api_key="" if mode == "missing" else "test-only", client=upstream
+            )
+            app.dependency_overrides[get_embedder] = lambda: embedding
+        response = client.post(f"{API}/tasks/{ids['task']}/generate", headers=h)
+    assert response.status_code == 202, response.text
+    task = _task(client, h, ids["task"])
+    assert task["flow_status"] == "queued"
+    assert task["last_error"] == (
+        "model_not_configured" if mode == "missing" else "model_unavailable"
+    )
+    assert task["latest_version_id"] is None
+
+    app.dependency_overrides[get_llm_factory] = lambda: lambda _b, _t: fake_llm
+    app.dependency_overrides[get_embedder] = lambda: FakeEmbeddingProvider()
+    retry = client.post(f"{API}/tasks/{ids['task']}/generate", headers=h)
+    assert retry.status_code == 202
+    assert _task(client, h, ids["task"])["last_error"] is None
+
+
+@pytest.mark.parametrize("missing", [True, False])
+def test_generation_check_preserves_model_reason(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    fake_llm: FakeLlmClient,
+    missing: bool,
+) -> None:
+    ids = _setup(client, superuser_token_headers)
+    fake_llm._script = [  # noqa: SLF001
+        GOOD,
+        ModelUnavailableError(
+            "unavailable", {"reason": "model_not_configured"} if missing else {}
+        ),
+    ]
+    response = client.post(
+        f"{API}/tasks/{ids['task']}/generate", headers=superuser_token_headers
+    )
+    assert response.status_code == 202
+    task = _task(client, superuser_token_headers, ids["task"])
+    assert task["latest_version_id"]
+    assert task["flow_status"] == "checking"
+    assert task["last_error"] == (
+        "model_not_configured" if missing else "model_unavailable"
+    )

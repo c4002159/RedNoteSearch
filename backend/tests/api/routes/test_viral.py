@@ -431,3 +431,37 @@ def test_deleting_samples_keeps_templates_and_is_admin_only(
         select(AuditLog).where(AuditLog.action == "viral.delete_samples")
     ).all()
     assert log and "text" not in str(log[-1].detail)
+
+
+@pytest.mark.parametrize("mode", ["missing", "server", "timeout"])
+def test_viral_model_configuration_reason(
+    client: TestClient, superuser_token_headers: dict[str, str], mode: str
+) -> None:
+    from tests.utils.model_failure import failing_llm, failure_transport
+
+    h = superuser_token_headers
+    brand = _create_brand(client, h)
+    item = sample(client, h, brand["id"])
+    with httpx.Client(transport=failure_transport(mode)) as upstream:
+        provider = failing_llm(mode, upstream)
+        app.dependency_overrides[get_viral_llm_factory] = lambda: (
+            lambda _b, _m: provider
+        )
+        response = client.post(
+            f"{API}/viral-samples/{item['id']}/analyze",
+            headers=h,
+            json={"model_id": "deepseek-flash"},
+        )
+    assert response.status_code == 503, response.text
+    error = response.json()["error"]
+    assert error["code"] == "MODEL_UNAVAILABLE"
+    assert error["details"] == (
+        {"reason": "model_not_configured"} if mode == "missing" else {}
+    )
+    assert error["request_id"]
+    assert (
+        client.get(f"{API}/viral-samples/{item['id']}/patterns", headers=h).json()[
+            "total"
+        ]
+        == 0
+    )

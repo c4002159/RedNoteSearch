@@ -32,7 +32,9 @@ class DashScopeEmbeddingProvider:
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         if not self._api_key:
-            raise ModelUnavailableError("Embedding model is not configured")
+            raise ModelUnavailableError(
+                "Embedding model is not configured", {"reason": "model_not_configured"}
+            )
         vectors: list[list[float]] = []
         for start in range(0, len(texts), BATCH_SIZE):
             vectors.extend(self._embed_batch(texts[start : start + BATCH_SIZE]))

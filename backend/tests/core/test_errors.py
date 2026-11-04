@@ -202,3 +202,36 @@ def test_upload_errors_carry_their_codes_and_details(client: TestClient) -> None
     assert bad.status_code == 422
     assert _error(bad.json())["code"] == "UNSUPPORTED_FILE_TYPE"
     assert _error(bad.json())["details"] == {"allowed": [".pdf"]}
+
+
+@pytest.mark.parametrize("mode", ["missing", "server", "timeout"])
+@pytest.mark.parametrize("provider", ["llm", "embedding"])
+def test_model_reason_reaches_error_envelope(mode: str, provider: str) -> None:
+    import httpx
+
+    from app.infra.dashscope import DashScopeEmbeddingProvider
+    from app.ports.llm import LlmRequest
+    from tests.utils.model_failure import failing_llm, failure_transport
+
+    app = _app()
+    with httpx.Client(transport=failure_transport(mode)) as upstream:
+
+        @app.get("/provider-failure")
+        def provider_failure() -> None:
+            if provider == "llm":
+                failing_llm(mode, upstream).complete(LlmRequest(messages=()))
+            else:
+                DashScopeEmbeddingProvider(
+                    api_key="" if mode == "missing" else "test-only", client=upstream
+                ).embed(["test input"])
+
+        with TestClient(app) as client:
+            response = client.get("/provider-failure")
+    assert response.status_code == 503
+    error = _error(response.json())
+    assert error["code"] == "MODEL_UNAVAILABLE"
+    assert error["details"] == (
+        {"reason": "model_not_configured"} if mode == "missing" else {}
+    )
+    assert error["request_id"]
+    assert "test-only" not in response.text

@@ -284,7 +284,7 @@ def run_checks_safely(
         session.rollback()
         task = session.get(Task, task_id) or task
         task.last_error = (
-            "model_unavailable"
+            exc.task_error_code
             if isinstance(exc, ModelUnavailableError)
             else "invalid_model_output"
         )

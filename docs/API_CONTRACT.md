@@ -967,3 +967,17 @@ POST /knowledge-documents/{document_id}/similarity-preview：仅品牌admin，�
 - 审计 `version.revise` 仅记 parent、targets、has_note、contains_manual_edit；有人工编辑时额外写 `version.revise.manual_edit`（“含人工编辑”）。同事务提交，不记录正文、修改要求或 note 原文。
 
 前端修改清单保持按版本本地保存，主按钮仅调用上述接口一次；成功后清空源版本清单并打开返回版本。422/503/网络失败保留整份清单供重试，不再显示逐目标完成数或中间版本状态。契约变更须在 PR 中 @CHNERUI 并经确认后由 A 合并。
+
+
+## 模型未配置原因（离线安装提示补充）
+
+所有原有 `503 MODEL_UNAVAILABLE` 响应保持状态码、错误码和 message 含义不变；仅当所需语言模型或嵌入模型缺少有效配置的密钥时，增加 `error.details.reason = "model_not_configured"`。该字段不包含密钥、配置值或业务内容。
+
+| 情况 | error.details.reason | 任务 last_error |
+| --- | --- | --- |
+| 语言模型或嵌入模型未配置密钥 | `model_not_configured` | `model_not_configured` |
+| 已配置但请求超时、供应商错误或异常响应 | 不设置 | `model_unavailable` |
+
+旧客户端可忽略新增的可选 details 字段。资料上传与爆款分析等同步接口直接返回上述错误；任务生成仍返回 202，由后台保存失败原因，再从任务列表或详情的既有 `last_error` 字符串字段读取。生成后的检查及重新检查同样保留该原因，失败恢复与重试流程不变。没有新增响应字段、数据库列或迁移。
+
+语气推荐等使用同一模型适配器的同步调用也沿用此规则；评测逐样本结果及相似预览的既有降级结构保持不变。本补充不通过匹配 message 来区分错误，也不将供应商鉴权失败或其他暂时故障归为未配置。

@@ -560,3 +560,26 @@ def test_rewriting_only_the_hashtags_asks_for_fresh_tags(
     assert r.json()["origin"] == "rewritten"
     asked = [x for x in llm.requests if x.purpose == "rewrite"][0].messages[1].content
     assert "只重写“标签" in asked and "不要重复原有的" in asked
+
+
+@pytest.mark.parametrize("missing", [True, False])
+def test_recheck_preserves_model_reason(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    llm: FakeLlmClient,
+    missing: bool,
+) -> None:
+    h = superuser_token_headers
+    ids = _generated(client, h)
+    llm.answers["claim_extraction"] = ModelUnavailableError(  # type: ignore[attr-defined]
+        "unavailable", {"reason": "model_not_configured"} if missing else {}
+    )
+    response = client.post(
+        f"{API}/generation-versions/{ids['version']}/recheck", headers=h
+    )
+    assert response.status_code == 202
+    task = client.get(f"{API}/tasks/{ids['task']}", headers=h).json()
+    assert task["flow_status"] == "checking"
+    assert task["last_error"] == (
+        "model_not_configured" if missing else "model_unavailable"
+    )

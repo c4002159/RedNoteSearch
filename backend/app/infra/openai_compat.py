@@ -78,7 +78,10 @@ class OpenAICompatibleClient:
     def complete(self, request: LlmRequest) -> LlmResponse:
         if not self._api_key:
             self._record(request, "error", 0, error="not_configured", attempt=1)
-            raise ModelUnavailableError("The language model is not configured")
+            raise ModelUnavailableError(
+                "The language model is not configured",
+                {"reason": "model_not_configured"},
+            )
         last_error = "unknown"
         for attempt in range(1, self._max_retries + 2):
             started = time.monotonic()

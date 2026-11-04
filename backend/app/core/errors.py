@@ -214,7 +214,11 @@ def _parse_error_handler(request: Request, exc: Exception) -> Response:
 def _model_unavailable_handler(request: Request, exc: Exception) -> Response:
     assert isinstance(exc, ModelUnavailableError)
     return error_response(
-        request, status_code=503, code="MODEL_UNAVAILABLE", message=exc.message
+        request,
+        status_code=503,
+        code="MODEL_UNAVAILABLE",
+        message=exc.message,
+        details=exc.details,
     )
 
 

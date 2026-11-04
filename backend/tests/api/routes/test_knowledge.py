@@ -474,3 +474,37 @@ def test_uploads_are_limited_per_type_with_the_contract_error_codes(
     assert (
         client.get(url, headers=superuser_token_headers).json()["total"] == 0
     )  # nothing half-stored
+
+
+@pytest.mark.usefixtures("embedder")
+@pytest.mark.parametrize("mode", ["missing", "server", "timeout"])
+def test_upload_model_configuration_reason(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    mode: str,
+) -> None:
+    from app.infra.dashscope import DashScopeEmbeddingProvider
+    from tests.utils.model_failure import failure_transport
+
+    h = superuser_token_headers
+    brand = _create_brand(client, h)
+    with httpx.Client(transport=failure_transport(mode)) as upstream:
+        provider = DashScopeEmbeddingProvider(
+            api_key="" if mode == "missing" else "test-only", client=upstream
+        )
+        app.dependency_overrides[get_embedder] = lambda: provider
+        response = _upload(
+            client,
+            h,
+            f"{API}/brands/{brand['id']}/knowledge-documents",
+            "用于测试的资料正文",
+        )
+    assert response.status_code == 503, response.text
+    error = response.json()["error"]
+    assert error["code"] == "MODEL_UNAVAILABLE"
+    assert error["details"] == (
+        {"reason": "model_not_configured"} if mode == "missing" else {}
+    )
+    assert error["request_id"]
+    listing = client.get(f"{API}/brands/{brand['id']}/knowledge-documents", headers=h)
+    assert listing.json()["total"] == 0

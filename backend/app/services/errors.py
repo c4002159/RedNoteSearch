@@ -37,6 +37,13 @@ class FileTooLargeError(ParseError):
 class ModelUnavailableError(ServiceError):
     """A model provider could not be reached or returned an error."""
 
+    @property
+    def task_error_code(self) -> str:
+        """Persist a bounded, secret-free reason in the existing task error field."""
+        if self.details.get("reason") == "model_not_configured":
+            return "model_not_configured"
+        return "model_unavailable"
+
 
 class InvalidInputError(ServiceError):
     """A value the request carried is not acceptable (for example an unsafe regular expression)."""
