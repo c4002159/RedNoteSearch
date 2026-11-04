@@ -29,7 +29,7 @@ bash deploy/start.sh
 
 ## 2. 登录后先做三件事
 
-1. **填模型密钥**：平台管理员在网页的设置里填 DeepSeek（生成）和 DashScope（嵌入）的密钥。没有密钥时系统不会调用任何模型。
+1. **填模型密钥**：平台管理员在网页的设置里填 DeepSeek（生成）和 DashScope（嵌入）的密钥，**两个都要填**，缺一个都不能完整使用：只填 DeepSeek 时爆款分析可用，上传资料和生成会失败；只填百炼时生成、检查、评测会失败。没有密钥时系统不会调用任何模型。申请网址：[DeepSeek 开放平台](https://platform.deepseek.com)（“API Keys”页，文档见 [api-docs.deepseek.com](https://api-docs.deepseek.com)）、[阿里云百炼控制台](https://bailian.console.aliyun.com)（“API-KEY”页，步骤见[帮助文档](https://help.aliyun.com/zh/model-studio/get-api-key)；申请时地域选“北京”）。平台页面可能调整，以官网当前显示为准；两者都按用量计费，费用以平台账单为准。
 2. **改管理员邮箱**：把默认的 `admin@example.com` 换成真实邮箱，并在用户管理里为同事建账号（系统不开放自助注册）。
 3. **装浏览器插件（可选）**：在系统的“插件密钥”页下载插件，按页面说明在 Chrome / Edge 里加载。
 
