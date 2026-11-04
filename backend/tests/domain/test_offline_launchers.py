@@ -1,5 +1,6 @@
 """Byte-preserving configuration regression without Docker or a database."""
 
+import os
 import shutil
 import subprocess
 import threading
@@ -9,6 +10,59 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).parents[3]
+
+
+@pytest.mark.parametrize("eol", [b"\n", b"\r\n"])
+def test_shell_launcher_reads_port_from_existing_configuration(
+    tmp_path: Path, eol: bytes
+) -> None:
+    bash = shutil.which("bash")
+    if bash is None:
+        pytest.skip("Bash is required")
+    for name in ("启动.sh", "sync-tag.sh"):
+        shutil.copyfile(ROOT / "deploy/offline" / name, tmp_path / name)
+    (tmp_path / "VERSION.txt").write_text("APP_TAG=cafebabe\n", newline="\n")
+    before = eol.join([b"APP_TAG=deadbeef", b"APP_PORT=8092", b"SECRET_KEY=test-only"])
+    (tmp_path / ".env").write_bytes(before)
+    binaries = tmp_path / "bin"
+    binaries.mkdir()
+    commands = {
+        "docker": """case "$*" in
+info|image\\ inspect*) exit 0 ;;
+'compose up --help') echo '--wait --pull'; exit 0 ;;
+'compose -f compose.offline.yml up -d --wait --pull never') exit 0 ;;
+*) exit 2 ;;
+esac
+""",
+        "nc": "exit 1\n",
+        "curl": "printf '%s' '<title>RedNoteSearch</title><div id=\"root\"></div>'\n",
+        "open": "exit 0\n",
+        "xdg-open": "exit 0\n",
+    }
+    for name, body in commands.items():
+        file = binaries / name
+        file.write_text("#!/usr/bin/env bash\n" + body, encoding="utf-8", newline="\n")
+        file.chmod(0o700)
+    env = dict(os.environ)
+    env.pop("APP_PORT", None)
+    result = subprocess.run(
+        [
+            bash,
+            "-c",
+            'bin="$1"; if command -v cygpath >/dev/null; then bin="$(cygpath -u "$bin")"; fi; '
+            'export PATH="$bin:$PATH"; source "$0"',
+            (tmp_path / "启动.sh").as_posix(),
+            binaries.as_posix(),
+        ],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        check=False,
+        timeout=15,
+    )
+    assert result.returncode == 0, result.stderr.decode("utf-8", errors="replace")
+    assert b"http://localhost:8092" in result.stdout
+    assert (tmp_path / ".env").read_bytes() == before.replace(b"deadbeef", b"cafebabe")
 
 
 @pytest.mark.parametrize("valid_page", [True, False])

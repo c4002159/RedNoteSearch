@@ -21,7 +21,7 @@ if [[ ! "$APP_TAG" =~ ^[a-f0-9]{7,40}$ ]]; then echo "安装包版本信息不�
 export APP_TAG
 sync_env_tag "$APP_TAG" || fail "配置版本更新未完成，请保留配置并联系交付人员。"
 read_setting() { if [[ -f .env ]]; then sed -n "s/^$1=//p" .env; fi; }
-port="${APP_PORT:-$(read_setting APP_PORT)}"; port="${port:-8000}"
+port="${APP_PORT:-$(read_setting APP_PORT)}"; port="${port%$'\r'}"; port="${port:-8000}"
 if [[ ! "$port" =~ ^[1-9][0-9]{0,4}$ ]] || ((10#$port > 65535)); then echo "APP_PORT 必须为 1 到 65535。" >&2; exit 1; fi
 random() {
   local value="" byte bytes
