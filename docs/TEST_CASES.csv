@@ -334,3 +334,7 @@ TC-287,R7,人工断言判断继承,P1,原版本有成立或不成立的判断,re
 TC-288,R7,清单失败重试保持完整,P1,多个清单条目且修订422或503或断网,执行后刷新再重试,保留全部条目；同一原版重试一次请求；无逐步进度和中间版本,自动化Playwright
 TC-289,R7,仅整体说明修订,P1,parts为空且只有note,POST revise,按正文要求改写；note空白且无人工内容则422,自动化pytest与Playwright
 TC-290,R7,历史版本禁止修订,P1,任务已有新版本,对历史版本POST revise,409 INVALID_STATE且details.codes含not_latest_version；版本数量和latest不变；模型调用为0,自动化pytest
+TC-291,离线安装提示,缺少模型配置的统一错误,P0,不配置语言或嵌入密钥,通过适配器调用同步接口,503 MODEL_UNAVAILABLE且details.reason为model_not_configured且不含凭据,自动化pytest
+TC-292,离线安装提示,已配置模型故障保持重试语义,P0,假传输返回500或超时,上传资料及爆款分析,503且details不含未配置原因,自动化pytest
+TC-293,离线安装提示,异步生成保留未配置原因,P0,生成使用未配置的语言或嵌入适配器,提交生成并读取任务详情,提交202且last_error为model_not_configured；可重试,自动化pytest
+TC-294,离线安装提示,异步生成及检查的普通故障,P0,假模型或传输失败,生成或检查失败后读取任务,last_error仍为model_unavailable；未配置时保留专用原因,自动化pytest

@@ -271,8 +271,8 @@ def run_generation(
             if report["passed"]:
                 break
             problems = problems_from_report(report)
-    except ModelUnavailableError:
-        _fail(session, task, status=previous_status, error="model_unavailable")
+    except ModelUnavailableError as exc:
+        _fail(session, task, status=previous_status, error=exc.task_error_code)
         raise
     except LlmOutputError:
         _fail(
@@ -358,7 +358,7 @@ def _check_version(
         session.rollback()
         task = session.get(Task, task.id) or task
         task.last_error = (
-            "model_unavailable"
+            exc.task_error_code
             if isinstance(exc, ModelUnavailableError)
             else "invalid_model_output"
         )
