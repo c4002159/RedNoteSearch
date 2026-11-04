@@ -127,14 +127,21 @@ function Assert-HostPort([string]$Port) {
 }
 
 function Wait-HostLogin([string]$Port) {
-    for ($attempt = 1; $attempt -le 3; $attempt++) {
-        try {
-            $response = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:$Port/login" -Headers @{ Accept = "text/html" } -TimeoutSec 15
-            if ($response.StatusCode -eq 200 -and $response.Content.Contains('id="root"') -and $response.Content.Contains('RedNoteSearch')) { return }
-        } catch { }
-        if ($attempt -lt 3) { Start-Sleep -Seconds 2 }
+    $originalProxy = [Net.WebRequest]::DefaultWebProxy
+    try {
+        # Only this process's loopback readiness check bypasses the system proxy.
+        [Net.WebRequest]::DefaultWebProxy = $null
+        for ($attempt = 1; $attempt -le 3; $attempt++) {
+            try {
+                $response = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:$Port/login" -Headers @{ Accept = "text/html" } -TimeoutSec 15
+                if ($response.StatusCode -eq 200 -and $response.Content.Contains('id="root"') -and $response.Content.Contains('RedNoteSearch')) { return }
+            } catch { }
+            if ($attempt -lt 3) { Start-Sleep -Seconds 2 }
+        }
+        throw "本机无法打开登录页，尚未启动成功。请按 README_安装说明.md 的「修改端口」小节检查 APP_PORT 和 PUBLIC_URL；容器已保留，可查看日志。"
+    } finally {
+        [Net.WebRequest]::DefaultWebProxy = $originalProxy
     }
-    throw "本机无法打开登录页，尚未启动成功。请按 README_安装说明.md 的「修改端口」小节检查 APP_PORT 和 PUBLIC_URL；容器已保留，可查看日志。"
 }
 
 try {

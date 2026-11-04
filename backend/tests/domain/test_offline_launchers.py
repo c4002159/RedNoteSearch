@@ -96,9 +96,39 @@ def test_windows_host_login_checks_html_before_reporting_success(
         source = (ROOT / "deploy/offline/run.ps1").read_text("utf-8-sig")
         functions = source.split("\ntry {\n    if (-not (Get-Command docker", 1)[0]
         runner = tmp_path / "host-check.ps1"
+        proxy_setup = r"""
+Add-Type @'
+using System;
+using System.Net;
+public class OfflineUnavailableProxy : IWebProxy {
+    public ICredentials Credentials { get; set; }
+    public Uri GetProxy(Uri destination) { return new Uri("http://127.0.0.1:9"); }
+    public bool IsBypassed(Uri destination) { return false; }
+}
+'@
+$proxy = New-Object OfflineUnavailableProxy
+[Net.WebRequest]::DefaultWebProxy = $proxy
+$failed = $false
+"""
+        proxy_check = r"""
+} catch { $failed = $true }
+if (-not [object]::ReferenceEquals([Net.WebRequest]::DefaultWebProxy, $proxy)) {
+    throw "Proxy was not restored"
+}
+Write-Output "PROXY_RESTORED"
+if ($failed) { exit 1 }
+"""
         runner.write_text(
-            functions + f'\nWait-HostLogin "{server.server_port}"\n', "utf-8-sig"
+            functions
+            + proxy_setup
+            + f'\ntry {{ Wait-HostLogin "{server.server_port}"\n'
+            + proxy_check,
+            "utf-8-sig",
         )
+        env = dict(os.environ)
+        for name in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
+            env[name] = "http://127.0.0.1:9"
+        env["NO_PROXY"] = ""
         result = subprocess.run(
             [
                 powershell,
@@ -109,10 +139,12 @@ def test_windows_host_login_checks_html_before_reporting_success(
                 str(runner),
             ],
             capture_output=True,
+            env=env,
             timeout=25,
             check=False,
         )
         assert (result.returncode == 0) is valid_page
+        assert b"PROXY_RESTORED" in result.stdout
         assert observed == [("/login", "text/html")] * (1 if valid_page else 3)
     finally:
         server.shutdown()
