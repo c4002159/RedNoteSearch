@@ -80,3 +80,19 @@ docker compose up -d --wait app
 - 单镜像：后端镜像构建时会编译前端并由后端一起提供页面，所以只有 `db` 与 `app` 两个容器。
 - 每次启动都会运行迁移（`alembic upgrade head`）和管理员初始化，重复运行是安全的。
 - 与仓库根目录的 `compose.yml`（开发/CI 用，含 Traefik 与 adminer）互不影响；`deployment.md`、`deployment-docker-compose.md` 是模板自带的云端与域名部署说明，面向有域名的服务器，**不是**本指南的流程。
+
+## 6. 离线安装包
+
+客户拿到的是预构建镜像、启动/停止脚本和一页安装说明，不需要源码、Python、Node 或单独安装数据库。先安装并打开 Docker Desktop（Linux 容器模式，Compose 须支持 `--wait` 和 `--pull never`），Windows 双击包内 `启动.bat`；macOS/Linux 同样提供启动脚本 `启动.sh`。首次自动导入镜像、生成随机密钥和管理员密码、创建本机数据卷，健康检查通过后打开浏览器。后续启动保留配置与数据；停止不删除卷。
+
+交付人员在可联网构建的电脑上运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-offline-package.ps1 -OutputDirectory "D:\交付\RedNoteSearch离线安装包"
+```
+
+脚本 fetch 后从最新 `origin/main` 创建独立的干净检出构建镜像，版本标签取其提交号；不会把当前工作区未提交的应用改动编入镜像。输出目录必须为空。只按白名单复制离线脚本，保存两份镜像 tar，写入 `VERSION.txt` 和 `SHA256SUMS.txt`（不包含校验文件自身）。安装包输出、临时检出及 tar 不进 Git；包内不带环境配置、密钥、真实资料或内部协作文档。
+
+`deploy/start.ps1` / `start.sh` 仍是原来的源码构建入口，行为不变；离线入口使用 `deploy/offline/compose.offline.yml`，没有 build，启动显式禁止拉取。离线版保留原两服务、健康检查、初始化命令和环境变量含义。默认同为 `rednote` 项目和数据卷，因此不要在同一台机器同时启用源码版与离线版；切换前先停止并备份，并将原 `deploy/.env` 复制到离线包根目录，避免对原数据卷使用新密码。启动入口从 VERSION.txt 读取本次镜像标签；旧配置若没有 APP_TAG，手工执行 Compose 备份等命令前须先把该标签设为环境变量。升级保留原配置与卷，只更换镜像和脚本；降级应用不等于降级数据库，操作前备份。
+
+模型功能仍需联网：管理员在设置中填模型密钥，只有调用模型时相关文本才发往模型服务。启动包不含密钥。没有验证 macOS/Linux、没有输入真实模型密钥做生成、没有在第二台干净电脑上试。每次交付应另记录 Windows 实测、总大小、耗时、镜像架构和校验结果，不能把同机独立目录测试写成第二台机器验证。
