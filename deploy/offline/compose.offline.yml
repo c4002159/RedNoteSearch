@@ -1,5 +1,5 @@
-# One-machine deployment: a database and one application container (it serves the web pages too).
-# Start it with deploy/start.ps1 (Windows) or deploy/start.sh (macOS/Linux); see docs/DEPLOY_QUICKSTART.md.
+# Offline deployment: application and database images come from the package tar files; no build.
+# Start with 启动.bat (Windows) or 启动.sh (macOS/Linux).
 name: rednote
 
 services:
@@ -15,7 +15,7 @@ services:
     volumes:
       - rednote-db-data:/var/lib/postgresql
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run the start script first}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请先运行 启动.bat 或 启动.sh}
       POSTGRES_DB: app
 
   app:
@@ -28,9 +28,9 @@ services:
       - "${APP_PORT:-8000}:8000"
     environment:
       PROJECT_NAME: RedNoteSearch
-      SECRET_KEY: ${SECRET_KEY:?run the start script first}
-      FIRST_SUPERUSER: ${FIRST_SUPERUSER:?run the start script first}
-      FIRST_SUPERUSER_PASSWORD: ${FIRST_SUPERUSER_PASSWORD:?run the start script first}
+      SECRET_KEY: ${SECRET_KEY:?请先运行 启动.bat 或 启动.sh}
+      FIRST_SUPERUSER: ${FIRST_SUPERUSER:?请先运行 启动.bat 或 启动.sh}
+      FIRST_SUPERUSER_PASSWORD: ${FIRST_SUPERUSER_PASSWORD:?请先运行 启动.bat 或 启动.sh}
       FRONTEND_HOST: ${PUBLIC_URL:-http://localhost:8000}
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/app
       # Model keys are normally entered by the platform admin in the web page (ADR-013); these are optional.

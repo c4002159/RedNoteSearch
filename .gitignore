@@ -13,4 +13,3 @@ backend/app/frontend/
 # Offline delivery artifacts and temporary clean image-build worktrees
 /artifacts/offline-package/
 /.offline-build/
-*.tar

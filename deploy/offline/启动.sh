@@ -4,8 +4,11 @@ cd "$(dirname "$0")"
 if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
   echo "请先安装并打开 Docker Desktop，等它显示运行中后重试。" >&2; exit 1
 fi
-if ! docker compose up --help | grep -q -- '--wait'; then
-  echo "请更新 Docker Desktop，需要支持健康检查等待的 Docker Compose。" >&2; exit 1
+if ! help="$(docker compose up --help 2>&1)"; then
+  echo "请更新 Docker Desktop，需要支持健康检查等待和禁止拉取镜像的 Docker Compose。" >&2; exit 1
+fi
+if ! grep -q -- '--wait' <<<"$help" || ! grep -q -- '--pull' <<<"$help"; then
+  echo "请更新 Docker Desktop，需要支持健康检查等待和禁止拉取镜像的 Docker Compose。" >&2; exit 1
 fi
 APP_TAG="$(sed -n 's/^APP_TAG=\([a-f0-9]*\)$/\1/p' VERSION.txt)"
 if [[ ! "$APP_TAG" =~ ^[a-f0-9]{7,40}$ ]]; then echo "安装包版本信息不完整。" >&2; exit 1; fi
