@@ -139,8 +139,9 @@ export default function ModelConfig() {
     queryKey: ["providers"],
     queryFn: async () => (await SettingsService.readProviders()).data,
   })
+  // Distinct key: other pages cache ["models"] as the bare item list; sharing it broke them.
   const models = useQuery({
-    queryKey: ["models"],
+    queryKey: ["models", "settings"],
     queryFn: async () => (await EvaluationService.readModels()).data,
   })
   const items = models.data?.items ?? []

@@ -312,3 +312,24 @@ test("List loading skeletons keep table headers visible", async ({ page }) => {
   release?.()
   await expect(page.getByRole("table")).toContainText("暂无评测集")
 })
+
+test("Visiting model settings first does not break the analysis model list", async ({
+  page,
+}) => {
+  await mockAnalysis(page)
+  await page.route("**/api/v1/settings/providers", (route) =>
+    route.fulfill({ json: { items: [] } }),
+  )
+  const errors: string[] = []
+  page.on("pageerror", (e) => errors.push(e.message))
+  await page.goto("/settings?tab=models")
+  await expect(page.getByRole("tab", { selected: true })).toBeVisible()
+  // Client-side navigation keeps the query cache, which is where the bug lived.
+  await page.evaluate((url) => {
+    window.history.pushState({}, "", url)
+    window.dispatchEvent(new PopStateEvent("popstate"))
+  }, `/viral-samples/${ids.sample}`)
+  await page.getByRole("button", { name: "分析结构", exact: true }).click()
+  await expect(page.getByRole("radio", { name: /未启用模型/ })).toBeDisabled()
+  expect(errors).toEqual([])
+})
